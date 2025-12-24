@@ -1,11 +1,17 @@
 import type { Driver } from 'neo4j-driver';
 import { Logger } from '../logging/Logger.js';
 
+export interface PropertyInfo {
+  name: string;
+  types: string[]; // Array of possible types (e.g., ["String"] or ["Integer", "Long"])
+}
+
 export interface GraphSchema {
   nodeLabels: string[];
   relationshipTypes: string[];
-  nodeProperties: Record<string, string[]>; // label -> property names
-  relationshipProperties: Record<string, string[]>; // relationship type -> property names
+  nodeProperties: Record<string, string[]>; // label -> property names (kept for internal use)
+  relationshipProperties: Record<string, string[]>; // relationship type -> property names (kept for internal use)
+  allProperties: PropertyInfo[]; // All unique properties with their types
 }
 
 interface SchemaCache {
@@ -70,18 +76,34 @@ export async function introspectSchema(
       record.get('relationshipType') as string
     );
 
-    // Get node properties by label
+    // Get node properties by label (with types)
     const nodePropsResult = await session.run(`
       CALL db.schema.nodeTypeProperties()
       YIELD nodeType, propertyName, propertyTypes
-      RETURN nodeType, collect(DISTINCT propertyName) as properties
-      ORDER BY nodeType
+      RETURN nodeType, propertyName, propertyTypes
+      ORDER BY nodeType, propertyName
     `);
     
     const nodeProperties: Record<string, string[]> = {};
+    const propertyTypeMap = new Map<string, Set<string>>(); // property name -> set of types
+    
     for (const record of nodePropsResult.records) {
       const nodeType = record.get('nodeType') as string;
-      const properties = record.get('properties') as string[];
+      const propertyName = record.get('propertyName') as string;
+      const propertyTypes = record.get('propertyTypes') as string[] | null;
+      
+      // Collect property types
+      if (propertyName) {
+        if (!propertyTypeMap.has(propertyName)) {
+          propertyTypeMap.set(propertyName, new Set());
+        }
+        if (propertyTypes && Array.isArray(propertyTypes)) {
+          propertyTypes.forEach((type: string) => {
+            propertyTypeMap.get(propertyName)?.add(type);
+          });
+        }
+      }
+      
       // nodeType format is like ":`Label1`:`Label2`" or just ":`Label`"
       // Extract labels (remove backticks and colons)
       const labels = nodeType
@@ -94,38 +116,64 @@ export async function introspectSchema(
           nodeProperties[label] = [];
         }
         // Merge properties, avoiding duplicates
-        for (const prop of properties) {
-          if (!nodeProperties[label].includes(prop)) {
-            nodeProperties[label].push(prop);
-          }
+        if (propertyName && !nodeProperties[label].includes(propertyName)) {
+          nodeProperties[label].push(propertyName);
         }
       }
     }
 
-    // Get relationship properties by type
+    // Get relationship properties by type (with types)
     const relPropsResult = await session.run(`
       CALL db.schema.relTypeProperties()
       YIELD relType, propertyName, propertyTypes
-      RETURN relType, collect(DISTINCT propertyName) as properties
-      ORDER BY relType
+      RETURN relType, propertyName, propertyTypes
+      ORDER BY relType, propertyName
     `);
     
     const relationshipProperties: Record<string, string[]> = {};
     for (const record of relPropsResult.records) {
       const relType = record.get('relType') as string;
-      const properties = record.get('properties') as string[];
+      const propertyName = record.get('propertyName') as string;
+      const propertyTypes = record.get('propertyTypes') as string[] | null;
+      
+      // Collect property types
+      if (propertyName) {
+        if (!propertyTypeMap.has(propertyName)) {
+          propertyTypeMap.set(propertyName, new Set());
+        }
+        if (propertyTypes && Array.isArray(propertyTypes)) {
+          propertyTypes.forEach((type: string) => {
+            propertyTypeMap.get(propertyName)?.add(type);
+          });
+        }
+      }
+      
       // relType format is like ":`TYPE`", extract the type name
       const typeName = relType.replace(/[`:]/g, '').trim();
-      if (typeName) {
-        relationshipProperties[typeName] = properties;
+      if (typeName && propertyName) {
+        if (!relationshipProperties[typeName]) {
+          relationshipProperties[typeName] = [];
+        }
+        if (!relationshipProperties[typeName].includes(propertyName)) {
+          relationshipProperties[typeName].push(propertyName);
+        }
       }
     }
+    
+    // Build allProperties array with types
+    const allProperties: PropertyInfo[] = Array.from(propertyTypeMap.entries())
+      .map(([name, typesSet]) => ({
+        name,
+        types: Array.from(typesSet).sort(),
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
 
     const schema: GraphSchema = {
       nodeLabels,
       relationshipTypes,
       nodeProperties,
       relationshipProperties,
+      allProperties,
     };
 
     // Update cache
@@ -137,6 +185,7 @@ export async function introspectSchema(
     await logger.info('Schema introspection completed', {
       nodeLabelCount: nodeLabels.length,
       relationshipTypeCount: relationshipTypes.length,
+      propertyCount: allProperties.length,
     });
 
     return schema;
@@ -148,6 +197,7 @@ export async function introspectSchema(
       relationshipTypes: [],
       nodeProperties: {},
       relationshipProperties: {},
+      allProperties: [],
     };
   } finally {
     await session.close();

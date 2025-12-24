@@ -3,6 +3,7 @@ import { gql } from 'graphql-tag';
 export const typeDefs = gql`
   type Query {
     health: String!
+    graphSchema(forceRefresh: Boolean): GraphSchema!
   }
 
   type Mutation {
@@ -41,6 +42,27 @@ export const typeDefs = gql`
     RUNNING
     COMPLETED
     ERROR
+  }
+
+  type GraphSchema {
+    nodeLabels: [NodeLabel!]!
+    relationshipTypes: [RelationshipType!]!
+    allProperties: [Property!]!
+  }
+
+  type NodeLabel {
+    name: String!
+    count: Int!
+  }
+
+  type RelationshipType {
+    name: String!
+    count: Int!
+  }
+
+  type Property {
+    name: String!
+    type: String!
   }
 `;
 
