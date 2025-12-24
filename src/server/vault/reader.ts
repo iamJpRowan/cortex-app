@@ -65,7 +65,6 @@ export class VaultReader {
 
       for (const entry of entries) {
         const entryPath = path.join(directory, entry.name);
-        const fullEntryPath = path.join(this.vaultPath, entryPath);
 
         if (entry.isDirectory()) {
           const subFiles = await this.listFiles(entryPath, extension);
@@ -95,6 +94,10 @@ export class VaultReader {
     try {
       const frontmatterText = match[1];
       const body = match[2];
+
+      if (!frontmatterText || !body) {
+        return { body: content };
+      }
 
       // Simple YAML parsing (basic key-value pairs)
       const frontmatter: Record<string, unknown> = {};

@@ -54,8 +54,7 @@ export class VaultWriter {
 
   async updateFile(
     filePath: string,
-    updater: (content: string) => string,
-    options?: { preserveFrontmatter?: boolean }
+    updater: (content: string) => string
   ): Promise<void> {
     try {
       const existing = await this.reader.readFile(filePath);
