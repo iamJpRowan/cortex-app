@@ -61,8 +61,16 @@ export async function sendMessage(
 
       await logger.info('Query executed', { recordCount: records.length });
 
-      // Format response
-      const response = formatQueryResponse(records);
+      // Generate conversational response from results using LLM
+      let response: string;
+      try {
+        response = await llmClient.generateResponseFromResults(message, records, cypherQuery);
+        await logger.info('Generated conversational response');
+      } catch (llmError) {
+        // Fallback to formatted response if LLM generation fails
+        await logger.warn('LLM response generation failed, using fallback', { error: llmError });
+        response = formatQueryResponse(records);
+      }
 
       return {
         response,

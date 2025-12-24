@@ -76,6 +76,16 @@ export class OllamaClient {
     return this.extractCypherQuery(response.content);
   }
 
+  async generateResponseFromResults(
+    originalQuestion: string,
+    queryResults: Record<string, unknown>[],
+    cypherQuery?: string
+  ): Promise<string> {
+    const prompt = this.buildResponsePrompt(originalQuestion, queryResults, cypherQuery);
+    const response = await this.generate(prompt);
+    return response.content.trim();
+  }
+
   private buildCypherPrompt(query: string, schema?: string): string {
     return `You are a Cypher query generator for Neo4j graph database.
 
@@ -101,6 +111,34 @@ Example valid queries:
 - "all notes": MATCH (n:Note) RETURN n LIMIT 100
 
 Cypher query:`;
+  }
+
+  private buildResponsePrompt(
+    originalQuestion: string,
+    queryResults: Record<string, unknown>[],
+    cypherQuery?: string
+  ): string {
+    const resultsJson = JSON.stringify(queryResults, null, 2);
+    const resultCount = queryResults.length;
+
+    return `You are a helpful assistant that explains graph database query results in a conversational, natural way.
+
+The user asked: "${originalQuestion}"
+
+${cypherQuery ? `The query executed was: ${cypherQuery}\n\n` : ''}The query returned ${resultCount} ${resultCount === 1 ? 'result' : 'results'}:
+
+${resultsJson}
+
+Your task:
+- Provide a clear, conversational response that answers the user's question
+- Summarize the key findings from the results
+- If there are many results, provide a summary rather than listing everything
+- If there are no results, explain that in a helpful way
+- Be concise but informative
+- Don't just repeat the JSON - interpret and explain what it means
+- Use natural language, not technical jargon unless necessary
+
+Response:`;
   }
 
   private extractCypherQuery(response: string): string {
