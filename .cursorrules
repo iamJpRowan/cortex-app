@@ -1,0 +1,13 @@
+# Cursor AI Rules
+
+For detailed collaboration patterns and development practices, see:
+- **[AGENTS.md](docs/AGENTS.md)** - How to work with developers (conversation workflow, pacing, when to pause)
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** - Development guardrails and technical constraints
+
+## Quick Preferences
+
+- Follow the structured conversation workflow: Goal → Steps → Propose → Discuss → Implement → Test → Commit
+- Favor concise explanations; provide detail only when asked
+- Pause and clarify when requirements are ambiguous - never assume
+- Stop immediately if agreed approach won't work; explain and ask how to proceed
+- Follow conventions from [DEVELOPMENT.md](docs/DEVELOPMENT.md) for all file operations
