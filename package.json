@@ -1,0 +1,54 @@
+{
+  "name": "cortex-app",
+  "version": "0.1.0",
+  "description": "AI-powered personal knowledge management system",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "dev:server": "tsx watch src/server/index.ts",
+    "dev:client": "vite",
+    "build": "npm run build:server && npm run build:client",
+    "build:server": "tsc --project tsconfig.server.json",
+    "build:client": "vite build",
+    "rebuild-graph": "tsx src/server/scripts/rebuild-graph.ts",
+    "type-check": "tsc --noEmit",
+    "test": "vitest",
+    "test:watch": "vitest --watch"
+  },
+  "keywords": [
+    "knowledge-management",
+    "graph-database",
+    "ai",
+    "obsidian"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@apollo/client": "^3.9.0",
+    "@apollo/server": "^4.10.0",
+    "clsx": "^2.1.0",
+    "dotenv": "^17.2.3",
+    "graphql": "^16.8.1",
+    "graphql-tag": "^2.12.6",
+    "neo4j-driver": "^5.18.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^6.22.0",
+    "tailwind-merge": "^2.2.0",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "@types/react": "^18.2.48",
+    "@types/react-dom": "^18.2.18",
+    "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.4.17",
+    "concurrently": "^8.2.2",
+    "postcss": "^8.4.33",
+    "tailwindcss": "^3.4.1",
+    "tsx": "^4.7.1",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.11",
+    "vitest": "^1.2.1"
+  }
+}

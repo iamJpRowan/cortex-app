@@ -2,7 +2,51 @@
 
 ## Quick Start
 
-[TODO: Add actual setup commands once project is initialized]
+### Prerequisites
+
+- Node.js 18+
+- Neo4j 5.x running locally
+- Ollama installed and running (for local LLM)
+
+### Setup
+
+1. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+2. **Configure environment:**
+   ```bash
+   cp env.template .env
+   ```
+   
+   Edit `.env` and set:
+   - `NEO4J_PASSWORD`: Your Neo4j password
+   - `VAULT_PATH`: Path to your Obsidian vault
+   - `LLM_ENDPOINT`: Ollama endpoint (default: http://localhost:11434)
+
+3. **Start development servers:**
+   ```bash
+   npm run dev
+   ```
+   
+   This starts:
+   - GraphQL server at http://localhost:4000
+   - React dev server at http://localhost:3000
+
+4. **Initialize shadcn/ui components (optional):**
+   ```bash
+   npx shadcn-ui@latest add button
+   ```
+   
+   Add components as needed for your UI.
+
+### First Run
+
+1. Ensure Neo4j is running: `neo4j start` (or via Docker)
+2. Ensure Ollama is running: `ollama serve`
+3. Run `npm run dev`
+4. Open http://localhost:3000 in your browser
 
 ---
 
