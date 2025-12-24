@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useMutation, useSubscription } from '@apollo/client';
 import { Sparkles, Database, MessageSquare, ChevronDown, Copy, Check } from 'lucide-react';
 import { SEND_MESSAGE, CHAT_STEP_UPDATES } from './ChatInterface.queries';
@@ -24,12 +24,18 @@ export default function ChatInterface() {
   const [copiedQueryId, setCopiedQueryId] = useState<string | null>(null);
   const [activeRequestId, setActiveRequestId] = useState<string | null>(null);
   const [sendMessage, { error: mutationError }] = useMutation(SEND_MESSAGE);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Subscribe to step updates for the active request
   const { data: subscriptionData } = useSubscription(CHAT_STEP_UPDATES, {
     variables: { requestId: activeRequestId || '' },
     skip: !activeRequestId,
   });
+
+  // Auto-scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, subscriptionData]);
 
   // Update message steps when subscription data arrives
   useEffect(() => {
@@ -380,6 +386,8 @@ export default function ChatInterface() {
             </div>
           );
         })}
+        {/* Scroll anchor */}
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Input */}
