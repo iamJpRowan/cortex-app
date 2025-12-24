@@ -1,4 +1,5 @@
 import { getNeo4jDriver } from '../neo4j/connection.js';
+import { introspectSchema, formatSchemaForPrompt } from '../neo4j/schema.js';
 import { createLLMClient } from '../llm/index.js';
 import type { AppConfig } from '../../shared/types/Config.js';
 import { Logger } from '../logging/Logger.js';
@@ -34,8 +35,17 @@ export async function sendMessage(
     const session = driver.session();
 
     try {
-      // Generate Cypher query from natural language
-      const cypherQuery = await llmClient.generateCypher(message);
+      // Introspect schema to provide context for query generation
+      const schema = await introspectSchema(driver, logger);
+      const schemaString = formatSchemaForPrompt(schema);
+      
+      await logger.debug('Using schema for query generation', {
+        nodeLabelCount: schema.nodeLabels.length,
+        relationshipTypeCount: schema.relationshipTypes.length,
+      });
+
+      // Generate Cypher query from natural language with schema context
+      const cypherQuery = await llmClient.generateCypher(message, schemaString);
       await logger.info('Generated Cypher query', { cypherQuery });
 
       // Basic validation: ensure query is not empty and looks like Cypher

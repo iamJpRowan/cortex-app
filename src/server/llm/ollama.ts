@@ -89,7 +89,7 @@ export class OllamaClient {
   private buildCypherPrompt(query: string, schema?: string): string {
     return `You are a Cypher query generator for Neo4j graph database.
 
-${schema ? `Current graph schema:\n${schema}\n` : ''}
+${schema ? `Current graph schema:\n${schema}\n\nIMPORTANT: Only use node labels, relationship types, and properties that exist in the schema above. Do not invent labels or properties that are not listed.` : 'WARNING: No schema information available. Use generic queries and be cautious about label/property names.'}
 
 Convert the following natural language query into a valid Cypher query:
 "${query}"
@@ -98,6 +98,7 @@ CRITICAL RULES:
 - Return ONLY the Cypher query, no explanations, no markdown, no code blocks
 - Use proper Neo4j Cypher syntax (version 5.x)
 - Always include a RETURN clause
+${schema ? '- Use ONLY the node labels and relationship types from the schema above' : ''}
 - Use MATCH to find nodes: MATCH (n:Label) WHERE n.property = 'value' RETURN n
 - Use WHERE for filtering: MATCH (n) WHERE n.name CONTAINS 'text' RETURN n
 - For "all nodes" queries: MATCH (n) RETURN n LIMIT 100
