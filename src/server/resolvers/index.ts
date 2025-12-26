@@ -4,6 +4,17 @@ import { pubsub } from '../pubsub.js';
 import type { ChatStep } from '../../shared/types/ChatStep.js';
 import { getNeo4jDriver } from '../neo4j/connection.js';
 import { introspectSchema } from '../neo4j/schema.js';
+import {
+  listConversations,
+  getConversation,
+  renameConversation,
+  archiveConversation,
+  unarchiveConversation,
+  deleteConversation,
+  pinConversation,
+  unpinConversation,
+  createOrUpdateConversation,
+} from './conversations.js';
 
 async function getGraphSchema(context: Context, forceRefresh = false) {
   const { logger } = context;
@@ -80,6 +91,8 @@ export const resolvers = {
     health: () => 'OK',
     graphSchema: (_parent: unknown, args: { forceRefresh?: boolean }, context: Context) => 
       getGraphSchema(context, args.forceRefresh || false),
+    conversations: listConversations,
+    conversation: getConversation,
   },
   Mutation: {
     sendMessage: (
@@ -87,6 +100,13 @@ export const resolvers = {
       args: { message: string; requestId?: string },
       context: Context
     ) => sendMessage(_parent, args, context),
+    createOrUpdateConversation,
+    renameConversation,
+    archiveConversation,
+    unarchiveConversation,
+    deleteConversation,
+    pinConversation,
+    unpinConversation,
   },
   Subscription: {
     chatStepUpdates: {

@@ -3,6 +3,8 @@ import { useMutation, useSubscription } from '@apollo/client';
 import { Sparkles, Database, MessageSquare, ChevronDown, Copy, Check } from 'lucide-react';
 import { SEND_MESSAGE, CHAT_STEP_UPDATES } from './ChatInterface.queries';
 import type { ChatStep } from '../../../shared/types/ChatStep';
+import { useConversations } from '../../contexts/ConversationContext';
+import type { ConversationMessage } from '../../../shared/types/Conversation';
 
 interface Message {
   id: string;
@@ -14,15 +16,103 @@ interface Message {
 }
 
 export default function ChatInterface() {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const {
+    conversations,
+    activeConversationId,
+    setActiveConversationId,
+    createConversation,
+    updateDraft,
+    saveDraft,
+    addMessage,
+    updateConversation,
+    loadConversation,
+    processingConversationIds,
+    setProcessing,
+  } = useConversations();
+  
+  // Check if current conversation is processing
+  const isProcessing = activeConversationId ? processingConversationIds.has(activeConversationId) : false;
+
+  const activeConversation = activeConversationId ? conversations.get(activeConversationId) : null;
+
+  const [input, setInput] = useState(activeConversation?.draft || '');
   const [expandedQueries, setExpandedQueries] = useState<Set<string>>(new Set());
-  const [expandedResults, setExpandedResults] = useState<Set<string>>(new Set());
   const [copiedQueryId, setCopiedQueryId] = useState<string | null>(null);
   const [activeRequestId, setActiveRequestId] = useState<string | null>(null);
+
+  // Derive messages from active conversation
+  // Map requestId from activeRequestId for the last assistant message
+  const messages: Message[] = activeConversation
+    ? activeConversation.messages.map((msg: ConversationMessage, idx: number) => {
+        // If this is the last assistant message and we have an active request, use that requestId
+        const isLastAssistant = msg.role === 'assistant' && 
+          idx === activeConversation.messages.length - 1 && 
+          activeRequestId;
+        return {
+          id: `${activeConversationId}_${idx}`,
+          role: msg.role,
+          content: msg.content,
+          timestamp: new Date(msg.timestamp),
+          steps: msg.steps || [], // Preserve steps from conversation
+          requestId: isLastAssistant ? activeRequestId : undefined,
+        };
+      })
+    : [];
+  const [contextNodes, setContextNodes] = useState<Array<{ id: string; labels?: string[]; properties?: Record<string, unknown> }>>([]);
   const [sendMessage, { error: mutationError }] = useMutation(SEND_MESSAGE);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const prevInputRef = useRef<string>('');
+  // Map requestId to message index for subscription updates
+  const requestIdToMessageIndex = useRef<Map<string, number>>(new Map());
+
+  // Load conversation when switching (only when conversation ID changes)
+  useEffect(() => {
+    if (activeConversationId) {
+      const conv = conversations.get(activeConversationId);
+      if (!conv || conv.messages.length === 0) {
+        // Load full conversation if not loaded or empty
+        loadConversation(activeConversationId);
+      }
+      // Update input from draft only when switching conversations
+      setInput(conv?.draft || '');
+    } else {
+      setInput('');
+    }
+    setContextNodes([]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeConversationId]); // Only depend on activeConversationId, not loadConversation or conversations
+
+  // Create conversation if none exists and user starts typing (only when input changes from empty to non-empty)
+  useEffect(() => {
+    const wasEmpty = !prevInputRef.current.trim();
+    const isEmpty = !input.trim();
+    prevInputRef.current = input;
+
+    if (!activeConversationId && wasEmpty && !isEmpty) {
+      const newId = createConversation();
+      setActiveConversationId(newId);
+    }
+  }, [input, activeConversationId, createConversation, setActiveConversationId]);
+
+  // Save draft as user types (but don't reset input when draft updates)
+  useEffect(() => {
+    if (activeConversationId) {
+      const conv = conversations.get(activeConversationId);
+      // Only update draft if input differs from what's stored
+      // This prevents loops - we update draft when user types, but don't reset input when draft updates
+      if (input !== (conv?.draft || '')) {
+        updateDraft(activeConversationId, input);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [input, activeConversationId, updateDraft]); // Don't depend on activeConversation to avoid loops
+
+  // Save draft on blur
+  const handleInputBlur = () => {
+    if (activeConversationId) {
+      saveDraft(activeConversationId);
+    }
+  };
 
   // Subscribe to step updates for the active request
   const { data: subscriptionData } = useSubscription(CHAT_STEP_UPDATES, {
@@ -35,16 +125,21 @@ export default function ChatInterface() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, subscriptionData]);
 
-  // Update message steps when subscription data arrives
+  // Update message steps in context when subscription data arrives
   useEffect(() => {
-    if (subscriptionData?.chatStepUpdates) {
+    if (subscriptionData?.chatStepUpdates && activeConversationId) {
       const { requestId, step } = subscriptionData.chatStepUpdates;
       
-      setMessages((prev) =>
-        prev.map((msg) => {
-          if (msg.requestId === requestId) {
-            const currentSteps = msg.steps || [];
-            const stepIndex = currentSteps.findIndex((s) => s.id === step.id);
+      
+      // Find the assistant message using requestId mapping
+      const conv = conversations.get(activeConversationId);
+      if (conv) {
+        const messageIndex = requestIdToMessageIndex.current.get(requestId);
+        if (messageIndex !== undefined && messageIndex < conv.messages.length) {
+          const assistantMsg = conv.messages[messageIndex];
+          if (assistantMsg && assistantMsg.role === 'assistant') {
+            const currentSteps = assistantMsg.steps || [];
+            const stepIndex = currentSteps.findIndex((s: ChatStep) => s.id === step.id);
             
             let updatedSteps: ChatStep[];
             if (stepIndex >= 0) {
@@ -56,89 +151,195 @@ export default function ChatInterface() {
               updatedSteps = [...currentSteps, step];
             }
             
-            return {
-              ...msg,
+            
+            // Update the message in context
+            const updatedMessages = [...conv.messages];
+            updatedMessages[messageIndex] = {
+              ...assistantMsg,
               steps: updatedSteps,
+              role: 'assistant' as const,
             };
+            
+            updateConversation(activeConversationId, { messages: updatedMessages });
           }
-          return msg;
-        })
-      );
+        }
+      }
     }
-  }, [subscriptionData]);
+  }, [subscriptionData, activeConversationId, conversations, updateConversation]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isLoading) return;
+    if (!input.trim() || isProcessing) return;
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: input,
-      timestamp: new Date(),
-    };
+    // Ensure we have a conversation
+    let currentConversationId = activeConversationId;
+    if (!currentConversationId) {
+      currentConversationId = createConversation();
+      setActiveConversationId(currentConversationId);
+    }
+
+    // Clear draft when sending
+    if (currentConversationId) {
+      updateDraft(currentConversationId, '');
+    }
 
     // Generate requestId on client so we can subscribe immediately
     const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    setMessages((prev) => [...prev, userMessage]);
-    setInput('');
-    setIsLoading(true);
+    // Add user message to context immediately
+    const userMsg: ConversationMessage = {
+      role: 'user',
+      content: input,
+      timestamp: new Date().toISOString(),
+    };
+    addMessage(currentConversationId, userMsg);
 
-    // Create placeholder assistant message with requestId
-    const placeholderMessage: Message = {
-      id: (Date.now() + 1).toString(),
+    // Create placeholder assistant message in context
+    const conv = conversations.get(currentConversationId);
+    const assistantMsgIndex = (conv?.messages.length || 0); // Index after adding user message
+    const placeholderAssistantMsg: ConversationMessage = {
       role: 'assistant',
       content: '',
-      timestamp: new Date(),
+      timestamp: new Date().toISOString(),
       steps: [],
-      requestId,
     };
-    setMessages((prev) => [...prev, placeholderMessage]);
+    addMessage(currentConversationId, placeholderAssistantMsg);
+    
+    // Track requestId -> message index mapping for subscription updates
+    requestIdToMessageIndex.current.set(requestId, assistantMsgIndex);
+
+    setInput('');
+    
+    // Mark conversation as processing
+    if (currentConversationId) {
+      setProcessing(currentConversationId, true);
+    }
 
     // Start subscription immediately BEFORE sending mutation
     setActiveRequestId(requestId);
 
     try {
+      // Build conversation history from active conversation messages
+      const conv = conversations.get(currentConversationId);
+      const history = (conv?.messages || [])
+        .filter((msg: ConversationMessage) => msg.content) // Only messages with content
+        .slice(0, -2) // Exclude the two messages we just added
+        .map((msg: ConversationMessage) => {
+          const queryStep = msg.steps?.find((s: ChatStep) => s.outputs?.query);
+          const resultsStep = msg.steps?.find((s: ChatStep) => s.outputs?.results);
+          return {
+            role: msg.role as 'user' | 'assistant',
+            content: msg.content,
+            timestamp: msg.timestamp,
+            query: queryStep?.outputs?.query,
+            results: resultsStep?.outputs?.results?.data as Record<string, unknown>[] | undefined,
+          };
+        })
+        .slice(-10); // Last 10 messages for context
+
       const result = await sendMessage({
         variables: { 
-          message: userMessage.content,
+          message: input,
           requestId,
+          conversationId: currentConversationId || undefined,
+          conversationHistory: history.length > 0 ? history : undefined,
+          contextNodes: contextNodes.length > 0 ? contextNodes : undefined,
         },
       });
 
       if (result.data?.sendMessage) {
         const response = result.data.sendMessage;
         
-        // Update the placeholder message with final response
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === placeholderMessage.id
-              ? {
-                  ...msg,
+        // Update conversation with server response
+        const finalConversationId = response.conversationId || currentConversationId;
+        if (finalConversationId && currentConversationId) {
+          // If server returned a different ID (new conversation), we'll handle migration
+          if (finalConversationId !== currentConversationId) {
+            // Server created new conversation - update our local one
+            const oldConv = conversations.get(currentConversationId);
+            if (oldConv) {
+              // For now, just update the synced status
+              // The server will have the new ID, but we keep using our local ID
+              updateConversation(currentConversationId, { synced: true });
+            }
+          } else {
+            // Same ID - just mark as synced
+            updateConversation(currentConversationId, { synced: true });
+          }
+        }
+
+        // Update the placeholder assistant message with final response
+        const targetConversationId = finalConversationId || currentConversationId;
+        if (targetConversationId) {
+          const conv = conversations.get(targetConversationId);
+          if (conv) {
+            const msgIndex = requestIdToMessageIndex.current.get(requestId);
+            if (msgIndex !== undefined && msgIndex < conv.messages.length) {
+              const assistantMsg = conv.messages[msgIndex];
+              if (assistantMsg && assistantMsg.role === 'assistant') {
+                const updatedMessages = [...conv.messages];
+                updatedMessages[msgIndex] = {
+                  ...assistantMsg,
                   content: response.response,
                   steps: response.steps || [],
+                  role: 'assistant' as const,
+                  // Attach query results if available (for backward compatibility)
+                  query: response.steps?.find((s: { outputs?: { query?: string } }) => s.outputs?.query)?.outputs?.query,
+                  results: response.steps?.find((s: { outputs?: { results?: unknown } }) => s.outputs?.results)?.outputs?.results?.data as Record<string, unknown>[] | undefined,
+                };
+                
+                updateConversation(targetConversationId, { messages: updatedMessages });
+                
+                // Update title if this is the first exchange
+                if (conv.messages.length === 2 && !conv.title) {
+                  const title = input.length > 50
+                    ? input.substring(0, 50).replace(/\s+\S*$/, '') + '...'
+                    : input;
+                  updateConversation(targetConversationId, { title: title || 'New Conversation' });
                 }
-              : msg
-          )
-        );
+              }
+            }
+          }
+        }
+        
+        // Clear context nodes after sending
+        setContextNodes([]);
+        
+        // Clean up requestId mapping after a delay
+        setTimeout(() => {
+          requestIdToMessageIndex.current.delete(requestId);
+        }, 5000);
       } else {
         throw new Error('No response from server');
       }
     } catch (error) {
       console.error('Error sending message:', error);
-      setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === placeholderMessage.id
-            ? {
-                ...msg,
-                content: error instanceof Error ? error.message : 'Sorry, I encountered an error processing your request.',
-              }
-            : msg
-        )
-      );
+      
+      // Update placeholder assistant message with error
+      const conv = conversations.get(currentConversationId);
+      if (conv) {
+        const msgIndex = requestIdToMessageIndex.current.get(requestId);
+        if (msgIndex !== undefined && msgIndex < conv.messages.length) {
+          const assistantMsg = conv.messages[msgIndex];
+          if (assistantMsg && assistantMsg.role === 'assistant') {
+            const updatedMessages = [...conv.messages];
+            updatedMessages[msgIndex] = {
+              ...assistantMsg,
+              content: error instanceof Error ? error.message : 'Sorry, I encountered an error processing your request.',
+              role: 'assistant' as const,
+            };
+            updateConversation(currentConversationId, { messages: updatedMessages });
+          }
+        }
+      }
+      
+      // Clean up requestId mapping
+      requestIdToMessageIndex.current.delete(requestId);
     } finally {
-      setIsLoading(false);
+      // Mark conversation as not processing
+      if (currentConversationId) {
+        setProcessing(currentConversationId, false);
+      }
       // Clear active request after a delay to allow final updates
       setTimeout(() => setActiveRequestId(null), 2000);
     }
@@ -249,21 +450,26 @@ export default function ChatInterface() {
                         const isExpandable = stepHasQuery || stepHasResults || stepHasPlan || stepHasText || stepHasData;
                         
                         // Use step ID + requestId as unique key for expansion state
-                        const expansionKey = message.requestId ? `${message.requestId}-${step.id}` : null;
-                        const isExpanded = expansionKey && expandedQueries.has(expansionKey);
+                        // Fallback to message id if no requestId
+                        const expansionKey = message.requestId 
+                          ? `${message.requestId}-${step.id}` 
+                          : `${message.id}-${step.id}`;
+                        const isExpanded = expandedQueries.has(expansionKey);
 
                         return (
                           <div key={step.id} className="space-y-1">
                             {/* Clickable step row - no background, shimmer on text */}
                             <button
-                              onClick={() => {
-                                if (isExpandable && expansionKey) {
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                if (isExpandable) {
                                   toggleExpansion(setExpandedQueries, expansionKey);
                                 }
                               }}
-                              disabled={!isExpandable}
                               className={`w-full flex items-center gap-2 text-left transition-colors ${
-                                isExpandable ? 'hover:text-foreground cursor-pointer' : 'cursor-default'
+                                isExpandable ? 'hover:text-foreground cursor-pointer' : 'cursor-default opacity-50'
                               }`}
                             >
                               {/* Icon - no animation */}
@@ -398,7 +604,7 @@ export default function ChatInterface() {
                                 )}
 
                                 {/* Generic Data Output */}
-                                {stepHasData && outputs.data && (
+                                {stepHasData && outputs.data != null && (
                                   <div className="p-3 bg-muted/50 rounded text-sm border border-border">
                                     <p className="font-medium text-foreground mb-1">Data:</p>
                                     <pre className="text-xs bg-background/50 p-2 rounded overflow-x-auto">
@@ -435,13 +641,14 @@ export default function ChatInterface() {
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            onBlur={handleInputBlur}
             placeholder="Ask a question about your knowledge graph..."
             className="flex-1 px-4 py-2 border border-input rounded-md focus:outline-none focus:ring-2 focus:ring-ring"
-            disabled={isLoading}
+            disabled={isProcessing}
           />
           <button
             type="submit"
-            disabled={isLoading || !input.trim()}
+            disabled={isProcessing || !input.trim()}
             className="px-6 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Send

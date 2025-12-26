@@ -1,10 +1,23 @@
 import gql from 'graphql-tag';
 
 export const SEND_MESSAGE = gql`
-  mutation SendMessage($message: String!, $requestId: String) {
-    sendMessage(message: $message, requestId: $requestId) {
+  mutation SendMessage(
+    $message: String!
+    $requestId: String
+    $conversationId: String
+    $conversationHistory: [ConversationMessageInput!]
+    $contextNodes: [ContextNodeInput!]
+  ) {
+    sendMessage(
+      message: $message
+      requestId: $requestId
+      conversationId: $conversationId
+      conversationHistory: $conversationHistory
+      contextNodes: $contextNodes
+    ) {
       response
       requestId
+      conversationId
       steps {
         id
         name

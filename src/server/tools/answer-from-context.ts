@@ -56,7 +56,7 @@ export const answerFromContextTool: Tool = {
           .map(entry => ({
             question: entry.content,
             results: entry.results,
-            query: entry.cypherQuery,
+            query: entry.query,
           }));
 
         if (previousResults.length > 0) {

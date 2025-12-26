@@ -10,6 +10,15 @@ const httpLink = createHttpLink({
 const wsLink = new GraphQLWsLink(
   createClient({
     url: `ws://localhost:4000/graphql`,
+    shouldRetry: () => false, // Don't retry on connection failure
+    on: {
+      error: (error) => {
+        console.warn('WebSocket connection error:', error);
+      },
+      closed: () => {
+        console.warn('WebSocket connection closed');
+      },
+    },
   })
 );
 

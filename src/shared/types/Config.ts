@@ -23,5 +23,8 @@ export interface AppConfig {
   server: {
     port: number;
   };
+  storage: {
+    conversationsPath: string;
+  };
 }
 

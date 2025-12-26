@@ -7,6 +7,8 @@ import { pubsub } from '../pubsub.js';
 import type { ChatStep } from '../../shared/types/ChatStep.js';
 import { toolRegistry } from '../tools/index.js';
 import { ToolExecutor } from '../tools/executor.js';
+import type { ConversationMessage, ContextNode, Conversation } from '../../shared/types/Conversation.js';
+import { FileConversationStorage } from '../storage/conversations.js';
 
 export interface Context {
   logger: Logger;
@@ -15,19 +17,66 @@ export interface Context {
 
 export async function sendMessage(
   _parent: unknown,
-  args: { message: string; requestId?: string },
+  args: {
+    message: string;
+    requestId?: string;
+    conversationId?: string;
+    conversationHistory?: ConversationMessage[];
+    contextNodes?: ContextNode[];
+  },
   context: Context
 ): Promise<{ 
   response: string; 
   requestId: string;
+  conversationId: string;
   steps: ChatStep[];
 }> {
   const { logger, config } = context;
-  const { message, requestId: providedRequestId } = args;
+  const {
+    message,
+    requestId: providedRequestId,
+    conversationId: providedConversationId,
+    conversationHistory = [],
+    contextNodes = [],
+  } = args;
   const requestId = providedRequestId || `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const conversationId = providedConversationId || `conv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   const steps: ChatStep[] = [];
 
-  await logger.info('Chat message received', { message, requestId });
+  // Initialize conversation storage
+  const conversationStorage = new FileConversationStorage(config.storage.conversationsPath, logger);
+
+  // Load existing conversation or create new one
+  let conversation: Conversation | null = null;
+  if (providedConversationId) {
+    conversation = await conversationStorage.load(providedConversationId);
+  }
+
+  // If no conversation loaded, create new one
+  if (!conversation) {
+    conversation = {
+      id: conversationId,
+      messages: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      archived: false,
+      pinned: false,
+    };
+  }
+
+  // Merge provided history with loaded conversation messages
+  // Use provided history if available, otherwise use conversation messages
+  const effectiveHistory: ConversationMessage[] = conversationHistory.length > 0
+    ? conversationHistory
+    : conversation.messages;
+
+  await logger.info('Chat message received', {
+    message,
+    requestId,
+    conversationId,
+    historyLength: effectiveHistory.length,
+    contextNodesCount: contextNodes.length,
+  });
 
   try {
     let driver;
@@ -38,6 +87,7 @@ export async function sendMessage(
       return {
         response: 'Error: Neo4j database is not connected. Please ensure Neo4j is running and the connection settings in .env are correct.',
         requestId,
+        conversationId,
         steps: [
           {
             id: 'error',
@@ -77,8 +127,13 @@ export async function sendMessage(
         nodeLabelCount: schema.nodeLabels.length,
       });
 
-      // Get planning decision
-      const plan = await llmClient.plan(message, toolDescriptions, schemaString);
+      // Get planning decision with context
+      const plan = await llmClient.plan(
+        message,
+        toolDescriptions,
+        schemaString,
+        effectiveHistory.map(msg => ({ role: msg.role, content: msg.content }))
+      );
       const planningDuration = (Date.now() - planningStart) / 1000;
       
       await logger.info('Planning completed', {
@@ -165,6 +220,13 @@ export async function sendMessage(
             session,
             llmClient,
             requestId,
+            explicitContext: contextNodes.length > 0 ? { nodes: contextNodes } : undefined,
+            conversationHistory: effectiveHistory.map(msg => ({
+              role: msg.role,
+              content: msg.content,
+              results: msg.results,
+              query: msg.query,
+            })),
           };
           const { result, step } = await toolExecutor.executeTool(
             queryTool,
@@ -188,6 +250,13 @@ export async function sendMessage(
             session,
             llmClient,
             requestId,
+            explicitContext: contextNodes.length > 0 ? { nodes: contextNodes } : undefined,
+            conversationHistory: effectiveHistory.map(msg => ({
+              role: msg.role,
+              content: msg.content,
+              results: msg.results,
+              query: msg.query,
+            })),
           };
           const { result, step } = await toolExecutor.executeTool(
             contextTool,
@@ -267,9 +336,54 @@ export async function sendMessage(
         });
       }
 
+      // Build conversation message with results
+      const userMessage: ConversationMessage = {
+        role: 'user',
+        content: message,
+        timestamp: new Date().toISOString(),
+      };
+
+      const assistantMessage: ConversationMessage = {
+        role: 'assistant',
+        content: response,
+        timestamp: new Date().toISOString(),
+        steps: steps, // Store all steps with the message
+      };
+
+      // Attach query results to assistant message if available (for backward compatibility)
+      const queryStep = steps.find(s => s.outputs?.query);
+      const resultsStep = steps.find(s => s.outputs?.results);
+      if (queryStep?.outputs?.query) {
+        assistantMessage.query = queryStep.outputs.query;
+      }
+      if (resultsStep?.outputs?.results) {
+        assistantMessage.results = resultsStep.outputs.results.data as Record<string, unknown>[];
+      }
+
+      // Update conversation
+      conversation.messages.push(userMessage, assistantMessage);
+      conversation.updatedAt = new Date().toISOString();
+
+      // Generate title from first user message if not set
+      if (!conversation.title && conversation.messages.length === 2) {
+        // First exchange - generate title from first user message
+        const firstUserMessage = conversation.messages[0]?.content;
+        if (firstUserMessage) {
+          // Use first 50 characters, truncate at word boundary
+          const title = firstUserMessage.length > 50
+            ? firstUserMessage.substring(0, 50).replace(/\s+\S*$/, '') + '...'
+            : firstUserMessage;
+          conversation.title = title || 'New Conversation';
+        }
+      }
+
+      // Save conversation
+      await conversationStorage.save(conversation);
+
       return {
         response,
         requestId,
+        conversationId,
         steps,
       };
     } finally {
@@ -300,6 +414,7 @@ export async function sendMessage(
                    `- I misunderstood your question\n\n` +
                    `Please try rephrasing your question or be more specific about what you're looking for.`,
           requestId,
+          conversationId,
           steps: steps.length > 0 ? steps : [
             {
               id: 'error',
@@ -316,6 +431,7 @@ export async function sendMessage(
           response: `Database error: ${neo4jError.message || neo4jError.code}\n\n` +
                    `This might indicate an issue with the query or database connection.`,
           requestId,
+          conversationId,
           steps: steps.length > 0 ? steps : [
             {
               id: 'error',
@@ -333,6 +449,7 @@ export async function sendMessage(
       return {
         response: `Unable to connect to the AI service. Please ensure Ollama is running at ${config.llm.endpoint}`,
         requestId,
+        conversationId,
         steps: steps.length > 0 ? steps : [
           {
             id: 'error',
@@ -349,6 +466,7 @@ export async function sendMessage(
       response: `I encountered an error processing your request: ${errorMessage}\n\n` +
                `Please try rephrasing your question or check the server logs for more details.`,
       requestId,
+      conversationId,
       steps: steps.length > 0 ? steps : [
         {
           id: 'error',

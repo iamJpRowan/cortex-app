@@ -249,6 +249,64 @@ Build optimization, advanced caching, deployment complexity, monitoring tooling 
 
 ---
 
+## Chat & Tooling System
+
+### Overview
+
+The chat interface uses a **tooling architecture** where the LLM plans actions and executes tools based on context. This provides autonomy and flexibility while maintaining transparency about what actions are taken.
+
+### Architecture
+
+**Planning-First Approach:**
+1. **Planning Step**: LLM receives user message, conversation history, explicit context (e.g., @mentioned nodes), and available tools
+2. **Tool Selection**: LLM decides which tools to execute and with what parameters
+3. **Tool Execution**: Tools execute and produce structured outputs
+4. **Response Generation**: LLM generates final response using tool results
+
+**Tool Registry:**
+- Tools self-register at server startup
+- Each tool defines: name, description, parameters, and output artifacts
+- Planning prompts are dynamically generated from the tool registry
+- New tools can be added by creating a tool definition and registering it
+
+**Structured Step Outputs:**
+- Each tool execution creates a `ChatStep` with structured `outputs`
+- Outputs include: `query`, `results`, `text`, `plan`, `data`
+- UI renders based on step outputs, not hardcoded assumptions
+- This makes the system extensible—new tools define their outputs, UI adapts automatically
+
+**Context Awareness:**
+- **Conversation History**: Previous messages and their query results are passed to planning
+- **Explicit Context**: Nodes explicitly referenced (e.g., via @ mentions) are included without requiring a search
+- **Query Results**: Results from previous queries persist in conversation context
+
+**Conversation Persistence:**
+- Conversations are stored in OS-specific app data directories
+- Each conversation includes full message history with attached query results
+- Conversations can be loaded and continued across sessions
+- Storage path configurable via `CONVERSATIONS_PATH` environment variable
+
+### Why This Approach
+
+- **Autonomy**: LLM can choose actions based on context, not fixed workflows
+- **Extensibility**: New tools are automatically available to planning
+- **Transparency**: All tool executions are visible as steps with structured outputs
+- **Context-Aware**: Conversation history and explicit context enable smarter decisions
+- **No Hardcoding**: Avoids assumptions about data model that would need constant updates
+
+### Example Flow
+
+1. User: "What did I discuss with Sarah last month?"
+2. **Planning**: LLM sees conversation history, decides to use `execute_cypher_query` tool
+3. **Execution**: Tool generates Cypher query, executes it, returns results
+4. **Planning**: LLM sees results, decides to use `answer_from_context` tool
+5. **Execution**: Tool generates natural language response from query results
+6. **Response**: Final answer displayed to user
+
+If user had @mentioned Sarah's node, the planning step would have that node in explicit context, potentially allowing the LLM to answer directly or make a more targeted query.
+
+---
+
 ## Decision Framework
 
 When evaluating new technologies:

@@ -55,3 +55,5 @@ class ToolRegistry {
 // Singleton instance
 export const toolRegistry = new ToolRegistry();
 
+
+

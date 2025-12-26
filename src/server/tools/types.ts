@@ -22,7 +22,7 @@ export interface ToolContext {
     role: 'user' | 'assistant';
     content: string;
     results?: Record<string, unknown>[];
-    cypherQuery?: string;
+    query?: string; // Cypher query (renamed from cypherQuery for consistency)
   }>;
 }
 

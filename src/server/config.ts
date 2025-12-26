@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { AppConfig } from '../shared/types/Config.js';
 import { DEFAULT_CONFIG } from '../shared/constants/index.js';
+import { getDefaultConversationsPath } from './utils/paths.js';
 
 const envSchema = z.object({
   NEO4J_URI: z.string().default('bolt://localhost:7687'),
@@ -11,6 +12,7 @@ const envSchema = z.object({
   LLM_API_KEY: z.string().optional(),
   LLM_ENDPOINT: z.string().default('http://localhost:11434'),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
+  CONVERSATIONS_PATH: z.string().optional(),
 });
 
 export function loadConfig(): AppConfig {
@@ -41,6 +43,9 @@ export function loadConfig(): AppConfig {
     },
     server: {
       port: DEFAULT_CONFIG.server.port,
+    },
+    storage: {
+      conversationsPath: env.CONVERSATIONS_PATH || getDefaultConversationsPath(),
     },
   };
   } catch (error) {
