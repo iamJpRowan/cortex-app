@@ -10,8 +10,6 @@ interface Message {
   content: string;
   timestamp: Date;
   steps?: ChatStep[];
-  cypherQuery?: string;
-  resultCount?: number;
   requestId?: string;
 }
 
@@ -61,9 +59,6 @@ export default function ChatInterface() {
             return {
               ...msg,
               steps: updatedSteps,
-              // Update cypherQuery and resultCount from step data
-              cypherQuery: step.cypherQuery || msg.cypherQuery,
-              resultCount: step.resultCount !== undefined ? step.resultCount : msg.resultCount,
             };
           }
           return msg;
@@ -122,8 +117,6 @@ export default function ChatInterface() {
               ? {
                   ...msg,
                   content: response.response,
-                  cypherQuery: response.cypherQuery,
-                  resultCount: response.resultCount,
                   steps: response.steps || [],
                 }
               : msg
@@ -243,27 +236,29 @@ export default function ChatInterface() {
                         const isActive = step.status === 'RUNNING';
                         const isCompleted = step.status === 'COMPLETED';
                         const isError = step.status === 'ERROR';
-                        const isQueryStep = step.id === 'step_1';
-                        const isSearchStep = step.id === 'step_2';
-                        const stepHasQuery = step.cypherQuery || (isQueryStep && message.cypherQuery);
-                        const stepHasResults = step.resultCount !== undefined || (isSearchStep && message.resultCount !== undefined);
-                        const isExpandable = (isQueryStep && stepHasQuery) || (isSearchStep && stepHasResults);
-                        const isExpanded = message.requestId && (
-                          (isQueryStep && expandedQueries.has(message.requestId)) ||
-                          (isSearchStep && expandedResults.has(message.requestId))
-                        );
+                        
+                        // Determine what content this step has from outputs
+                        const outputs = step.outputs;
+                        const stepHasQuery = !!outputs?.query;
+                        const stepHasResults = !!outputs?.results;
+                        const stepHasPlan = !!outputs?.plan;
+                        const stepHasText = !!outputs?.text;
+                        const stepHasData = !!outputs?.data;
+                        
+                        // Step is expandable if it has any displayable outputs
+                        const isExpandable = stepHasQuery || stepHasResults || stepHasPlan || stepHasText || stepHasData;
+                        
+                        // Use step ID + requestId as unique key for expansion state
+                        const expansionKey = message.requestId ? `${message.requestId}-${step.id}` : null;
+                        const isExpanded = expansionKey && expandedQueries.has(expansionKey);
 
                         return (
                           <div key={step.id} className="space-y-1">
                             {/* Clickable step row - no background, shimmer on text */}
                             <button
                               onClick={() => {
-                                if (isExpandable && message.requestId) {
-                                  if (isQueryStep) {
-                                    toggleExpansion(setExpandedQueries, message.requestId);
-                                  } else if (isSearchStep) {
-                                    toggleExpansion(setExpandedResults, message.requestId);
-                                  }
+                                if (isExpandable && expansionKey) {
+                                  toggleExpansion(setExpandedQueries, expansionKey);
                                 }
                               }}
                               disabled={!isExpandable}
@@ -326,20 +321,43 @@ export default function ChatInterface() {
                               <p className="text-xs text-destructive ml-6">{step.error}</p>
                             )}
 
-                            {/* Expanded content - query or results */}
-                            {isExpanded && (
+                            {/* Expanded content - render based on step.outputs */}
+                            {isExpanded && outputs && (
                               <div className="ml-6 space-y-2">
-                                {/* Cypher Query */}
-                                {isQueryStep && stepHasQuery && (
+                                {/* Planning Result */}
+                                {stepHasPlan && outputs.plan && (
+                                  <div className="p-3 bg-muted/50 rounded text-sm border border-border space-y-2">
+                                    <div>
+                                      <p className="font-medium text-foreground mb-1">Tools chosen:</p>
+                                      <p className="text-muted-foreground">{outputs.plan.tools.join(', ')}</p>
+                                    </div>
+                                    {outputs.plan.reasoning && (
+                                      <div>
+                                        <p className="font-medium text-foreground mb-1">Reasoning:</p>
+                                        <p className="text-muted-foreground">{outputs.plan.reasoning}</p>
+                                      </div>
+                                    )}
+                                    {outputs.plan.parameters && Object.keys(outputs.plan.parameters).length > 0 && (
+                                      <div>
+                                        <p className="font-medium text-foreground mb-1">Parameters:</p>
+                                        <pre className="text-xs bg-background/50 p-2 rounded overflow-x-auto">
+                                          {JSON.stringify(outputs.plan.parameters, null, 2)}</pre>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+
+                                {/* Generated Query (output from query generation step) */}
+                                {stepHasQuery && outputs.query && (
                                   <div className="relative">
                                     <pre className="p-3 bg-muted/50 rounded text-xs overflow-x-auto border border-border">
-                                      <code>{step.cypherQuery || message.cypherQuery}</code>
+                                      <code>{outputs.query}</code>
                                     </pre>
                                     {message.requestId && (
                                       <button
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          copyQuery(step.cypherQuery || message.cypherQuery || '', message.requestId || '');
+                                          copyQuery(outputs.query || '', message.requestId || '');
                                         }}
                                         className="absolute top-2 right-2 flex items-center gap-1 px-2 py-1 text-xs text-muted-foreground hover:text-foreground bg-background/80 hover:bg-background rounded transition-colors"
                                       >
@@ -359,13 +377,33 @@ export default function ChatInterface() {
                                   </div>
                                 )}
 
-                                {/* Results Summary */}
-                                {isSearchStep && stepHasResults && (
+                                {/* Query Results (output from query execution step) */}
+                                {stepHasResults && outputs.results && (
                                   <div className="p-3 bg-muted/50 rounded text-sm border border-border">
                                     <p className="text-muted-foreground">
-                                      The query returned {step.resultCount ?? message.resultCount ?? 0}{' '}
-                                      {(step.resultCount ?? message.resultCount ?? 0) === 1 ? 'result' : 'results'} from the graph database.
+                                      The query returned {outputs.results.count ?? 0}{' '}
+                                      {(outputs.results.count ?? 0) === 1 ? 'result' : 'results'} from the graph database.
                                     </p>
+                                  </div>
+                                )}
+
+                                {/* Generated Text (output from response generation or context tool) */}
+                                {stepHasText && outputs.text && (
+                                  <div className="p-3 bg-muted/50 rounded text-sm border border-border">
+                                    <p className="font-medium text-foreground mb-1">Generated output:</p>
+                                    <pre className="text-xs whitespace-pre-wrap text-muted-foreground overflow-x-auto">
+                                      {outputs.text}
+                                    </pre>
+                                  </div>
+                                )}
+
+                                {/* Generic Data Output */}
+                                {stepHasData && outputs.data && (
+                                  <div className="p-3 bg-muted/50 rounded text-sm border border-border">
+                                    <p className="font-medium text-foreground mb-1">Data:</p>
+                                    <pre className="text-xs bg-background/50 p-2 rounded overflow-x-auto">
+                                      {JSON.stringify(outputs.data, null, 2)}
+                                    </pre>
                                   </div>
                                 )}
                               </div>

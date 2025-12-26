@@ -11,6 +11,7 @@ import { createNeo4jConnection, closeNeo4jConnection } from './neo4j/connection.
 import { Logger } from './logging/Logger.js';
 import { loadConfig } from './config.js';
 import { createWebSocketServer } from './ws-server.js';
+import { initializeTools } from './tools/index.js';
 
 async function startServer() {
   let config;
@@ -25,6 +26,10 @@ async function startServer() {
   }
 
   try {
+    // Initialize tool registry
+    initializeTools();
+    await logger.info('Tool registry initialized');
+
     // Initialize Neo4j connection (non-blocking - server will start even if this fails)
     try {
       await createNeo4jConnection(config.neo4j, logger);

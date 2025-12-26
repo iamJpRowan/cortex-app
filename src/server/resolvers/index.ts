@@ -105,5 +105,11 @@ export const resolvers = {
       },
     },
   },
+  // JSON scalar resolver - passes through any JSON-serializable value
+  JSON: {
+    __serialize: (value: unknown) => value,
+    __parseValue: (value: unknown) => value,
+    __parseLiteral: (ast: unknown) => ast,
+  },
 };
 

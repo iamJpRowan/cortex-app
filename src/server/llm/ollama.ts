@@ -86,6 +86,17 @@ export class OllamaClient {
     return response.content.trim();
   }
 
+  async plan(
+    message: string,
+    toolDescriptions: string,
+    schema?: string,
+    conversationHistory?: Array<{ role: 'user' | 'assistant'; content: string }>
+  ): Promise<{ tools: string[]; reasoning: string; parameters: Record<string, Record<string, unknown>> }> {
+    const prompt = this.buildPlanningPrompt(message, toolDescriptions, schema, conversationHistory);
+    const response = await this.generate(prompt);
+    return this.parsePlanningResponse(response.content);
+  }
+
   private buildCypherPrompt(query: string, schema?: string): string {
     return `You are a Cypher query generator for Neo4j graph database.
 
@@ -184,6 +195,99 @@ Response:`;
     
     // Fallback: return cleaned response
     return cleaned.trim();
+  }
+
+  private buildPlanningPrompt(
+    message: string,
+    toolDescriptions: string,
+    schema?: string,
+    conversationHistory?: Array<{ role: 'user' | 'assistant'; content: string }>
+  ): string {
+    const historySection = conversationHistory && conversationHistory.length > 0
+      ? `\n\nPrevious conversation:\n${conversationHistory.map((entry) => 
+          `${entry.role === 'user' ? 'User' : 'Assistant'}: ${entry.content}`
+        ).join('\n')}`
+      : '';
+
+    const schemaSection = schema ? `\n\nGraph schema:\n${schema}` : '';
+
+    return `You are a planning assistant for a graph database chat system. Based on the user's question and available tools, decide what actions to take.
+
+Available tools:
+${toolDescriptions}${schemaSection}${historySection}
+
+User question: "${message}"
+
+Your task:
+- Analyze the question and available context
+- Decide which tool(s) to use
+- If the question can be answered from context (previous results or explicit nodes), use answer_from_context
+- If you need to search the database, use execute_cypher_query
+- You can use multiple tools if needed
+
+Return ONLY valid JSON in this exact format:
+{
+  "tools": ["tool_name1", "tool_name2"],
+  "reasoning": "Brief explanation of why you chose these tools",
+  "parameters": {
+    "tool_name1": { "param1": "value1" },
+    "tool_name2": { "param2": "value2" }
+  }
+}
+
+Important:
+- "tools" must be an array of tool names from the available tools list
+- "parameters" must include parameters for each tool you selected
+- For execute_cypher_query, you don't need to provide the query in parameters (it will be generated separately)
+- For answer_from_context, include "message" parameter with the user's question
+- Return ONLY the JSON, no markdown, no explanations
+
+Planning decision:`;
+  }
+
+  private parsePlanningResponse(response: string): {
+    tools: string[];
+    reasoning: string;
+    parameters: Record<string, Record<string, unknown>>;
+  } {
+    // Try to extract JSON from response
+    let cleaned = response.trim();
+    
+    // Remove markdown code blocks if present
+    cleaned = cleaned.replace(/```json\s*/gi, '');
+    cleaned = cleaned.replace(/```\s*/g, '');
+    
+    // Try to find JSON object
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      try {
+        const parsed = JSON.parse(jsonMatch[0]);
+        return {
+          tools: Array.isArray(parsed.tools) ? parsed.tools : [],
+          reasoning: typeof parsed.reasoning === 'string' ? parsed.reasoning : '',
+          parameters: typeof parsed.parameters === 'object' && parsed.parameters !== null
+            ? parsed.parameters as Record<string, Record<string, unknown>>
+            : {},
+        };
+      } catch (error) {
+        // Fall through to default
+      }
+    }
+    
+    // Fallback: try to infer from response text
+    const tools: string[] = [];
+    if (cleaned.toLowerCase().includes('execute_cypher_query') || cleaned.toLowerCase().includes('query')) {
+      tools.push('execute_cypher_query');
+    }
+    if (cleaned.toLowerCase().includes('answer_from_context') || cleaned.toLowerCase().includes('context')) {
+      tools.push('answer_from_context');
+    }
+    
+    return {
+      tools: tools.length > 0 ? tools : ['execute_cypher_query'], // Default fallback
+      reasoning: cleaned.substring(0, 200),
+      parameters: {},
+    };
   }
 }
 

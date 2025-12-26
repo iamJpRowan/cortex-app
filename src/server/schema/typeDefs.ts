@@ -16,10 +16,8 @@ export const typeDefs = gql`
 
   type ChatResponse {
     response: String!
-    cypherQuery: String
     requestId: String!
     steps: [ChatStep!]!
-    resultCount: Int
   }
 
   type ChatStep {
@@ -27,10 +25,30 @@ export const typeDefs = gql`
     name: String!
     status: StepStatus!
     duration: Float
-    cypherQuery: String
-    resultCount: Int
     error: String
+    outputs: StepOutputs
   }
+
+  type StepOutputs {
+    query: String
+    results: QueryResults
+    text: String
+    plan: PlanResult
+    data: JSON
+  }
+
+  type QueryResults {
+    count: Int!
+    data: JSON
+  }
+
+  type PlanResult {
+    tools: [String!]!
+    reasoning: String!
+    parameters: JSON
+  }
+
+  scalar JSON
 
   type ChatStepUpdate {
     requestId: String!

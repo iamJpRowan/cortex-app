@@ -5,6 +5,8 @@ import type { AppConfig } from '../../shared/types/Config.js';
 import { Logger } from '../logging/Logger.js';
 import { pubsub } from '../pubsub.js';
 import type { ChatStep } from '../../shared/types/ChatStep.js';
+import { toolRegistry } from '../tools/index.js';
+import { ToolExecutor } from '../tools/executor.js';
 
 export interface Context {
   logger: Logger;
@@ -17,10 +19,8 @@ export async function sendMessage(
   context: Context
 ): Promise<{ 
   response: string; 
-  cypherQuery?: string;
   requestId: string;
   steps: ChatStep[];
-  resultCount?: number;
 }> {
   const { logger, config } = context;
   const { message, requestId: providedRequestId } = args;
@@ -37,12 +37,11 @@ export async function sendMessage(
       await logger.error('Neo4j not connected', { error });
       return {
         response: 'Error: Neo4j database is not connected. Please ensure Neo4j is running and the connection settings in .env are correct.',
-        cypherQuery: undefined,
         requestId,
         steps: [
           {
-            id: 'step_1',
-            name: 'Generating query',
+            id: 'error',
+            name: 'Error',
             status: 'ERROR',
             error: 'Neo4j not connected',
           },
@@ -54,163 +53,224 @@ export async function sendMessage(
     const session = driver.session();
 
     try {
-      // Step 1: Generate Cypher query
-      const step1Start = Date.now();
-      const step1: ChatStep = {
-        id: 'step_1',
-        name: 'Generating query',
+      // Step 1: Planning - decide what tools to use
+      const planningStart = Date.now();
+      const planningStep: ChatStep = {
+        id: 'planning',
+        name: 'Planning',
         status: 'RUNNING',
       };
-      steps.push(step1);
+      steps.push(planningStep);
       
       // Emit step update
       pubsub.publish(`step:${requestId}`, {
         requestId,
-        step: step1,
+        step: planningStep,
       });
 
       const schema = await introspectSchema(driver, logger);
       const schemaString = formatSchemaForPrompt(schema);
+      const toolDescriptions = toolRegistry.getToolDescriptions();
       
-      await logger.debug('Using schema for query generation', {
+      await logger.debug('Planning with tools and schema', {
+        toolCount: toolRegistry.getAll().length,
         nodeLabelCount: schema.nodeLabels.length,
-        relationshipTypeCount: schema.relationshipTypes.length,
       });
 
-      const cypherQuery = await llmClient.generateCypher(message, schemaString);
-      const step1Duration = (Date.now() - step1Start) / 1000;
+      // Get planning decision
+      const plan = await llmClient.plan(message, toolDescriptions, schemaString);
+      const planningDuration = (Date.now() - planningStart) / 1000;
       
-      await logger.info('Generated Cypher query', { cypherQuery });
+      await logger.info('Planning completed', {
+        tools: plan.tools,
+        reasoning: plan.reasoning,
+        requestId,
+      });
 
-      if (!cypherQuery || cypherQuery.trim().length === 0) {
-        throw new Error('Generated query is empty');
-      }
-      
-      if (!cypherQuery.match(/^\s*(MATCH|CREATE|MERGE|RETURN|CALL)/i)) {
-        await logger.warn('Generated query may not be valid Cypher', { cypherQuery: String(cypherQuery) });
-      }
-
-      const step1Completed: ChatStep = {
-        id: 'step_1',
-        name: 'Generating query',
+      const planningCompleted: ChatStep = {
+        id: 'planning',
+        name: 'Planning',
         status: 'COMPLETED',
-        duration: step1Duration,
-        cypherQuery,
+        duration: planningDuration,
+        outputs: {
+          plan: {
+            tools: plan.tools,
+            reasoning: plan.reasoning,
+            parameters: plan.parameters,
+          },
+        },
       };
-      steps[0] = step1Completed;
+      steps[0] = planningCompleted;
       
-      // Emit step update
       pubsub.publish(`step:${requestId}`, {
         requestId,
-        step: step1Completed,
+        step: planningCompleted,
       });
 
-      // Step 2: Execute query
-      const step2Start = Date.now();
-      const step2: ChatStep = {
-        id: 'step_2',
-        name: 'Searching database',
-        status: 'RUNNING',
-        cypherQuery,
-      };
-      steps.push(step2);
-      
-      // Emit step update
-      pubsub.publish(`step:${requestId}`, {
-        requestId,
-        step: step2,
-      });
+      // Validate plan
+      const validTools = plan.tools.filter(toolName => toolRegistry.has(toolName));
+      if (validTools.length === 0) {
+        await logger.warn('No valid tools in plan, defaulting to query', { plan, requestId });
+        validTools.push('execute_cypher_query');
+      }
 
-      const result = await session.run(cypherQuery);
-      const records = result.records.map((record) => {
-        const obj: Record<string, unknown> = {};
-        record.keys.forEach((key) => {
-          if (typeof key === 'string') {
-            obj[key] = record.get(key);
+      // Step 2: Execute tools based on plan
+      const toolExecutor = new ToolExecutor(logger, requestId);
+      let cypherQuery: string | undefined;
+      let records: Record<string, unknown>[] = [];
+      let contextAnswer: string | undefined;
+
+      // Generate query if needed (LLM step, not a tool)
+      if (validTools.includes('execute_cypher_query')) {
+        const queryStart = Date.now();
+        const queryStep: ChatStep = {
+          id: 'generate_query',
+          name: 'Generating query',
+          status: 'RUNNING',
+        };
+        steps.push(queryStep);
+        pubsub.publish(`step:${requestId}`, { requestId, step: queryStep });
+
+        cypherQuery = await llmClient.generateCypher(message, schemaString);
+        const queryDuration = (Date.now() - queryStart) / 1000;
+        
+        await logger.info('Generated Cypher query', { cypherQuery });
+
+        if (!cypherQuery || cypherQuery.trim().length === 0) {
+          throw new Error('Generated query is empty');
+        }
+        
+        if (!cypherQuery.match(/^\s*(MATCH|CREATE|MERGE|RETURN|CALL)/i)) {
+          await logger.warn('Generated query may not be valid Cypher', { cypherQuery: String(cypherQuery) });
+        }
+
+        const queryCompleted: ChatStep = {
+          id: 'generate_query',
+          name: 'Generating query',
+          status: 'COMPLETED',
+          duration: queryDuration,
+          outputs: {
+            query: cypherQuery,
+          },
+        };
+        steps[steps.length - 1] = queryCompleted;
+        pubsub.publish(`step:${requestId}`, { requestId, step: queryCompleted });
+
+        // Execute query using tool executor
+        const queryTool = toolRegistry.get('execute_cypher_query');
+        if (queryTool) {
+          const toolContext = {
+            logger,
+            driver,
+            session,
+            llmClient,
+            requestId,
+          };
+          const { result, step } = await toolExecutor.executeTool(
+            queryTool,
+            { query: cypherQuery },
+            toolContext
+          );
+          
+          steps.push(step);
+          
+          if (result.success && result.artifacts?.results) {
+            records = (result.artifacts.results.data as Record<string, unknown>[]) || [];
           }
-        });
-        return obj;
-      });
+        }
+      } else if (validTools.includes('answer_from_context')) {
+        // Execute answer_from_context tool
+        const contextTool = toolRegistry.get('answer_from_context');
+        if (contextTool) {
+          const toolContext = {
+            logger,
+            driver,
+            session,
+            llmClient,
+            requestId,
+          };
+          const { result, step } = await toolExecutor.executeTool(
+            contextTool,
+            { message },
+            toolContext
+          );
+          
+          steps.push(step);
+          
+          if (result.success && result.artifacts?.text) {
+            contextAnswer = result.artifacts.text;
+          }
+        }
+      }
 
-      const step2Duration = (Date.now() - step2Start) / 1000;
-      await logger.info('Query executed', { recordCount: records.length });
-
-      const step2Completed: ChatStep = {
-        id: 'step_2',
-        name: 'Searching database',
-        status: 'COMPLETED',
-        duration: step2Duration,
-        cypherQuery,
-        resultCount: records.length,
-      };
-      steps[1] = step2Completed;
-      
-      // Emit step update
-      pubsub.publish(`step:${requestId}`, {
-        requestId,
-        step: step2Completed,
-      });
-
-      // Step 3: Generate conversational response
-      const step3Start = Date.now();
-      const step3: ChatStep = {
-        id: 'step_3',
+      // Step 4: Generate conversational response
+      const responseStart = Date.now();
+      const responseStep: ChatStep = {
+        id: 'response',
         name: 'Generating response',
         status: 'RUNNING',
       };
-      steps.push(step3);
+      steps.push(responseStep);
       
-      // Emit step update
       pubsub.publish(`step:${requestId}`, {
         requestId,
-        step: step3,
+        step: responseStep,
       });
 
       let response: string;
       try {
-        response = await llmClient.generateResponseFromResults(message, records, cypherQuery);
-        const step3Duration = (Date.now() - step3Start) / 1000;
+        if (contextAnswer) {
+          // Use answer from context tool
+          response = contextAnswer;
+        } else {
+          // Use standard response generation with query results
+          response = await llmClient.generateResponseFromResults(message, records, cypherQuery);
+        }
+        
+        const responseDuration = (Date.now() - responseStart) / 1000;
         await logger.info('Generated conversational response');
 
-        const step3Completed: ChatStep = {
-          id: 'step_3',
+        const responseCompleted: ChatStep = {
+          id: 'response',
           name: 'Generating response',
           status: 'COMPLETED',
-          duration: step3Duration,
+          duration: responseDuration,
+          outputs: {
+            text: response,
+          },
         };
-        steps[2] = step3Completed;
+        steps[steps.length - 1] = responseCompleted;
         
-        // Emit step update
         pubsub.publish(`step:${requestId}`, {
           requestId,
-          step: step3Completed,
+          step: responseCompleted,
         });
       } catch (llmError) {
-        const step3Duration = (Date.now() - step3Start) / 1000;
+        const responseDuration = (Date.now() - responseStart) / 1000;
         await logger.warn('LLM response generation failed, using fallback', { error: llmError });
         response = formatQueryResponse(records);
 
-        const step3Completed: ChatStep = {
-          id: 'step_3',
+        const responseCompleted: ChatStep = {
+          id: 'response',
           name: 'Generating response',
           status: 'COMPLETED',
-          duration: step3Duration,
+          duration: responseDuration,
+          outputs: {
+            text: response,
+          },
         };
-        steps[2] = step3Completed;
+        steps[steps.length - 1] = responseCompleted;
         
-        // Emit step update
         pubsub.publish(`step:${requestId}`, {
           requestId,
-          step: step3Completed,
+          step: responseCompleted,
         });
       }
 
       return {
         response,
-        cypherQuery,
         requestId,
         steps,
-        resultCount: records.length,
       };
     } finally {
       await session.close();
@@ -239,12 +299,11 @@ export async function sendMessage(
                    `- The graph structure doesn't match what I expected\n` +
                    `- I misunderstood your question\n\n` +
                    `Please try rephrasing your question or be more specific about what you're looking for.`,
-          cypherQuery: undefined,
           requestId,
           steps: steps.length > 0 ? steps : [
             {
-              id: 'step_1',
-              name: 'Generating query',
+              id: 'error',
+              name: 'Error',
               status: 'ERROR',
               error: errorMessage,
             },
@@ -256,12 +315,11 @@ export async function sendMessage(
         return {
           response: `Database error: ${neo4jError.message || neo4jError.code}\n\n` +
                    `This might indicate an issue with the query or database connection.`,
-          cypherQuery: undefined,
           requestId,
           steps: steps.length > 0 ? steps : [
             {
-              id: 'step_2',
-              name: 'Searching database',
+              id: 'error',
+              name: 'Error',
               status: 'ERROR',
               error: errorMessage,
             },
@@ -274,12 +332,11 @@ export async function sendMessage(
     if (errorMessage.includes('Ollama') || errorMessage.includes('fetch')) {
       return {
         response: `Unable to connect to the AI service. Please ensure Ollama is running at ${config.llm.endpoint}`,
-        cypherQuery: undefined,
         requestId,
         steps: steps.length > 0 ? steps : [
           {
-            id: 'step_1',
-            name: 'Generating query',
+            id: 'error',
+            name: 'Error',
             status: 'ERROR',
             error: errorMessage,
           },
@@ -291,12 +348,11 @@ export async function sendMessage(
     return {
       response: `I encountered an error processing your request: ${errorMessage}\n\n` +
                `Please try rephrasing your question or check the server logs for more details.`,
-      cypherQuery: undefined,
       requestId,
       steps: steps.length > 0 ? steps : [
         {
-          id: 'step_1',
-          name: 'Processing',
+          id: 'error',
+          name: 'Error',
           status: 'ERROR',
           error: errorMessage,
         },

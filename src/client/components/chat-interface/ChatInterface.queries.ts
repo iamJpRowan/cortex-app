@@ -4,17 +4,27 @@ export const SEND_MESSAGE = gql`
   mutation SendMessage($message: String!, $requestId: String) {
     sendMessage(message: $message, requestId: $requestId) {
       response
-      cypherQuery
       requestId
-      resultCount
       steps {
         id
         name
         status
         duration
-        cypherQuery
-        resultCount
         error
+        outputs {
+          query
+          results {
+            count
+            data
+          }
+          text
+          plan {
+            tools
+            reasoning
+            parameters
+          }
+          data
+        }
       }
     }
   }
@@ -29,9 +39,21 @@ export const CHAT_STEP_UPDATES = gql`
         name
         status
         duration
-        cypherQuery
-        resultCount
         error
+        outputs {
+          query
+          results {
+            count
+            data
+          }
+          text
+          plan {
+            tools
+            reasoning
+            parameters
+          }
+          data
+        }
       }
     }
   }
