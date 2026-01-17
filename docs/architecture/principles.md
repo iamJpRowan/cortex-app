@@ -1,44 +1,6 @@
-# Architecture
+# Core Architectural Principles
 
-## Overview
-
-Cortex is a **native desktop application** built on Electron that provides a truly self-contained, local-first experience. The application manages Neo4j as a subprocess for graph database capabilities and connects to locally installed Ollama for AI processing, requiring no Docker containers or cloud services.
-
-The architecture follows **local-first data sovereignty** principles with an **ELT (Extract-Load-Transform)** approach where the embedded graph database serves as a disposable, intelligent index over your source data stored in open formats.
-
----
-
-## Application Structure
-
-### Native Desktop Architecture
-
-```
-Cortex Desktop App
-├── Main Process (Node.js/TypeScript)
-│   ├── Neo4j Server (subprocess)
-│   ├── Ollama Server (subprocess)
-│   ├── Filesystem Access (Obsidian Vault)
-│   ├── Application State Management
-│   └── IPC Handlers (API for renderer)
-│
-└── Renderer Process (Chromium/TypeScript)
-    ├── UI Layer (Vanilla JSX + Tailwind)
-    ├── Component System (No React)
-    └── IPC Client (calls main process)
-```
-
-**Key Characteristics:**
-- **Single packaged application**: Initial download ~500MB-1GB
-- **Minimal external dependencies**: Requires Ollama installed locally (one-time setup)
-- **Managed services**: Neo4j runs as subprocess, Ollama connects to local installation
-- **Direct access**: Main process has native filesystem and database access
-- **Secure by default**: Renderer process sandboxed, only accesses data via IPC
-
----
-
-## Core Architectural Principles
-
-### 1. Local-First Data Sovereignty
+## 1. Local-First Data Sovereignty
 
 **What it is:**
 All personal data is stored locally in open, portable formats on your filesystem. The embedded Neo4j database serves as a queryable index, not the authoritative source. Your actual data lives in Markdown files, JSON documents, and other universal formats in your Obsidian vault.
@@ -55,7 +17,7 @@ A journal entry about a significant life event is stored as a Markdown file in y
 
 ---
 
-### 2. Embedded Services Architecture
+## 2. Embedded Services Architecture
 
 **What it is:**
 Rather than requiring external services (Docker, cloud APIs, separate database servers), Cortex bundles everything needed to run:
@@ -78,7 +40,7 @@ User installs Ollama (`brew install ollama`) and downloads a model (`ollama pull
 
 ---
 
-### 3. ELT Architecture with Graph-Layer Transformation
+## 3. ELT Architecture with Graph-Layer Transformation
 
 **What it is:**
 Data flows through Extract → Load → Transform stages. Source data is extracted and loaded in its native format first, preserving complete fidelity. Transformation happens only when loading into the embedded graph. The graph is completely disposable and can be rebuilt from source data at any time.
@@ -95,7 +57,7 @@ Strava activity data is synced from the API and saved as JSON files in your vaul
 
 ---
 
-### 4. Flexible Storage with Unified Graph
+## 4. Flexible Storage with Unified Graph
 
 **What it is:**
 Not all data belongs in Markdown files. The system uses different storage formats based on content characteristics:
@@ -123,7 +85,7 @@ Not all data belongs in Markdown files. The system uses different storage format
 
 ---
 
-### 5. Source-Appropriate Data Flow
+## 5. Source-Appropriate Data Flow
 
 **What it is:**
 Different types of data have different authoritative sources and require different write paths:
@@ -148,7 +110,7 @@ Different types of data have different authoritative sources and require differe
 
 ---
 
-### 6. Adaptive Intelligence
+## 6. Adaptive Intelligence
 
 **What it is:**
 The system connects to locally installed Ollama for AI processing, with optional cloud API integration for complex queries. Intelligence capabilities evolve from simple queries to sophisticated agents:
@@ -178,7 +140,7 @@ Model selection is dynamic:
 
 ---
 
-### 7. Progressive Enhancement
+## 7. Progressive Enhancement
 
 **What it is:**
 Build foundational capabilities first, then add complexity incrementally. Each phase delivers immediate value. The system learns and improves both its data model and tooling continuously through AI assistance and user feedback.
@@ -195,80 +157,6 @@ Build foundational capabilities first, then add complexity incrementally. Each p
 - Phase 3: External data integrations
 - Phase 4: Autonomous agents that run on schedule
 - Each phase works independently and adds value
-
----
-
-## Technical Stack
-
-### Main Process (Backend)
-- **Runtime**: Node.js (bundled with Electron)
-- **Language**: TypeScript
-- **Database**: Neo4j Embedded (runs as library)
-- **AI Runtime**: Ollama (user-installed, app connects to local instance)
-- **Filesystem**: Direct access to Obsidian vault and application data
-
-### Renderer Process (Frontend)
-- **Runtime**: Chromium (bundled with Electron)
-- **Language**: TypeScript with JSX
-- **UI**: Vanilla JSX (no React) + Tailwind CSS
-- **Components**: Custom createElement function for JSX transformation
-- **State**: Driven by main process via IPC, minimal local UI state
-
-### Communication Layer
-- **IPC (Inter-Process Communication)**: Electron's built-in IPC for main ↔ renderer
-- **Pattern**: Renderer invokes main process functions, main process sends state updates
-- **Security**: Renderer is sandboxed, only accesses approved IPC channels
-
-### Data Layer
-- **Source Files**: Markdown (YAML frontmatter) + JSON/CSV for metrics
-- **Graph Index**: Neo4j embedded database
-- **Transformation**: Custom TypeScript logic for ELT pipeline
-- **Sync**: Bidirectional with external platforms (Strava, GitHub, etc.)
-
----
-
-## Process Architecture
-
-### Main Process Responsibilities
-
-**Service Management:**
-- Start/stop Neo4j subprocess on application launch/quit
-- Connect to locally installed Ollama
-- Restart services on crashes with error reporting
-
-**Data Operations:**
-- Read/write Obsidian vault files
-- Execute Neo4j Cypher queries
-- Transform data for graph loading (ELT)
-- Manage external API integrations
-
-**State Management:**
-- Single source of truth for application state
-- Notify renderer of state changes via IPC events
-- Handle user actions from renderer
-
-**AI Orchestration:**
-- Connect to local Ollama or cloud APIs
-- Manage model selection logic
-- Handle LLM → Cypher query generation
-- Execute autonomous agent tasks
-
-### Renderer Process Responsibilities
-
-**UI Rendering:**
-- Display data received from main process
-- Handle user interactions (clicks, inputs, navigation)
-- Render visualizations (graphs, timelines, maps)
-
-**User Input:**
-- Capture chat messages, commands, settings changes
-- Send requests to main process via IPC
-- Display loading states while main process works
-
-**Local UI State:**
-- Manage transient UI state (modals, dropdowns, scroll position)
-- Animation and transition states
-- Form input state before submission
 
 ---
 
@@ -295,67 +183,3 @@ Beyond operational architecture, Cortex embodies a vision for AI-augmented devel
 - Emphasize architectural decisions and tradeoffs
 - Let AI handle implementation details
 - System learns from each interaction to anticipate needs
-
----
-
-## Deployment Model
-
-### Distribution
-- **Package Format**: .app (macOS), .exe installer (Windows), .AppImage (Linux)
-- **Initial Download**: ~500MB-1GB (includes Neo4j server, app code)
-- **Installation**: Drag-and-drop or installer, minimal configuration
-- **Prerequisites**: Ollama must be installed separately (`brew install ollama`)
-- **Updates**: Download only changed components, not entire package
-
-### User Data Location
-- **macOS**: `~/Library/Application Support/Cortex/`
-- **Windows**: `%APPDATA%\Cortex\`
-- **Linux**: `~/.config/Cortex/`
-
-Contains:
-- Neo4j database files
-- Application settings and logs
-- Cached external data
-
-**Ollama Location (System-wide):**
-- **macOS**: `~/.ollama/models`
-- **Windows**: `%USERPROFILE%\.ollama\models`
-- **Linux**: `~/.ollama/models`
-
-Models shared across all applications using Ollama.
-
-### Vault Location
-- User selects Obsidian vault location on first launch
-- Application monitors vault for changes
-- Rebuilds graph index on structural changes
-
----
-
-## Security Model
-
-### Sandboxed Renderer
-The renderer process (UI) runs in a security sandbox:
-- Cannot access filesystem directly
-- Cannot execute system commands
-- Cannot make arbitrary network requests
-- Can only communicate via whitelisted IPC channels
-
-### Controlled IPC Surface
-Main process exposes specific, validated functions to renderer:
-```typescript
-// Only these approved functions are callable from UI
-ipcMain.handle('query-graph', async (_, cypher) => { ... })
-ipcMain.handle('read-file', async (_, filePath) => { ... })
-ipcMain.handle('write-file', async (_, filePath, content) => { ... })
-ipcMain.handle('ollama-query', async (_, prompt) => { ... })
-```
-
-### Data Isolation
-- Neo4j database only accessible from main process
-- Ollama only accessible through main process
-- Vault files validated before read/write operations
-- No direct exposure of sensitive data to renderer
-
----
-
-*This architecture is designed to evolve. As capabilities are proven through use, the system will adapt its structure to better serve the vision of transparent, local-first personal knowledge management.*
