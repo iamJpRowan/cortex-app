@@ -2,9 +2,37 @@
 
 ## Overview
 
-Cortex is built on a foundation of **local-first data sovereignty** with an **ELT (Extract-Load-Transform) architecture** where the graph database serves as a disposable, intelligent index over your source data. This approach ensures complete data ownership while enabling powerful AI-driven insights and automation.
+Cortex is a **native desktop application** built on Electron that provides a truly self-contained, local-first experience. The application manages Neo4j as a subprocess for graph database capabilities and connects to locally installed Ollama for AI processing, requiring no Docker containers or cloud services.
 
-The architecture is guided by nine core principles that work together to deliver the vision of transparent, privacy-first, user-controlled personal knowledge management.
+The architecture follows **local-first data sovereignty** principles with an **ELT (Extract-Load-Transform)** approach where the embedded graph database serves as a disposable, intelligent index over your source data stored in open formats.
+
+---
+
+## Application Structure
+
+### Native Desktop Architecture
+
+```
+Cortex Desktop App
+├── Main Process (Node.js/TypeScript)
+│   ├── Neo4j Server (subprocess)
+│   ├── Ollama Server (subprocess)
+│   ├── Filesystem Access (Obsidian Vault)
+│   ├── Application State Management
+│   └── IPC Handlers (API for renderer)
+│
+└── Renderer Process (Chromium/TypeScript)
+    ├── UI Layer (Vanilla JSX + Tailwind)
+    ├── Component System (No React)
+    └── IPC Client (calls main process)
+```
+
+**Key Characteristics:**
+- **Single packaged application**: Initial download ~500MB-1GB
+- **Minimal external dependencies**: Requires Ollama installed locally (one-time setup)
+- **Managed services**: Neo4j runs as subprocess, Ollama connects to local installation
+- **Direct access**: Main process has native filesystem and database access
+- **Secure by default**: Renderer process sandboxed, only accesses data via IPC
 
 ---
 
@@ -13,24 +41,47 @@ The architecture is guided by nine core principles that work together to deliver
 ### 1. Local-First Data Sovereignty
 
 **What it is:**
-All personal data is stored locally in open, portable formats. The graph database (Neo4j) serves as a queryable index, not the authoritative source of truth. Your actual data lives in Markdown files, JSON documents, and other universal formats on your local filesystem.
+All personal data is stored locally in open, portable formats on your filesystem. The embedded Neo4j database serves as a queryable index, not the authoritative source. Your actual data lives in Markdown files, JSON documents, and other universal formats in your Obsidian vault.
 
 **Why it matters:**
 - Complete ownership: your data never depends on a third-party service
-- Work offline whenever you want
+- Work offline always (no internet required after installation)
 - No vendor lock-in or proprietary formats
-- Privacy by default: data doesn't leave your machine unless you choose
+- Privacy by default: data never leaves your machine
 - Version control and backup on your own terms
 
 **Example:**
-A journal entry about a significant life event is stored as a Markdown file in your Obsidian vault. The graph database indexes it for connections and queries, but if you delete the graph entirely, you still have the complete journal entry with all its content and metadata.
+A journal entry about a significant life event is stored as a Markdown file in your Obsidian vault. The embedded Neo4j indexes it for connections and queries, but if you delete the graph entirely, you still have the complete journal entry with all its content and metadata.
 
 ---
 
-### 2. ELT Architecture with Graph-Layer Transformation
+### 2. Embedded Services Architecture
 
 **What it is:**
-Data flows through Extract → Load → Transform stages. Source data is extracted and loaded in its native format first, preserving complete fidelity. Transformation happens only when loading into the graph index. The graph is completely disposable and can be rebuilt from source data at any time.
+Rather than requiring external services (Docker, cloud APIs, separate database servers), Cortex bundles everything needed to run:
+
+- **Neo4j Server**: Graph database runs as managed subprocess, bundled with app
+- **Ollama Connection**: Connects to locally installed Ollama (detects existing installation)
+- **Application Data**: All databases and caches stored in user data directory; models in standard Ollama location
+
+**Why it matters:**
+- Minimal configuration: install Ollama once, works forever
+- No Docker or cloud services to manage
+- Single application to start/stop
+- Clean process separation (services can restart independently)
+- Standard tooling (Neo4j Browser, ollama CLI) works for debugging
+- Models shared across all apps using Ollama
+- Complete control over data location
+
+**Example:**
+User installs Ollama (`brew install ollama`) and downloads a model (`ollama pull llama3.2`). Then downloads Cortex. On launch, Cortex detects existing Ollama installation, starts Neo4j server subprocess, and connects to everything automatically. No configuration needed.
+
+---
+
+### 3. ELT Architecture with Graph-Layer Transformation
+
+**What it is:**
+Data flows through Extract → Load → Transform stages. Source data is extracted and loaded in its native format first, preserving complete fidelity. Transformation happens only when loading into the embedded graph. The graph is completely disposable and can be rebuilt from source data at any time.
 
 **Why it matters:**
 - Iterate on graph structure without touching source files
@@ -40,11 +91,11 @@ Data flows through Extract → Load → Transform stages. Source data is extract
 - Failed transformations can be fixed and re-run without data loss
 
 **Example:**
-Strava activity data is synced from the API and saved as JSON files. The transformation logic reads these files and creates graph nodes/relationships. If you realize a better way to model "route" relationships, you update the transformation code and rebuild the graph—no need to re-fetch from Strava or modify the stored JSON files.
+Strava activity data is synced from the API and saved as JSON files in your vault data directory. The transformation logic reads these files and creates graph nodes/relationships in embedded Neo4j. If you realize a better way to model "route" relationships, you update the transformation code and rebuild the graph—no need to re-fetch from Strava or modify the stored JSON files.
 
 ---
 
-### 3. Flexible Storage with Unified Graph
+### 4. Flexible Storage with Unified Graph
 
 **What it is:**
 Not all data belongs in Markdown files. The system uses different storage formats based on content characteristics:
@@ -72,7 +123,7 @@ Not all data belongs in Markdown files. The system uses different storage format
 
 ---
 
-### 4. Source-Appropriate Data Flow
+### 5. Source-Appropriate Data Flow
 
 **What it is:**
 Different types of data have different authoritative sources and require different write paths:
@@ -91,176 +142,220 @@ Different types of data have different authoritative sources and require differe
 - Enables proper bidirectional sync when needed
 
 **Example:**
-- Adding a tag to a journal entry: Write directly to the Markdown file, then update graph
+- Adding a tag to a journal entry: Main process writes directly to the Markdown file, then updates graph
 - Updating a Strava activity title: Send API request to Strava, wait for sync, then graph reflects the change
-- Creating a new project note: Write Markdown file locally, index to graph immediately
+- Creating a new project note: Write Markdown file locally via main process, index to graph immediately
 
 ---
 
-### 5. Adaptive Intelligence
+### 6. Adaptive Intelligence
 
 **What it is:**
-The system starts with direct database queries and evolves toward specialized AI agents. Model selection (local vs. cloud) is dynamic based on task requirements, user preferences, and context.
+The system connects to locally installed Ollama for AI processing, with optional cloud API integration for complex queries. Intelligence capabilities evolve from simple queries to sophisticated agents:
+
+- **Initial**: Direct database queries via LLM-generated Cypher
+- **Intermediate**: Specialized prompts for specific tasks
+- **Advanced**: Autonomous agents that improve the system itself
+
+Ollama must be installed locally and have at least one model downloaded. The app detects available models and uses the best one for each task.
+
+Model selection is dynamic:
+- Default: Use local Ollama models (privacy, speed, offline)
+- Optional: Use Claude API for complex analysis (requires API key)
+- Future: Automatic selection based on task complexity
 
 **Why it matters:**
-- Begin simple, add sophistication as patterns emerge
-- Balance privacy (local), speed (cached/local), and capability (cloud)
-- Learn which tasks benefit from which approach
-- Continuous improvement through usage patterns
-- Avoid over-engineering before understanding real needs
+- Privacy-first: AI processing happens locally by default
+- Works offline with bundled model
+- Flexibility for users who want cloud capabilities
+- System learns and improves through usage patterns
+- Balance between capability and privacy
 
 **Example:**
-- **Early**: User asks "Show me all my runs in Portland" → LLM generates Cypher query → Results displayed
-- **Later**: System recognizes this is a common pattern → Creates a specialized "activity analysis" agent
-- **Even later**: Agent proactively notices "You haven't run your usual Saturday route in 3 weeks" without being asked
+- Analyzing daily journal entries: Uses local Ollama model
+- Complex research synthesis: User enables Claude API for that session
+- Pattern recognition across years of data: Runs locally overnight with Ollama
 
 ---
 
-### 6. Progressive Enhancement
+### 7. Progressive Enhancement
 
 **What it is:**
-Start with core functionality that delivers immediate value, then add complexity incrementally. Each phase builds on the previous one. The system learns and improves both its data model and tooling continuously based on real usage.
+Build foundational capabilities first, then add complexity incrementally. Each phase delivers immediate value. The system learns and improves both its data model and tooling continuously through AI assistance and user feedback.
 
 **Why it matters:**
-- Faster time to value—don't wait for perfection
-- Learn from real usage before building complex features
-- Each enhancement is informed by actual patterns, not speculation
-- Avoid wasted effort on features that don't matter
-- Users benefit at every stage, not just at the end
+- Get value quickly rather than building everything upfront
+- Learn what actually matters through real usage
+- Avoid over-engineering features that won't be used
+- System architecture can evolve based on patterns that emerge
 
 **Example:**
-- **Phase 1**: Manual chat exploration of person files
-- **Phase 2**: Add timeline visualization for person interactions
-- **Phase 3**: Integrate email data to enrich context
-- **Phase 4**: Agent proactively suggests "Haven't talked to Sarah in 2 months—she mentioned wanting to grab coffee"
+- Phase 1: Chat interface + simple queries
+- Phase 2: Bespoke visualizations for specific use cases
+- Phase 3: External data integrations
+- Phase 4: Autonomous agents that run on schedule
+- Each phase works independently and adds value
 
 ---
 
-### 7. Transparency & Auditability
+## Technical Stack
 
-**What it is:**
-The graph structure, AI reasoning, and all system actions are visible and inspectable. Comprehensive logging tracks every file access, database query, and AI decision. All inferences and relationships can be traced back to their source. Corrections are made by fixing source data or transformation logic, not patching the graph.
+### Main Process (Backend)
+- **Runtime**: Node.js (bundled with Electron)
+- **Language**: TypeScript
+- **Database**: Neo4j Embedded (runs as library)
+- **AI Runtime**: Ollama (user-installed, app connects to local instance)
+- **Filesystem**: Direct access to Obsidian vault and application data
 
-**Why it matters:**
-- No black-box AI decisions—everything is traceable
-- Users can see exactly what context informed any suggestion
-- Audit trail for debugging and understanding system behavior
-- Builds trust through transparency
-- Enables continuous improvement of transformation logic
-- Feeds into progressive enhancement through pattern analysis
+### Renderer Process (Frontend)
+- **Runtime**: Chromium (bundled with Electron)
+- **Language**: TypeScript with JSX
+- **UI**: Vanilla JSX (no React) + Tailwind CSS
+- **Components**: Custom createElement function for JSX transformation
+- **State**: Driven by main process via IPC, minimal local UI state
 
-**Example:**
-- AI suggests "You might want to visit that new restaurant—you've been to similar places 6 times this month"
-- User clicks to see reasoning: Graph shows the 6 restaurant nodes, their cuisine types, the similarity logic
-- Logs reveal which queries the AI ran to discover this pattern
-- User notices a misclassification, edits the restaurant's cuisine tag in the source file
-- Next graph rebuild correctly reflects the change
+### Communication Layer
+- **IPC (Inter-Process Communication)**: Electron's built-in IPC for main ↔ renderer
+- **Pattern**: Renderer invokes main process functions, main process sends state updates
+- **Security**: Renderer is sandboxed, only accesses approved IPC channels
 
----
-
-### 8. User Agency & Control
-
-**What it is:**
-Users have complete control over privacy boundaries, feature selection, and data transformations. The system adapts to user preferences rather than forcing users into predetermined workflows. Users can directly modify source data and transformation logic whenever they want.
-
-**Why it matters:**
-- Respects individual privacy preferences and comfort levels
-- Enables customization for different use cases
-- Users maintain ownership of both data AND how it's processed
-- No forced features or unwanted automation
-- Empowers users to understand and modify system behavior
-
-**Example:**
-- User configures: "Use local AI for anything involving health data, cloud AI okay for activity analysis"
-- User decides: "Don't sync my email—I'll add important messages manually"
-- User modifies: Transformation script to change how workout intensity is calculated
-- User disables: Automated pattern recognition for a specific topic
+### Data Layer
+- **Source Files**: Markdown (YAML frontmatter) + JSON/CSV for metrics
+- **Graph Index**: Neo4j embedded database
+- **Transformation**: Custom TypeScript logic for ELT pipeline
+- **Sync**: Bidirectional with external platforms (Strava, GitHub, etc.)
 
 ---
 
-### 9. Portability & Future-Proofing
+## Process Architecture
 
-**What it is:**
-Use universal data formats (Markdown, JSON, Parquet, CSV) and portable technologies (TypeScript) throughout. The web application architecture is designed to be compatible with future desktop packaging (Electron/Tauri). Avoid lock-in to specific frameworks or platforms where possible.
+### Main Process Responsibilities
 
-**Why it matters:**
-- Code can be reused across web app, desktop app, and Obsidian plugins
-- Data formats are readable and portable forever
-- Can migrate platforms without rewriting everything
-- Enables gradual evolution from web → desktop → native without starting over
-- Future technical decisions don't invalidate past work
+**Service Management:**
+- Start/stop Neo4j subprocess on application launch/quit
+- Connect to locally installed Ollama
+- Restart services on crashes with error reporting
 
-**Example:**
-- Write graph transformation logic once in TypeScript
-- Use it in: Web app, desktop app, Obsidian plugin, CLI tool
-- Data format migration: Just Markdown and JSON—works everywhere, readable in any text editor
-- Platform shift: Move from web to Tauri desktop app by reusing 90% of codebase
+**Data Operations:**
+- Read/write Obsidian vault files
+- Execute Neo4j Cypher queries
+- Transform data for graph loading (ELT)
+- Manage external API integrations
 
----
+**State Management:**
+- Single source of truth for application state
+- Notify renderer of state changes via IPC events
+- Handle user actions from renderer
 
-## How Principles Work Together
+**AI Orchestration:**
+- Connect to local Ollama or cloud APIs
+- Manage model selection logic
+- Handle LLM → Cypher query generation
+- Execute autonomous agent tasks
 
-These principles aren't isolated—they reinforce each other:
+### Renderer Process Responsibilities
 
-- **Local-first + ELT** = Safe experimentation with graph structure
-- **Flexible storage + Source-appropriate flow** = Right format for each data type
-- **Adaptive intelligence + Progressive enhancement** = Start simple, grow smarter
-- **Transparency + User agency** = Trust through visibility and control
-- **Portability** = Future-proof all the above
+**UI Rendering:**
+- Display data received from main process
+- Handle user interactions (clicks, inputs, navigation)
+- Render visualizations (graphs, timelines, maps)
 
-When making architectural decisions, consider how they align with these principles. When in doubt, favor:
-- User control over automation
-- Transparency over convenience
-- Portability over optimization
-- Progressive enhancement over up-front complexity
+**User Input:**
+- Capture chat messages, commands, settings changes
+- Send requests to main process via IPC
+- Display loading states while main process works
 
----
-
-## Tech Stack
-
-### Core Stack (Locked In)
-
-- **TypeScript** - Single language across all platforms, enables code reuse
-- **React** - UI framework compatible with web and desktop targets
-- **GraphQL** - Unified query interface for AI agents and UI components
-- **Neo4j** - Graph database with Cypher, Bolt protocol, and APOC extensions
-
-### Recommended Defaults (Swappable)
-
-- **Apollo Server/Client** - Full-featured GraphQL implementation with caching
-- **Vitest** - Modern testing framework with TypeScript support
-- **shadcn/ui + Tailwind** - Component library with full customization control
-
-### Development Approach
-
-- **Testing**: Regression prevention over coverage targets; integration-focused
-- **State Management**: Colocated state, React Context for global, Apollo for server state
-- **Styling**: Utility-first with Tailwind, component-based patterns
-
-### Intentionally Deferred
-
-Build optimization, advanced caching, deployment complexity, monitoring tooling - address when needed, not prematurely.
-
-### Version Requirements
-
-- Node.js 18+
-- Neo4j 5.x
-- TypeScript 5.x
+**Local UI State:**
+- Manage transient UI state (modals, dropdowns, scroll position)
+- Animation and transition states
+- Form input state before submission
 
 ---
 
-## Decision Framework
+## Development Philosophy
 
-When evaluating new technologies:
+### Builder-Guide Paradigm
 
-1. Does it align with core principles?
-2. Does it lock us in or keep options open?
-3. Can we defer this decision?
-4. Will it make us move faster or slower?
-5. Is this a principle or implementation detail?
+Beyond operational architecture, Cortex embodies a vision for AI-augmented development:
 
-**Default to**: Boring, proven technology. Flexibility over optimization.
+**Progressive AI Responsibility:**
+- Initial: Human writes code with AI assistance (Cursor, Copilot)
+- Mid-term: AI agents suggest improvements and generate features
+- Long-term: AI agents autonomously implement based on conversational guidance
+- Ultimate: System improves its own data model and tooling continuously
+
+**Unified Development Interface:**
+- Same chat interface for using AND building the system
+- Request new capabilities through natural language
+- AI understands vault data and system architecture to make intelligent decisions
+- Features materialize within development conversation
+
+**Focus on "What" Not "How":**
+- Guide AI developers rather than writing every line of code
+- Emphasize architectural decisions and tradeoffs
+- Let AI handle implementation details
+- System learns from each interaction to anticipate needs
 
 ---
 
-*These principles guide all implementation decisions. They represent hard-won insights about building systems that respect user agency while delivering powerful capabilities.*
+## Deployment Model
+
+### Distribution
+- **Package Format**: .app (macOS), .exe installer (Windows), .AppImage (Linux)
+- **Initial Download**: ~500MB-1GB (includes Neo4j server, app code)
+- **Installation**: Drag-and-drop or installer, minimal configuration
+- **Prerequisites**: Ollama must be installed separately (`brew install ollama`)
+- **Updates**: Download only changed components, not entire package
+
+### User Data Location
+- **macOS**: `~/Library/Application Support/Cortex/`
+- **Windows**: `%APPDATA%\Cortex\`
+- **Linux**: `~/.config/Cortex/`
+
+Contains:
+- Neo4j database files
+- Application settings and logs
+- Cached external data
+
+**Ollama Location (System-wide):**
+- **macOS**: `~/.ollama/models`
+- **Windows**: `%USERPROFILE%\.ollama\models`
+- **Linux**: `~/.ollama/models`
+
+Models shared across all applications using Ollama.
+
+### Vault Location
+- User selects Obsidian vault location on first launch
+- Application monitors vault for changes
+- Rebuilds graph index on structural changes
+
+---
+
+## Security Model
+
+### Sandboxed Renderer
+The renderer process (UI) runs in a security sandbox:
+- Cannot access filesystem directly
+- Cannot execute system commands
+- Cannot make arbitrary network requests
+- Can only communicate via whitelisted IPC channels
+
+### Controlled IPC Surface
+Main process exposes specific, validated functions to renderer:
+```typescript
+// Only these approved functions are callable from UI
+ipcMain.handle('query-graph', async (_, cypher) => { ... })
+ipcMain.handle('read-file', async (_, filePath) => { ... })
+ipcMain.handle('write-file', async (_, filePath, content) => { ... })
+ipcMain.handle('ollama-query', async (_, prompt) => { ... })
+```
+
+### Data Isolation
+- Neo4j database only accessible from main process
+- Ollama only accessible through main process
+- Vault files validated before read/write operations
+- No direct exposure of sensitive data to renderer
+
+---
+
+*This architecture is designed to evolve. As capabilities are proven through use, the system will adapt its structure to better serve the vision of transparent, local-first personal knowledge management.*
