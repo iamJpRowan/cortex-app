@@ -1,5 +1,28 @@
 # Phase 0: Minimal Working Electron App
 
+## Status
+
+- ✅ **Step 1: Initialize electron-vite Project** - COMPLETE
+- ⏳ **Step 2: Add Neo4j Server Subprocess** - NEXT
+- ⏸️ **Step 3: Add Ollama Connection** - PENDING
+- ⏸️ **Step 4: Create Test UI** - PENDING
+- ⏸️ **Step 5: Connect to Vault** - PENDING
+
+## Quick Start for Agents
+
+**Current State:** Step 1 is complete. The project has:
+- ✅ Electron app with TypeScript + JSX + Tailwind working
+- ✅ Hot module reload configured
+- ✅ Pre-commit type checking set up
+- ✅ All files committed and ready
+
+**Next Action:** Proceed to **Step 2: Add Neo4j Server Subprocess**
+
+**Before Starting Step 2:**
+1. Verify Step 1 works: `npm run dev` should open Electron window with styled content
+2. Run type check: `npm run type-check` should pass
+3. Review Step 2 requirements below
+
 ## Goal
 
 Create a minimal Electron application that proves the core stack works:
@@ -38,17 +61,23 @@ ollama list
 
 ---
 
-## Step 1: Initialize electron-vite Project
+## Step 1: Initialize electron-vite Project ✅ COMPLETE
 
 **Objective:** Get basic Electron window opening with TypeScript and HMR working.
 
+**Status:** ✅ Complete - All success criteria met. Ready to proceed to Step 2.
+
+**Note:** Project was initialized manually (not via template) to preserve existing documentation. All files created match the specification below.
+
 ### Tasks
 
-1. **Create project from electron-vite template:**
+1. **Create project structure:**
 ```bash
-npm create @quick-start/electron@latest cortex-app -- --template typescript
-cd cortex-app
-npm install
+# Project already exists with docs - initialize manually
+npm init -y
+npm install -D electron electron-vite typescript vite
+npm install -D tailwindcss postcss autoprefixer
+npm install -D husky  # For pre-commit hooks
 ```
 
 2. **Add Tailwind CSS:**
@@ -57,9 +86,10 @@ npm install -D tailwindcss postcss autoprefixer
 npx tailwindcss init -p
 ```
 
-Configure `tailwind.config.js`:
+Configure `tailwind.config.js` (CommonJS format):
 ```javascript
-export default {
+/** @type {import('tailwindcss').Config} */
+module.exports = {
   content: [
     "./src/renderer/**/*.{js,ts,jsx,tsx,html}"
   ],
@@ -67,6 +97,16 @@ export default {
     extend: {},
   },
   plugins: [],
+}
+```
+
+Configure `postcss.config.js` (CommonJS format):
+```javascript
+module.exports = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
 }
 ```
 
@@ -90,26 +130,41 @@ Should see Electron window open with default content.
 
 5. **Configure TypeScript for JSX:**
 
-Update `tsconfig.json` in renderer:
+Create `tsconfig.json`:
 ```json
 {
   "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "lib": ["ESNext", "DOM"],
+    "moduleResolution": "node",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
     "jsx": "react",
     "jsxFactory": "createElement",
     "jsxFragmentFactory": "Fragment"
-  }
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist", "dist-electron"]
 }
 ```
 
-6. **Create JSX runtime:**
+6. **Create JSX runtime and type definitions:**
 
 Create `src/renderer/src/lib/jsx.ts`:
 ```typescript
+type JSXProps = Record<string, any> | null
+type JSXChild = string | number | HTMLElement | DocumentFragment | null | false | undefined
+
 export function createElement(
-  tag: string | Function,
-  props: any,
-  ...children: any[]
-): HTMLElement {
+  tag: string | ((props: JSXProps & { children?: JSXChild[] }) => HTMLElement | DocumentFragment),
+  props: JSXProps,
+  ...children: JSXChild[]
+): HTMLElement | DocumentFragment {
   if (typeof tag === 'function') {
     return tag({ ...props, children })
   }
@@ -123,6 +178,8 @@ export function createElement(
     } else if (key.startsWith('on') && typeof value === 'function') {
       const event = key.toLowerCase().substring(2)
       element.addEventListener(event, value as EventListener)
+    } else if (key === 'ref' && typeof value === 'function') {
+      value(element)
     } else if (key !== 'children') {
       element.setAttribute(key, String(value))
     }
@@ -133,7 +190,7 @@ export function createElement(
     if (child == null || child === false) return
     if (typeof child === 'string' || typeof child === 'number') {
       element.appendChild(document.createTextNode(String(child)))
-    } else if (child instanceof HTMLElement) {
+    } else if (child instanceof HTMLElement || child instanceof DocumentFragment) {
       element.appendChild(child)
     }
   })
@@ -141,10 +198,13 @@ export function createElement(
   return element
 }
 
-export function Fragment({ children }: { children: any[] }): HTMLElement {
-  const fragment = document.createDocumentFragment() as any
-  children.flat().forEach(child => {
-    if (child instanceof HTMLElement) {
+export function Fragment({ children }: { children?: JSXChild[] }): DocumentFragment {
+  const fragment = document.createDocumentFragment()
+  ;(children || []).flat().forEach(child => {
+    if (child == null || child === false) return
+    if (typeof child === 'string' || typeof child === 'number') {
+      fragment.appendChild(document.createTextNode(String(child)))
+    } else if (child instanceof HTMLElement || child instanceof DocumentFragment) {
       fragment.appendChild(child)
     }
   })
@@ -152,14 +212,75 @@ export function Fragment({ children }: { children: any[] }): HTMLElement {
 }
 ```
 
+Create `src/renderer/src/jsx.d.ts`:
+```typescript
+// JSX type definitions for vanilla JSX (no React)
+declare namespace JSX {
+  interface IntrinsicElements {
+    [elemName: string]: any
+  }
+  
+  interface Element extends HTMLElement {}
+}
+```
+
+7. **Set up pre-commit hooks:**
+
+Install husky and configure:
+```bash
+npm install -D husky
+npx husky init
+```
+
+Update `.husky/pre-commit`:
+```bash
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+npm run type-check
+```
+
+Add to `package.json` scripts:
+```json
+{
+  "scripts": {
+    "type-check": "tsc --noEmit",
+    "lint": "tsc --noEmit",
+    "prepare": "husky"
+  }
+}
+```
+
+### Additional Files Created
+
+- `electron.vite.config.ts` - Electron-vite configuration with output directories
+- `tsconfig.node.json` - TypeScript config for Node files
+- `.gitignore` - Comprehensive ignore patterns
+- `src/main/index.ts` - Main process (uses `app.whenReady()` instead of deprecated `app.on('ready')`)
+- `src/preload/index.ts` - Preload script with context bridge
+- `src/renderer/index.html` - HTML template
+- `src/renderer/src/main.ts` - Renderer entry with DOM ready check
+- `src/renderer/src/App.tsx` - Basic App component
+
 ### Success Criteria
 
-- [ ] Electron window opens
-- [ ] Hot reload works for renderer changes
-- [ ] Main process restarts on main code changes
-- [ ] Tailwind classes apply correctly
-- [ ] JSX components render without React
-- [ ] No console errors
+- [x] Electron window opens
+- [x] Hot reload works for renderer changes
+- [x] Main process restarts on main code changes
+- [x] Tailwind classes apply correctly
+- [x] JSX components render without React
+- [x] No console errors
+- [x] Type checking passes
+- [x] Pre-commit hooks configured
+
+### Improvements Made
+
+- Used `app.whenReady()` instead of deprecated `app.on('ready')`
+- Added proper TypeScript types for JSX runtime
+- Fragment returns `DocumentFragment` (not `HTMLElement`)
+- Added DOM ready check in renderer entry
+- Configured pre-commit type checking with husky
+- Used CommonJS for PostCSS config (no `"type": "module"` needed)
 
 ### Commit
 
@@ -170,9 +291,11 @@ git commit -m "feat: Initialize electron-vite project with TypeScript, Tailwind,
 
 ---
 
-## Step 2: Add Neo4j Server Subprocess
+## Step 2: Add Neo4j Server Subprocess ⏳ NEXT
 
 **Objective:** Bundle Neo4j server, start/stop it with the app, connect successfully.
+
+**Status:** Ready to begin. Step 1 is complete and verified.
 
 ### Tasks
 

@@ -120,6 +120,50 @@ When running `npm run dev`:
 - Main process logs appear in terminal
 - Renderer logs appear in DevTools console
 
+### When to Restart vs Hot Reload
+
+**Hot Reload Works (No Restart Needed):**
+- ✅ **Renderer code changes** (`src/renderer/**/*.tsx`, `.ts`, `.jsx`, `.js`)
+  - Component files, UI logic, event handlers
+  - CSS/Tailwind changes
+  - Renderer-side utilities and helpers
+- ✅ **Renderer HTML** (`src/renderer/index.html`)
+- ✅ **TypeScript type definitions** (as long as they don't affect main process)
+- ✅ **Configuration files** that only affect renderer (e.g., Tailwind config changes)
+
+**Full Restart Required:**
+- 🔄 **Main process code** (`src/main/**/*.ts`, `.js`)
+  - IPC handlers, service initialization
+  - App lifecycle hooks (`app.on('ready')`, etc.)
+  - Neo4j/Ollama service management
+- 🔄 **Preload script** (`src/preload/**/*.ts`, `.js`)
+  - Changes to `contextBridge.exposeInMainWorld()` API
+  - IPC channel definitions
+- 🔄 **Build configuration** (`electron.vite.config.ts`, `tsconfig.json`, `package.json`)
+  - Changes to Vite config, TypeScript settings, dependencies
+- 🔄 **Environment variables** (`.env` file changes)
+- 🔄 **New dependencies** (after `npm install`)
+
+**Automatic Restart:**
+- electron-vite automatically restarts the Electron app when main process or preload files change
+- You'll see "Restarting Electron..." in the terminal
+- No manual intervention needed
+
+**Manual Restart Needed:**
+- If hot reload seems stuck or changes aren't appearing
+- After installing new npm packages
+- When configuration files change (config, tsconfig, package.json)
+- If you see build errors that persist after file changes
+- When adding new IPC channels (sometimes needs restart to register properly)
+
+**Quick Reference:**
+```
+Renderer changes → Hot reload ✅
+Main/Preload changes → Auto-restart 🔄
+Config changes → Manual restart 🔄
+New packages → Manual restart 🔄
+```
+
 ---
 
 ## Core Development Patterns
@@ -475,6 +519,35 @@ npm test              # Run all tests
 npm test -- --watch   # Watch mode
 npm test -- --coverage # Coverage report
 ```
+
+### Pre-commit Checks
+
+Before committing, the project automatically runs type checking via a git pre-commit hook:
+
+```bash
+# Manual type check (runs automatically on commit)
+npm run type-check
+
+# Or use the precommit script
+npm run precommit
+```
+
+**What gets checked:**
+- TypeScript compilation errors
+- Type mismatches
+- Missing type definitions
+
+**If type check fails:**
+- The commit will be blocked
+- Fix the TypeScript errors
+- Try committing again
+
+**To skip the hook (not recommended):**
+```bash
+git commit --no-verify
+```
+
+**Note:** The `.husky/` directory is committed to git so all developers get the same pre-commit checks.
 
 ---
 
