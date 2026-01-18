@@ -1,7 +1,9 @@
-import { contextBridge } from 'electron'
+import { contextBridge, ipcRenderer } from 'electron'
 
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
 contextBridge.exposeInMainWorld('api', {
-  // Will add IPC methods in later steps
+  test: {
+    neo4jQuery: () => ipcRenderer.invoke('test:neo4j-query')
+  }
 })

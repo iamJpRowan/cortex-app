@@ -45,9 +45,13 @@ coverage/
 *.tmp
 *.temp
 .cache/
+tmp-*.tar.gz
 
 # Neo4j data (will be in userData directory)
 neo4j-data/
+
+# Neo4j server (bundled resource - too large for git)
+resources/neo4j/
 
 # Electron
 *.asar

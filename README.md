@@ -18,21 +18,26 @@ AI-powered personal knowledge management system that integrates all your data—
    npm install
    ```
 
-2. **Configure environment:**
+2. **Install Java (required for Neo4j):**
    ```bash
-   cp env.template .env
+   # macOS
+   brew install --cask temurin@17
+   
+   # Linux
+   sudo apt install openjdk-17-jre
    ```
-   Edit `.env` with your Neo4j password and vault path.
 
-3. **Start development:**
+3. **Set up Neo4j (if not done automatically):**
+   ```bash
+   npm run setup
+   ```
+
+4. **Start development:**
    ```bash
    npm run dev
    ```
 
-4. **Open the app:**
-   Navigate to http://localhost:3000
-
-See [Development Setup](docs/development/README.md) for detailed setup instructions.
+See [Development Setup](docs/development/setup.md) for detailed setup instructions.
 
 ## What Makes Cortex Different
 

@@ -3,25 +3,29 @@
 ## Status
 
 - ✅ **Step 1: Initialize electron-vite Project** - COMPLETE
-- ⏳ **Step 2: Add Neo4j Server Subprocess** - NEXT
-- ⏸️ **Step 3: Add Ollama Connection** - PENDING
+- ✅ **Step 2: Add Neo4j Server Subprocess** - COMPLETE
+- ⏳ **Step 3: Add Ollama Connection** - NEXT
 - ⏸️ **Step 4: Create Test UI** - PENDING
 - ⏸️ **Step 5: Connect to Vault** - PENDING
 
 ## Quick Start for Agents
 
-**Current State:** Step 1 is complete. The project has:
+**Current State:** Steps 1 and 2 are complete. The project has:
 - ✅ Electron app with TypeScript + JSX + Tailwind working
 - ✅ Hot module reload configured
 - ✅ Pre-commit type checking set up
+- ✅ Embedded Neo4j server with subprocess management
+- ✅ Automated Neo4j setup script
+- ✅ Test panel UI for connection testing
 - ✅ All files committed and ready
 
-**Next Action:** Proceed to **Step 2: Add Neo4j Server Subprocess**
+**Next Action:** Proceed to **Step 3: Add Ollama Connection**
 
-**Before Starting Step 2:**
-1. Verify Step 1 works: `npm run dev` should open Electron window with styled content
-2. Run type check: `npm run type-check` should pass
-3. Review Step 2 requirements below
+**Before Starting Step 3:**
+1. Verify Step 2 works: `npm run dev` should start Neo4j and show test panel
+2. Test Neo4j connection via UI button
+3. Run type check: `npm run type-check` should pass
+4. Review Step 3 requirements below
 
 ## Goal
 
@@ -291,11 +295,11 @@ git commit -m "feat: Initialize electron-vite project with TypeScript, Tailwind,
 
 ---
 
-## Step 2: Add Neo4j Server Subprocess ⏳ NEXT
+## Step 2: Add Neo4j Server Subprocess ✅ COMPLETE
 
 **Objective:** Bundle Neo4j server, start/stop it with the app, connect successfully.
 
-**Status:** Ready to begin. Step 1 is complete and verified.
+**Status:** ✅ Complete - All success criteria met. Ready to proceed to Step 3.
 
 ### Tasks
 
@@ -529,11 +533,11 @@ declare global {
 
 ### Success Criteria
 
-- [ ] Neo4j server starts when app launches
-- [ ] Can connect with driver successfully
-- [ ] Test query executes and returns result
-- [ ] Neo4j stops cleanly when app quits
-- [ ] No port conflicts or connection errors
+- [x] Neo4j server starts when app launches
+- [x] Can connect with driver successfully
+- [x] Test query executes and returns result
+- [x] Neo4j stops cleanly when app quits
+- [x] No port conflicts or connection errors
 
 ### Testing
 
@@ -543,18 +547,36 @@ npm run dev
 # Try test query from renderer (Step 4 will add UI)
 ```
 
+### Improvements Made
+
+- Added automated Neo4j download and setup script (`scripts/setup-neo4j.js`)
+- Configured Electron Builder to bundle Neo4j in app resources
+- Added Java version compatibility checking (requires Java 17 or 21)
+- Implemented canonical password setup using `neo4j-admin`
+- Added initial connection check before spawning (handles "already running" case)
+- Improved error handling with clear user instructions
+- Added signal handlers (SIGINT/SIGTERM) for graceful shutdown on Ctrl+C
+- Used `127.0.0.1` instead of `localhost` to avoid IPv6/IPv4 resolution issues
+- Event-driven startup detection (waits for "Started" message from stdout)
+- Added process state validation before waiting for startup
+- Created test panel UI component for connection testing
+
 ### Commit
 
 ```bash
 git add -A
-git commit -m "feat: Add embedded Neo4j server subprocess with connection management"
+git commit -m "feat: add embedded Neo4j server integration"
 ```
+
+**Commit:** `6b65205` - feat: add embedded Neo4j server integration
 
 ---
 
-## Step 3: Add Ollama Connection
+## Step 3: Add Ollama Connection ⏳ NEXT
 
 **Objective:** Detect local Ollama installation, connect to it, list models, test query.
+
+**Status:** Ready to begin. Step 2 is complete and verified.
 
 ### Tasks
 
