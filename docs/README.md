@@ -5,6 +5,7 @@ Welcome to the Cortex documentation. This directory contains all documentation f
 ## Getting Started
 
 - **[VISION.md](./VISION.md)** - What is Cortex? Core benefits and vision
+- **[CONTRIBUTING.md](../CONTRIBUTING.md)** - Guidelines for contributing to Cortex
 
 ## Architecture
 
@@ -28,7 +29,6 @@ The [development/](./development/) directory contains guides for setting up, bui
 - **[build.md](./development/build.md)** - Production builds
 - **[code-style.md](./development/code-style.md)** - Naming conventions
 - **[use-case-workflow.md](./development/use-case-workflow.md)** - Four-phase feature implementation
-- **[phase-0.md](./development/phase-0.md)** - Phase 0 implementation guide
 - **[guardrails.md](./development/guardrails.md)** - Technical constraints and red flags
 - **[feature-development.md](./development/feature-development.md)** - Feature workflow summary
 
@@ -42,14 +42,12 @@ The [agents/](./agents/) directory contains guidance for AI agents working on th
 - **[common-pitfalls.md](./agents/common-pitfalls.md)** - What not to do
 - **[checklists.md](./agents/checklists.md)** - Development checklists
 
-## Contributing
+## Planning
 
-See the root [CONTRIBUTING.md](../CONTRIBUTING.md) for guidelines on contributing to Cortex.
+The planning directories contain feature ideas, automation opportunities, and backlog items for future development.
 
-## Templates
-
-- **[automation-candidates/TEMPLATE.md](./automation-candidates/TEMPLATE.md)** - Template for automation opportunities
-- **[devlogs/TEMPLATE.md](./devlogs/TEMPLATE.md)** - Template for development logs
+- **[backlog/](./backlog/)** - Feature backlog items with goals, constraints, and architectural approaches
+- **[automation-candidates/](./automation-candidates/)** - Documented automation opportunities discovered during use case workflows
 
 ## History
 

@@ -11,7 +11,6 @@ This guide covers the development workflow for building Cortex as a native Elect
 - **[build.md](./build.md)** - Production builds and distribution
 - **[code-style.md](./code-style.md)** - Naming conventions and style guide
 - **[use-case-workflow.md](./use-case-workflow.md)** - Four-phase feature implementation workflow
-- **[phase-0.md](./phase-0.md)** - Phase 0 step-by-step implementation guide
 - **[guardrails.md](./guardrails.md)** - Technical constraints, decision shortcuts, and red flags
 - **[feature-development.md](./feature-development.md)** - Feature workflow summary
 
