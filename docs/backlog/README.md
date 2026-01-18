@@ -15,9 +15,11 @@ Backlog items are organized as standalone markdown files. Each file contains:
 
 ## Current Backlog
 
+- **[multi-knowledge-graphs.md](./multi-knowledge-graphs.md)** - Enable users to create and manage multiple Neo4j databases (Knowledge Graphs)
+- **[neo4j-enterprise-upgrade.md](./neo4j-enterprise-upgrade.md)** - Upgrade to Neo4j Enterprise Edition for native multi-database support
 - **[ollama-connection.md](./ollama-connection.md)** - Integrate local Ollama installation and connection
-- **[test-ui-panel.md](./test-ui-panel.md)** - Extend test panel UI for Neo4j and Ollama testing
-- **[vault-integration.md](./vault-integration.md)** - Configure vault path and enable manual sync verification
+
+- **[ui-css-guardrails.md](./ui-css-guardrails.md)** - Establish UI and CSS guardrails with design tokens, responsive design, accessibility, and theme system
 
 ## Usage
 
