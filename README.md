@@ -5,10 +5,10 @@ AI-powered personal knowledge management system that integrates all your data—
 ## Quick Links
 
 - [Vision & User Guide](docs/VISION.md) - What Cortex is and why it exists
-- [Architecture](docs/ARCHITECTURE.md) - Technical principles and design decisions
-- [Development Setup](docs/DEVELOPMENT.md) - How to get started and run locally
-- [Use Case Workflow](docs/USE_CASE_WORKFLOW.md) - How to implement features incrementally
-- [AI Agents](docs/AGENTS.md) - Collaboration workflow for AI agents
+- [Architecture](docs/architecture/README.md) - Technical principles and design decisions
+- [Development Setup](docs/development/README.md) - How to get started and run locally
+- [Use Case Workflow](docs/development/use-case-workflow.md) - How to implement features incrementally
+- [AI Agents](docs/agents/README.md) - Collaboration workflow for AI agents
 - [Contributing](CONTRIBUTING.md) - Guidelines for developers and AI agents
 
 ## Quick Start
@@ -18,21 +18,26 @@ AI-powered personal knowledge management system that integrates all your data—
    npm install
    ```
 
-2. **Configure environment:**
+2. **Install Java (required for Neo4j):**
    ```bash
-   cp env.template .env
+   # macOS
+   brew install --cask temurin@17
+   
+   # Linux
+   sudo apt install openjdk-17-jre
    ```
-   Edit `.env` with your Neo4j password and vault path.
 
-3. **Start development:**
+3. **Set up Neo4j (if not done automatically):**
+   ```bash
+   npm run setup
+   ```
+
+4. **Start development:**
    ```bash
    npm run dev
    ```
 
-4. **Open the app:**
-   Navigate to http://localhost:3000
-
-See [DEVELOPMENT.md](docs/DEVELOPMENT.md) for detailed setup instructions.
+See [Development Setup](docs/development/setup.md) for detailed setup instructions.
 
 ## What Makes Cortex Different
 
@@ -50,16 +55,18 @@ See [DEVELOPMENT.md](docs/DEVELOPMENT.md) for detailed setup instructions.
 
 Building the complete tech stack needed to support any use case, then proving it works with incremental feature implementations.
 
-See [Development Setup](docs/DEVELOPMENT.md) for current status and next steps.
+See [Development Setup](docs/development/README.md) for current status and next steps.
 
 ## Documentation Overview
 
 - **[VISION.md](docs/VISION.md)**: End-user perspective - what you get from Cortex
-- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)**: Core principles guiding all technical decisions
-- **[DEVELOPMENT.md](docs/DEVELOPMENT.md)**: Practical setup, tooling, and conventions
-- **[USE_CASE_WORKFLOW.md](docs/USE_CASE_WORKFLOW.md)**: Step-by-step guide for implementing features
-- **[AGENTS.md](docs/AGENTS.md)**: How AI agents should collaborate with developers
-- **[CONTRIBUTING.md](CONTRIBUTING.md)**: How to work on Cortex (humans and AI agents)
+- **[Architecture](docs/architecture/README.md)**: Core principles guiding all technical decisions
+- **[Development](docs/development/README.md)**: Practical setup, tooling, and conventions
+- **[Use Case Workflow](docs/development/use-case-workflow.md)**: Step-by-step guide for implementing features
+- **[AI Agents](docs/agents/README.md)**: How AI agents should collaborate with developers
+- **[Contributing](CONTRIBUTING.md)**: How to work on Cortex (humans and AI agents)
+
+For a complete overview of all documentation, see [docs/README.md](docs/README.md).
 
 ## License
 
