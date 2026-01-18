@@ -1,3 +1,5 @@
+[Docs](../README.md) / [Agents](./README.md) / Common Pitfalls
+
 # Common Pitfalls
 
 ## ❌ Don't: Assume React Patterns Work

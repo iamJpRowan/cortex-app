@@ -1,3 +1,5 @@
+[Docs](../README.md) / [Development](./README.md) / Development Guardrails
+
 # Development Guardrails
 
 These are hard constraints that keep development aligned with Cortex's long-term vision. Follow these rules to maintain architectural integrity and avoid technical debt.
@@ -83,3 +85,10 @@ Before implementing a feature, ask:
 - ✅ Will this work in the local-first model?
 
 If any answer is "no" or "not sure", pause and reconsider the approach.
+
+## See Also
+
+- [Architecture Principles](../architecture/principles.md) - The principles these guardrails protect
+- [Development Patterns](./patterns.md) - Patterns that follow these guardrails
+- [Use Case Workflow](./use-case-workflow.md) - How to implement features within these constraints
+- [Architecture Security](../architecture/security.md) - Security-related guardrails

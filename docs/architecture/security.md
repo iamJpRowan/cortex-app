@@ -1,3 +1,5 @@
+[Docs](../README.md) / [Architecture](./README.md) / Security Model
+
 # Security Model
 
 ## Sandboxed Renderer

@@ -1,3 +1,5 @@
+[Docs](../README.md) / [Backlog](./README.md) / Vault Configuration and Data Integration
+
 # Vault Configuration and Data Integration
 
 ## Goal

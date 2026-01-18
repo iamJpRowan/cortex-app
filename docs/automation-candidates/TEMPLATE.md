@@ -1,3 +1,5 @@
+[Docs](../README.md) / [Automation Candidates](./README.md) / Automation Candidate Template
+
 # Automation Candidate Template
 
 Use this template when documenting automation opportunities discovered during Phase 4 of the use case workflow.

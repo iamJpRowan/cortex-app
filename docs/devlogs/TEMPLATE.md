@@ -1,3 +1,5 @@
+[Docs](../README.md) / [Devlogs](./README.md) / Devlog Template
+
 ---
 date: 2025-12-14
 developer: Name or identifier

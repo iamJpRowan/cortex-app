@@ -1,3 +1,5 @@
+[Docs](../README.md) / Automation Candidates
+
 # Automation Candidates
 
 This directory contains documented automation opportunities discovered during Phase 4 of the use case workflow.

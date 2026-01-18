@@ -1,3 +1,5 @@
+[Docs](../README.md) / [Agents](./README.md) / Agent-Specific Patterns
+
 # Agent-Specific Patterns
 
 ## Cursor IDE

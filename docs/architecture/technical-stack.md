@@ -1,3 +1,5 @@
+[Docs](../README.md) / [Architecture](./README.md) / Technical Stack
+
 # Technical Stack
 
 ## Main Process (Backend)

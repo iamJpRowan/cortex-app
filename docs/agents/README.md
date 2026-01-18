@@ -1,3 +1,5 @@
+[Docs](../README.md) / Agents
+
 # AI Agent Development Guide
 
 This guide defines how AI agents (Cursor, Claude Desktop, GitHub Copilot, autonomous bots, etc.) should collaborate with developers when working on Cortex as a native Electron application.

@@ -1,3 +1,5 @@
+[Docs](../README.md) / [Backlog](./README.md) / Ollama Connection Integration
+
 # Ollama Connection Integration
 
 ## Goal

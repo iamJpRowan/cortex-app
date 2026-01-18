@@ -1,3 +1,5 @@
+[Docs](../README.md) / [Development](./README.md) / Development Patterns
+
 # Development Patterns
 
 ## Adding New Functionality
@@ -412,3 +414,11 @@ const p3 = await window.api.person.getDetails('Bob')
 // Batch them
 const people = await window.api.person.getBatch(['John', 'Jane', 'Bob'])
 ```
+
+## See Also
+
+- [Testing Strategies](./testing.md) - How to test the patterns described here
+- [Guardrails](./guardrails.md) - Constraints that affect these patterns
+- [Architecture Principles](../architecture/principles.md) - Why these patterns exist
+- [Use Case Workflow](./use-case-workflow.md) - How to apply these patterns in feature development
+- [IPC Patterns](../agents/electron-guidance.md) - Electron-specific IPC guidance

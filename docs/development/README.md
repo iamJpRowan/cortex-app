@@ -1,3 +1,5 @@
+[Docs](../README.md) / Development
+
 # Development Guide
 
 This guide covers the development workflow for building Cortex as a native Electron desktop application with embedded Neo4j and Ollama. The architecture prioritizes rapid iteration, clear separation of concerns, and a streamlined developer experience.

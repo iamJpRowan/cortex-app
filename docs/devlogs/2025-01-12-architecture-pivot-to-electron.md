@@ -17,6 +17,8 @@ iterations: multiple discussion rounds
 outcome: complete architecture redesign with updated documentation
 ---
 
+[Docs](../README.md) / [Devlogs](./README.md) / Architecture Pivot to Electron
+
 # Context
 
 Project Cortex was initially planned as a web application with GraphQL/Apollo backend, separate frontend, and external Neo4j/Ollama services running in Docker. After discussing the end goal (native desktop app) and development workflow needs, we questioned whether building web-first made sense.

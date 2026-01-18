@@ -1,3 +1,5 @@
+[Docs](../README.md) / Architecture
+
 # Architecture
 
 This directory contains documentation about Cortex's architecture, design principles, and technical decisions.

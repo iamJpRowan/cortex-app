@@ -1,3 +1,5 @@
+[Docs](../README.md) / [Architecture](./README.md) / Data Flow Architecture
+
 # Data Flow Architecture
 
 ## ELT Architecture with Graph-Layer Transformation

@@ -1,3 +1,5 @@
+[Docs](../README.md) / [Development](./README.md) / Setup
+
 # Setup
 
 ## Prerequisites

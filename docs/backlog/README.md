@@ -1,3 +1,5 @@
+[Docs](../README.md) / Backlog
+
 # Backlog
 
 This directory contains feature backlog items for Cortex development. Each file represents a discrete feature or enhancement that can be implemented independently.

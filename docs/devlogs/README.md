@@ -1,3 +1,5 @@
+[Docs](../README.md) / Devlogs
+
 # Development Logs
 
 Development logs document significant features, complex problems, and technical decisions for future reference.

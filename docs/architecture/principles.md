@@ -1,3 +1,5 @@
+[Docs](../README.md) / [Architecture](./README.md) / Core Architectural Principles
+
 # Core Architectural Principles
 
 ## 1. Local-First Data Sovereignty

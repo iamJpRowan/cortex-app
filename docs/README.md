@@ -2,53 +2,44 @@
 
 Welcome to the Cortex documentation. This directory contains all documentation for the project, organized by topic.
 
-## Getting Started
+## Quick Navigation
 
-- **[VISION.md](./VISION.md)** - What is Cortex? Core benefits and vision
-- **[CONTRIBUTING.md](../CONTRIBUTING.md)** - Guidelines for contributing to Cortex
+- [Getting Started](#getting-started)
+- [Architecture](./architecture/README.md)
+- [Development](./development/README.md)
+- [Agents](./agents/README.md)
+- [Backlog](./backlog/README.md)
+- [Automation Candidates](./automation-candidates/README.md)
+- [Devlogs](./devlogs/README.md)
 
-## Architecture
+## Where to Start
 
-The [architecture/](./architecture/) directory contains documentation about Cortex's architecture, design principles, and technical decisions.
+**New to Cortex?**
+1. Start with [VISION.md](./VISION.md) to understand what Cortex is
+2. Read [Architecture](./architecture/README.md) for high-level design
+3. Follow [Development Setup](./development/setup.md) to get running
+4. Review [Development Patterns](./development/patterns.md) for coding patterns
 
-- **[principles.md](./architecture/principles.md)** - Core architectural principles
-- **[technical-stack.md](./architecture/technical-stack.md)** - Technology choices
-- **[process-architecture.md](./architecture/process-architecture.md)** - Main and renderer process details
-- **[data-flow.md](./architecture/data-flow.md)** - ELT architecture and data flow patterns
-- **[security.md](./architecture/security.md)** - Security model
-- **[deployment.md](./architecture/deployment.md)** - Distribution and deployment
+**Implementing a Feature?**
+1. Review [Use Case Workflow](./development/use-case-workflow.md)
+2. Check [Feature Development](./development/feature-development.md)
+3. Consult [Guardrails](./development/guardrails.md) for constraints
 
-## Development
+**Working with AI Agents?**
+1. Read [Agents Guide](./agents/README.md)
+2. Follow [Conversation Workflow](./agents/conversation-workflow.md)
+3. Reference [Common Pitfalls](./agents/common-pitfalls.md)
 
-The [development/](./development/) directory contains guides for setting up, building, and working with the codebase.
+## Quick Reference
 
-- **[setup.md](./development/setup.md)** - Prerequisites and initial setup
-- **[workflow.md](./development/workflow.md)** - Running the app, hot reload, debugging
-- **[patterns.md](./development/patterns.md)** - Development patterns and examples
-- **[testing.md](./development/testing.md)** - Testing strategies
-- **[build.md](./development/build.md)** - Production builds
-- **[code-style.md](./development/code-style.md)** - Naming conventions
-- **[use-case-workflow.md](./development/use-case-workflow.md)** - Four-phase feature implementation
-- **[guardrails.md](./development/guardrails.md)** - Technical constraints and red flags
-- **[feature-development.md](./development/feature-development.md)** - Feature workflow summary
+**Common Tasks:**
+- [Run the app](./development/workflow.md#running-the-application) - Start development server
+- [Add a feature](./development/use-case-workflow.md) - Four-phase implementation workflow
+- [Test changes](./development/testing.md) - Testing strategies
+- [Build for production](./development/build.md) - Create distribution package
 
-## Agents
-
-The [agents/](./agents/) directory contains guidance for AI agents working on the project.
-
-- **[conversation-workflow.md](./agents/conversation-workflow.md)** - Structured conversation workflow
-- **[agent-patterns.md](./agents/agent-patterns.md)** - Cursor, Claude, Copilot patterns
-- **[electron-guidance.md](./agents/electron-guidance.md)** - Electron-specific reminders
-- **[common-pitfalls.md](./agents/common-pitfalls.md)** - What not to do
-- **[checklists.md](./agents/checklists.md)** - Development checklists
-
-## Planning
-
-The planning directories contain feature ideas, automation opportunities, and backlog items for future development.
-
-- **[backlog/](./backlog/)** - Feature backlog items with goals, constraints, and architectural approaches
-- **[automation-candidates/](./automation-candidates/)** - Documented automation opportunities discovered during use case workflows
-
-## History
-
-- **[devlogs/](./devlogs/)** - Historical development logs
+**Key Concepts:**
+- [Local-first architecture](./architecture/principles.md#1-local-first-data-sovereignty) - Core design principle
+- [ELT data flow](./architecture/data-flow.md) - Data architecture pattern
+- [IPC patterns](./development/patterns.md#ipc-communication) - Inter-process communication
+- [Vanilla JSX](./development/patterns.md#working-with-jsx-no-react) - UI without React

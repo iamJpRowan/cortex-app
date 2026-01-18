@@ -1,3 +1,5 @@
+[Docs](../README.md) / [Agents](./README.md) / Electron-Specific Guidance
+
 # Electron-Specific Guidance
 
 ## Process Boundary Awareness
