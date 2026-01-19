@@ -30,7 +30,9 @@ Thumbs.db
 Desktop.ini
 
 # IDE
-.vscode/
+.vscode/*
+!.vscode/settings.json
+!.vscode/css_custom_data.json
 .idea/
 *.swp
 *.swo

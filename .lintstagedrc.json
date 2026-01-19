@@ -1,0 +1,12 @@
+{
+  "*.{ts,tsx}": [
+    "node scripts/validate-design-tokens.js",
+    "node scripts/validate-accessibility.js"
+  ],
+  "*.css": [
+    "stylelint --fix"
+  ],
+  "**/*.{ts,tsx}": [
+    "bash -c 'npm run type-check'"
+  ]
+}
