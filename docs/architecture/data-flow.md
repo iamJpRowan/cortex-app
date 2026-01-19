@@ -4,7 +4,7 @@
 
 ## ELT Architecture with Graph-Layer Transformation
 
-Data flows through Extract → Load → Transform stages. Source data is extracted and loaded in its native format first, preserving complete fidelity. Transformation happens only when loading into the embedded graph. The graph is completely disposable and can be rebuilt from source data at any time.
+Data flows through Extract → Load → Transform stages. Source data is extracted and loaded in its native format first, preserving complete fidelity. Transformation happens only when loading into the graph database. The graph is completely disposable and can be rebuilt from source data at any time.
 
 **Why it matters:**
 - Iterate on graph structure without touching source files
@@ -14,7 +14,7 @@ Data flows through Extract → Load → Transform stages. Source data is extract
 - Failed transformations can be fixed and re-run without data loss
 
 **Example:**
-Strava activity data is synced from the API and saved as JSON files in your vault data directory. The transformation logic reads these files and creates graph nodes/relationships in embedded Neo4j. If you realize a better way to model "route" relationships, you update the transformation code and rebuild the graph—no need to re-fetch from Strava or modify the stored JSON files.
+Strava activity data is synced from the API and saved as JSON files in your configured data directory. The transformation logic reads these files and creates graph nodes/relationships in Neo4j. If you realize a better way to model "route" relationships, you update the transformation code and rebuild the graph—no need to re-fetch from Strava or modify the stored JSON files.
 
 ## Flexible Storage with Unified Graph
 
@@ -62,3 +62,4 @@ Different types of data have different authoritative sources and require differe
 - Adding a tag to a journal entry: Main process writes directly to the Markdown file, then updates graph
 - Updating a Strava activity title: Send API request to Strava, wait for sync, then graph reflects the change
 - Creating a new project note: Write Markdown file locally via main process, index to graph immediately
+

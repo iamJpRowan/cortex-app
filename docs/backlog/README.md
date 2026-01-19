@@ -15,9 +15,10 @@ Backlog items are organized as standalone markdown files. Each file contains:
 
 ## Current Backlog
 
-### Phase 0 - Infrastructure
+### Infrastructure
 - **[ollama-connection.md](./ollama-connection.md)** - Integrate local Ollama installation and connection
 - **[langchain-integration.md](./langchain-integration.md)** - Integrate LangChain/LangGraph for stateful LLM agents with tool use
+- **[structured-config-audit.md](./structured-config-audit.md)** - Audit and consolidate configuration into structured defaults pattern
 
 
 ### Database & Knowledge Graphs

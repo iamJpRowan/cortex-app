@@ -204,15 +204,18 @@ function renderPersonDetails(person: Person) {
 
 ### Neo4j Management
 
+**Note**: Neo4j runs as a managed subprocess. Connection management example:
+
 ```typescript
-// src/main/neo4j/embedded.ts
+// src/main/neo4j/connection.ts
 import neo4j from 'neo4j-driver'
 import { app } from 'electron'
 import path from 'path'
 
 const dbPath = path.join(app.getPath('userData'), 'neo4j')
 
-export async function startNeo4j() {
+export async function connectToNeo4j() {
+  // Assumes Neo4j subprocess is already running
   const driver = neo4j.driver('neo4j://localhost:7687', 
     neo4j.auth.basic('neo4j', 'password')
   )
@@ -223,31 +226,30 @@ export async function startNeo4j() {
   return driver
 }
 
-export async function stopNeo4j(driver) {
+export async function closeNeo4jConnection(driver) {
   await driver.close()
 }
 ```
 
 ### Ollama Management
 
+**Note**: Ollama uses standard system installation, not app-specific directory. Connection management example:
+
 ```typescript
-// src/main/ollama/embedded.ts
-import { spawn } from 'child_process'
-import { app } from 'electron'
-import path from 'path'
+// src/main/ollama/connection.ts
+import { DEFAULT_OLLAMA_CONFIG } from '../config/defaults'
 
-const ollamaPath = path.join(app.getPath('userData'), 'ollama', 'ollama')
-
-export function startOllama() {
-  const process = spawn(ollamaPath, ['serve'], {
-    env: {
-      ...process.env,
-      OLLAMA_MODELS: path.join(app.getPath('userData'), 'models')
-    }
-  })
+export async function connectToOllama() {
+  // Connect to system Ollama installation
+  // Models in standard location: ~/.ollama/models
+  const response = await fetch(`http://${DEFAULT_OLLAMA_CONFIG.host}:${DEFAULT_OLLAMA_CONFIG.port}/api/tags`)
   
-  process.on('error', (err) => {
-    console.error('Ollama failed to start:', err)
+  if (!response.ok) {
+    throw new Error('Ollama not available - may need installation')
+  }
+  
+  return await response.json()
+}
   })
   
   return process
@@ -263,16 +265,15 @@ export function stopOllama(process) {
 ```typescript
 // src/main/index.ts
 import { app, BrowserWindow } from 'electron'
-import { startNeo4j, stopNeo4j } from './neo4j'
-import { startOllama, stopOllama } from './ollama'
+import { connectToNeo4j, closeNeo4jConnection } from './neo4j/connection'
+import { connectToOllama } from './ollama/connection'
 
 let neo4jDriver
-let ollamaProcess
 
 app.on('ready', async () => {
-  // Start embedded services
-  neo4jDriver = await startNeo4j()
-  ollamaProcess = startOllama()
+  // Connect to services (assumes Neo4j subprocess already started)
+  neo4jDriver = await connectToNeo4j()
+  await connectToOllama() // Verify Ollama is available
   
   // Create window
   const window = new BrowserWindow({
@@ -289,9 +290,8 @@ app.on('ready', async () => {
 })
 
 app.on('before-quit', async () => {
-  // Cleanup
-  if (neo4jDriver) await stopNeo4j(neo4jDriver)
-  if (ollamaProcess) stopOllama(ollamaProcess)
+  // Cleanup connections
+  if (neo4jDriver) await closeNeo4jConnection(neo4jDriver)
 })
 ```
 

@@ -5,9 +5,10 @@
 ## Main Process (Backend)
 - **Runtime**: Node.js (bundled with Electron)
 - **Language**: TypeScript
-- **Database**: Neo4j Embedded (runs as library)
-- **AI Runtime**: Ollama (user-installed, app connects to local instance)
-- **Filesystem**: Direct access to Obsidian vault and application data
+- **Database**: Neo4j (runs as managed subprocess, bundled with app)
+- **Conversation State**: SQLite (for LLM conversation history and audit logs)
+- **AI Runtime**: Ollama (auto-detects existing install or guides installation)
+- **Filesystem**: Direct access to user-configured data locations
 
 ## Renderer Process (Frontend)
 - **Runtime**: Chromium (bundled with Electron)
@@ -23,6 +24,7 @@
 
 ## Data Layer
 - **Source Files**: Markdown (YAML frontmatter) + JSON/CSV for metrics
-- **Graph Index**: Neo4j embedded database
+- **Knowledge Graph**: Neo4j (subprocess)
+- **Conversation State**: SQLite (for LLM interactions and audit trail)
 - **Transformation**: Custom TypeScript logic for ELT pipeline
 - **Sync**: Bidirectional with external platforms (Strava, GitHub, etc.)

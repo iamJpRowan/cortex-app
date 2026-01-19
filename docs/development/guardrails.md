@@ -8,13 +8,13 @@ These are hard constraints that keep development aligned with Cortex's long-term
 
 ### TypeScript Everywhere
 - All code must be TypeScript, no plain JavaScript exceptions
-- Enables code reuse across web, desktop, and Obsidian plugins
-- Provides type safety during rapid iteration
+- Enables code reuse and type safety during rapid iteration
+- Provides better tooling and refactoring support
 
-### Desktop-Compatible from Day One
-- Never use browser-only APIs without fallback or abstraction
-- Architecture must work for both web and desktop packaging (Electron/Tauri)
-- Think: "Will this work when we're not in a browser?"
+### Use Node.js APIs Appropriately
+- Main process has full Node.js API access (filesystem, processes, etc.)
+- Renderer process is sandboxed - use IPC for privileged operations
+- Keep security boundaries clear between processes
 
 ### Preserve Exact Markdown Formatting
 - File read/write operations must maintain exact formatting

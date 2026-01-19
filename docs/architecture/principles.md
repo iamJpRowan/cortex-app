@@ -19,17 +19,17 @@ A journal entry about a significant life event is stored as a Markdown file in y
 
 ---
 
-## 2. Embedded Services Architecture
+## 2. Bundled Services Architecture
 
 **What it is:**
 Rather than requiring external services (Docker, cloud APIs, separate database servers), Cortex bundles everything needed to run:
 
 - **Neo4j Server**: Graph database runs as managed subprocess, bundled with app
-- **Ollama Connection**: Connects to locally installed Ollama (detects existing installation)
-- **Application Data**: All databases and caches stored in user data directory; models in standard Ollama location
+- **Ollama**: Auto-detects existing installation or guides user through setup on first launch
+- **Application Data**: Databases and caches in App Support directory; models in standard Ollama location
 
 **Why it matters:**
-- Minimal configuration: install Ollama once, works forever
+- Minimal configuration: Ollama detected or installed automatically
 - No Docker or cloud services to manage
 - Single application to start/stop
 - Clean process separation (services can restart independently)
@@ -38,7 +38,7 @@ Rather than requiring external services (Docker, cloud APIs, separate database s
 - Complete control over data location
 
 **Example:**
-User installs Ollama (`brew install ollama`) and downloads a model (`ollama pull llama3.2`). Then downloads Cortex. On launch, Cortex detects existing Ollama installation, starts Neo4j server subprocess, and connects to everything automatically. No configuration needed.
+User downloads and launches Cortex. App detects no Ollama installation and guides user through automated setup. Neo4j starts as subprocess automatically. User configures where to store their data. Everything works without manual service management.
 
 ---
 
@@ -142,10 +142,45 @@ Model selection is dynamic:
 
 ---
 
-## 7. Progressive Enhancement
+## 7. Tool/Plugin Architecture & Extensibility
 
 **What it is:**
-Build foundational capabilities first, then add complexity incrementally. Each phase delivers immediate value. The system learns and improves both its data model and tooling continuously through AI assistance and user feedback.
+From the start, Cortex is designed to support extensible tools and plugins. Built-in functionality uses the exact same patterns that user-contributed plugins will use, ensuring the architecture genuinely supports extensibility rather than bolting it on later.
+
+**Core Patterns:**
+- **Directory-per-tool organization**: Each tool isolated in its own directory
+- **ToolRegistry pattern**: Centralized management of all tools (built-in and user-added)
+- **Auto-registration**: Built-in tools automatically register on initialization
+- **Manifest-ready structure**: Directories organized for future plugin manifest files
+- **Plugin equality**: Built-in tools work exactly like user plugins would
+
+**Why it matters:**
+- Proves extensibility works from day one
+- Avoids technical debt from "we'll add plugins later"
+- Built-in tools serve as reference implementations
+- Users can extend functionality without core code changes
+- Community can contribute tools following established patterns
+
+**Example Structure:**
+```
+src/main/services/llm/tools/
+├── registry.ts              # ToolRegistry class
+├── builtin/                 # Built-in tools
+│   ├── echo/
+│   │   └── echo.tool.ts
+│   ├── neo4j/
+│   │   └── count-nodes.tool.ts
+│   └── index.ts             # Auto-registration
+└── user/                    # Future: User-installed plugins
+    └── [plugin-directories]
+```
+
+---
+
+## 8. Progressive Enhancement
+
+**What it is:**
+Build foundational capabilities first, then add complexity incrementally. Each implementation delivers immediate value. The system learns and improves both its data model and tooling continuously through AI assistance and user feedback.
 
 **Why it matters:**
 - Get value quickly rather than building everything upfront
@@ -159,6 +194,41 @@ Build foundational capabilities first, then add complexity incrementally. Each p
 - Phase 3: External data integrations
 - Phase 4: Autonomous agents that run on schedule
 - Each phase works independently and adds value
+
+---
+
+## 9. Structured Configuration for Early Development
+
+**What it is:**
+During initial development, configuration values are structured as TypeScript constants rather than loaded from files. Services are designed to accept configuration objects, preparing for a future full configuration system without adding that complexity prematurely.
+
+**Implementation Pattern:**
+```typescript
+// src/main/config/defaults.ts
+export const DEFAULT_OLLAMA_CONFIG = {
+  host: 'localhost',
+  port: 11434,
+  model: 'llama3.2'
+}
+
+// Services accept config objects
+class LLMService {
+  constructor(private config: OllamaConfig) {}
+  // Implementation uses config.host, config.port, etc.
+}
+```
+
+**Why it matters:**
+- Avoids premature complexity of config file loading, validation, hot reload
+- Services are designed for eventual configuration from day one
+- Clear separation between defaults and service implementation
+- Easy to transition to full config system when needed
+- Development speed prioritized while maintaining good patterns
+
+**When to transition:**
+- Build full configuration system (file loading, UI, validation) as separate backlog item
+- Until then, all configuration changes require code updates
+- This trade-off is intentional and appropriate for foundational development
 
 ---
 

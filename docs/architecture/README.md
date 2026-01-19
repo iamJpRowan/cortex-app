@@ -6,9 +6,9 @@ This directory contains documentation about Cortex's architecture, design princi
 
 ## Overview
 
-Cortex is a **native desktop application** built on Electron that provides a truly self-contained, local-first experience. The application manages Neo4j as a subprocess for graph database capabilities and connects to locally installed Ollama for AI processing, requiring no Docker containers or cloud services.
+Cortex is a **native desktop application** built on Electron that provides a truly self-contained, local-first experience. The application manages Neo4j as a subprocess for knowledge graph capabilities, uses SQLite for conversation state and audit logs, and connects to locally installed Ollama for AI processing, requiring no Docker containers or cloud services.
 
-The architecture follows **local-first data sovereignty** principles with an **ELT (Extract-Load-Transform)** approach where the embedded graph database serves as a disposable, intelligent index over your source data stored in open formats.
+The architecture follows **local-first data sovereignty** principles with an **ELT (Extract-Load-Transform)** approach where the graph database serves as a disposable, intelligent index over your source data stored in open formats.
 
 ## Application Structure
 
@@ -18,8 +18,9 @@ The architecture follows **local-first data sovereignty** principles with an **E
 Cortex Desktop App
 ├── Main Process (Node.js/TypeScript)
 │   ├── Neo4j Server (subprocess)
-│   ├── Ollama Server (subprocess)
-│   ├── Filesystem Access (Obsidian Vault)
+│   ├── SQLite (conversation state & audit logs)
+│   ├── Ollama Connection (system installation)
+│   ├── Filesystem Access (user-configured locations)
 │   ├── Application State Management
 │   └── IPC Handlers (API for renderer)
 │
@@ -31,8 +32,9 @@ Cortex Desktop App
 
 **Key Characteristics:**
 - **Single packaged application**: Initial download ~500MB-1GB
-- **Minimal external dependencies**: Requires Ollama installed locally (one-time setup)
-- **Managed services**: Neo4j runs as subprocess, Ollama connects to local installation
+- **Minimal external dependencies**: Auto-detects or installs Ollama on first launch
+- **Managed services**: Neo4j runs as subprocess, Ollama uses system installation
+- **Two databases**: Neo4j (knowledge graph) + SQLite (conversation state)
 - **Direct access**: Main process has native filesystem and database access
 - **Secure by default**: Renderer process sandboxed, only accesses data via IPC
 
