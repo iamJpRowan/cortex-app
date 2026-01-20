@@ -16,9 +16,7 @@ Backlog items are organized as standalone markdown files. Each file contains:
 ## Current Backlog
 
 ### Infrastructure
-- **[ollama-connection.md](./ollama-connection.md)** - Integrate local Ollama installation and connection
 - **[langchain-integration.md](./langchain-integration.md)** - Integrate LangChain/LangGraph for stateful LLM agents with tool use
-- **[structured-config-audit.md](./structured-config-audit.md)** - Audit and consolidate configuration into structured defaults pattern
 
 
 ### Database & Knowledge Graphs
@@ -27,32 +25,9 @@ Backlog items are organized as standalone markdown files. Each file contains:
 
 ### Configuration & Extensibility
 - **[configuration-system.md](./configuration-system.md)** - User configuration system with file loading, UI, and hot reload
-- **[tool-permission-system.md](./tool-permission-system.md)** - User-controlled tool permissions with runtime approval
-- **[plugin-extensibility-framework.md](./plugin-extensibility-framework.md)** - Plugin system for user-contributed tools and integrations
+- **[tool-permission-system.md](./tool-permission-system.md)** - User-controlled tool permissions with runtime approval. requires: LangChain Integration
+- **[plugin-extensibility-framework.md](./plugin-extensibility-framework.md)** - Plugin system for user-contributed tools and integrations. requires: LangChain Integration, Configuration System, Tool Permission System
 
 ### User Interface Features
-- **[chat-interface.md](./chat-interface.md)** - Production chat interface with conversation management and audit trail
+- **[chat-interface.md](./chat-interface.md)** - Production chat interface with conversation management and audit trail. requires: LangChain Integration
 
-## Usage
-
-These backlog items provide feature-level context without implementation details, making them suitable for:
-- Planning and estimation
-- Understanding dependencies between features
-- Architectural decision reference
-- Feature prioritization
-
-## Dependencies
-
-Key dependency relationships:
-- **LangChain Integration** requires: Ollama Connection
-- **Chat Interface** requires: LangChain Integration
-- **Tool Permission System** requires: LangChain Integration
-- **Plugin Extensibility Framework** requires: LangChain Integration, Configuration System, Tool Permission System
-
-## Future Backlog Items
-
-As the project progresses, additional backlog items will be added here for:
-- Phase 1 features (specific use case implementations)
-- Use case implementations (Person File Enhancement, Activity Tracking, etc.)
-- Automation candidates
-- Technical improvements

@@ -11,6 +11,12 @@
 - **Java Runtime**: JRE 17 or 21 (for embedded Neo4j)
 
 ### Optional Tools
+- **Ollama**: For local LLM capabilities (app will work without it, but with limited functionality)
+  - **macOS**: `brew install ollama`
+  - **Linux**: `curl -fsSL https://ollama.com/install.sh | sh`
+  - **Windows**: Download from [ollama.com](https://ollama.com/download)
+  - After installation, start the server: `ollama serve`
+  - Pull a model: `ollama pull llama3.2`
 - **Neo4j Desktop**: For inspecting database during development (can connect to embedded instance)
 - **Obsidian**: For viewing/editing vault files outside the app
 
@@ -89,6 +95,7 @@ npm run dev
 
 Should open Electron window with app running. Check that:
 - Neo4j embedded starts successfully (check console logs)
+- Ollama connection initializes (if installed) or logs warning (if not installed)
 - No Java or Neo4j path errors
 - UI renders with no console errors
 
@@ -97,6 +104,7 @@ Should open Electron window with app running. Check that:
 - **"Java Runtime Environment is required"**: Install Java (see step 2)
 - **"Neo4j binary not found"**: Run `npm run setup` to download Neo4j
 - **Port conflict**: Make sure port 7687 is not in use by another Neo4j instance
+- **Ollama warnings**: App will run without Ollama, but LLM features won't work. Install Ollama (see Optional Tools above) and ensure `ollama serve` is running
 
 ## Project Structure
 
@@ -105,11 +113,11 @@ cortex-app/
 ├── src/
 │   ├── main/                 # Main process (Node.js)
 │   │   ├── index.ts          # Application entry point
-│   │   ├── neo4j/            # Embedded Neo4j management
-│   │   ├── ollama/           # Embedded Ollama management
-│   │   ├── vault/            # Filesystem operations
+│   │   ├── services/         # Service layer
+│   │   │   ├── neo4j.ts      # Neo4j connection management
+│   │   │   └── ollama.ts     # Ollama connection management
 │   │   ├── ipc/              # IPC handlers
-│   │   └── state/            # Application state management
+│   │   └── vault/            # Filesystem operations (future)
 │   │
 │   ├── renderer/             # Renderer process (UI)
 │   │   ├── index.html        # HTML entry point

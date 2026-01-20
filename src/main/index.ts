@@ -1,6 +1,7 @@
 import { app, BrowserWindow } from 'electron'
 import path from 'path'
 import { startNeo4j, stopNeo4j } from './services/neo4j'
+import { initializeOllama } from './services/ollama'
 import { registerTestHandlers } from './ipc/test'
 
 let mainWindow: BrowserWindow | null = null
@@ -30,6 +31,15 @@ app.whenReady().then(async () => {
     // Start Neo4j
     await startNeo4j()
     console.log('[App] Neo4j started successfully')
+    
+    // Initialize Ollama (non-blocking - app can run without it)
+    const ollamaResult = await initializeOllama()
+    if (ollamaResult.success) {
+      console.log(`[App] Ollama initialized successfully with model: ${ollamaResult.model}`)
+    } else {
+      console.warn(`[App] Ollama initialization failed: ${ollamaResult.error}`)
+      console.warn('[App] App will continue without Ollama (limited functionality)')
+    }
     
     // Register IPC handlers
     registerTestHandlers()
