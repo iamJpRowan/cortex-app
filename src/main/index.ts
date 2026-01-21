@@ -3,6 +3,7 @@ import path from 'path'
 import { startNeo4j, stopNeo4j } from './services/neo4j'
 import { initializeOllama } from './services/ollama'
 import { registerTestHandlers } from './ipc/test'
+import { registerLLMHandlers } from './ipc/llm'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -43,6 +44,7 @@ app.whenReady().then(async () => {
     
     // Register IPC handlers
     registerTestHandlers()
+    registerLLMHandlers()
     
     // Create window
     createWindow()

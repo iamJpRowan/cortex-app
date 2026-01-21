@@ -15,6 +15,9 @@ module.exports = {
     'out/**/*',
     'package.json'
   ],
+  asarUnpack: [
+    '**/node_modules/better-sqlite3/**/*'
+  ],
   extraResources: [
     {
       from: 'resources/neo4j',

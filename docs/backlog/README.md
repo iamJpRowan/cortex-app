@@ -13,10 +13,12 @@ Backlog items are organized as standalone markdown files. Each file contains:
 - **Architectural Choices**: Predetermined technical decisions and patterns
 - **Success Criteria**: How to verify the feature is complete
 
+When backlog items are being implemented the file should reflect the current state.  When the backlog item is completed it should be deleted and removed from this page.  There is no need to perserve backlog history.
+
 ## Current Backlog
 
 ### Infrastructure
-- **[langchain-integration.md](./langchain-integration.md)** - Integrate LangChain/LangGraph for stateful LLM agents with tool use
+- **[deep-agents-adoption.md](./deep-agents-adoption.md)** - Migrate to Deep Agents when advanced capabilities (planning, filesystem, sub-agents) are needed. requires: LangChain Integration
 
 
 ### Database & Knowledge Graphs

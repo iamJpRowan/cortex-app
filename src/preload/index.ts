@@ -8,5 +8,12 @@ contextBridge.exposeInMainWorld('api', {
     ollamaQuery: (prompt?: string) => ipcRenderer.invoke('test:ollama-query', prompt),
     ollamaListModels: () => ipcRenderer.invoke('test:ollama-list-models'),
     ollamaGetDefaultModel: () => ipcRenderer.invoke('test:ollama-get-default-model')
+  },
+  llm: {
+    query: (message: string, conversationId?: string) => 
+      ipcRenderer.invoke('llm:query', message, conversationId),
+    toolsList: () => ipcRenderer.invoke('llm:tools:list'),
+    toolsTest: (toolName: string, args: Record<string, any>) => 
+      ipcRenderer.invoke('llm:tools:test', toolName, args)
   }
 })
