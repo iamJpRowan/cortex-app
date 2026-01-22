@@ -1,4 +1,4 @@
-[Docs](../README.md) / [Development](./README.md) / Design Tokens
+[Docs](../README.md) / [Design](./README.md) / Design Tokens
 
 # Design Tokens
 
@@ -259,3 +259,9 @@ To add new tokens:
 2. Add to both light and dark theme sections for theme-specific values
 3. Update `tailwind.config.js` if needed for Tailwind integration
 4. Document in this file
+
+## See Also
+
+- [UI Guide](./ui-guide.md) - Component usage patterns
+- [Terminology](./terminology.md) - UI terminology and naming conventions
+- [Accessibility](./accessibility.md) - Accessibility patterns

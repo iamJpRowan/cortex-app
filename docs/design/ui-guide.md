@@ -1,4 +1,4 @@
-[Docs](../README.md) / [Development](./README.md) / UI Guide
+[Docs](../README.md) / [Design](./README.md) / UI Guide
 
 # UI Guide
 
@@ -456,4 +456,5 @@ export function MyComponent(): HTMLElement {
 
 - [Design Tokens](./design-tokens.md) - Complete design token reference
 - [Accessibility](./accessibility.md) - Accessibility guidelines
-- [Component Lifecycle](./component-lifecycle.md) - Component patterns
+- [Terminology](./terminology.md) - UI terminology and naming conventions
+- [Component Lifecycle](../development/component-lifecycle.md) - Component patterns

@@ -15,10 +15,12 @@ This guide covers the development workflow for building Cortex as a native Elect
 - **[use-case-workflow.md](./use-case-workflow.md)** - Four-phase feature implementation workflow
 - **[guardrails.md](./guardrails.md)** - Technical constraints, decision shortcuts, and red flags
 - **[feature-development.md](./feature-development.md)** - Feature workflow summary
-- **[design-tokens.md](./design-tokens.md)** - Design token system reference (colors, spacing, typography)
-- **[ui-guide.md](./ui-guide.md)** - Component usage patterns and styling conventions
-- **[accessibility.md](./accessibility.md)** - Accessibility standards and patterns
 - **[component-lifecycle.md](./component-lifecycle.md)** - Component initialization and cleanup patterns
+
+## Design Documentation
+
+Design system documentation has been moved to the [Design](../design/README.md) directory:
+- Design tokens, UI guide, accessibility, and terminology
 
 ---
 

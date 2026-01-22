@@ -1,4 +1,4 @@
-[Docs](../README.md) / [Development](./README.md) / Accessibility
+[Docs](../README.md) / [Design](./README.md) / Accessibility
 
 # Accessibility Guide
 
@@ -328,4 +328,5 @@ function Modal(): HTMLElement {
 ## See Also
 
 - [UI Guide](./ui-guide.md) - Component usage patterns
-- [Component Lifecycle](./component-lifecycle.md) - Component patterns
+- [Terminology](./terminology.md) - UI terminology and naming conventions
+- [Component Lifecycle](../development/component-lifecycle.md) - Component patterns

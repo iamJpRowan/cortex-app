@@ -454,6 +454,6 @@ export function ComponentName(): HTMLElement {
 
 ## See Also
 
-- [UI Guide](./ui-guide.md) - Component styling and usage
-- [Accessibility](./accessibility.md) - Accessibility patterns
+- [UI Guide](../design/ui-guide.md) - Component styling and usage
+- [Accessibility](../design/accessibility.md) - Accessibility patterns
 - [Patterns](./patterns.md) - General development patterns
