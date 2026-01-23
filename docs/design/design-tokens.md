@@ -201,6 +201,132 @@ Status colors use grayscale values (monochromatic approach):
 - `z-40`: Popovers
 - `z-50`: Skip links, highest priority
 
+## Transition Tokens
+
+### Transition Durations
+
+```css
+--transition-duration-fast:   150ms  /* Quick interactions, hover states */
+--transition-duration-base:   200ms  /* Default transitions */
+--transition-duration-normal: 300ms  /* Smooth animations, layout changes */
+--transition-duration-slow:    500ms  /* Complex animations, page transitions */
+```
+
+### Transition Easing Functions
+
+```css
+--transition-easing-ease:        ease                    /* Default easing */
+--transition-easing-smooth:      cubic-bezier(0.4, 0, 0.2, 1)  /* Smooth, natural feel */
+--transition-easing-ease-in:     ease-in                 /* Slow start */
+--transition-easing-ease-out:     ease-out                /* Slow end */
+--transition-easing-ease-in-out:  ease-in-out             /* Slow start and end */
+```
+
+### Transition Shorthands
+
+Pre-configured combinations for common use cases:
+
+```css
+--transition-base:   var(--transition-duration-base) var(--transition-easing-ease)
+--transition-smooth: var(--transition-duration-normal) var(--transition-easing-smooth)
+--transition-fast:   var(--transition-duration-fast) var(--transition-easing-ease)
+--transition-slow:   var(--transition-duration-slow) var(--transition-easing-ease)
+```
+
+**Usage Guidelines:**
+- `--transition-base`: Default transitions (colors, backgrounds)
+- `--transition-smooth`: Layout changes, width/height animations (sidebar, panels)
+- `--transition-fast`: Hover states, quick feedback
+- `--transition-slow`: Complex animations, page transitions
+
+**Example Usage:**
+```css
+/* Single property */
+.my-element {
+  transition: width var(--transition-smooth);
+}
+
+/* Multiple properties */
+.my-element {
+  transition: background-color var(--transition-base), color var(--transition-base);
+}
+
+/* Using shorthand */
+.sidebar {
+  transition: width var(--transition-smooth);
+}
+```
+
+## Focus Tokens
+
+### Focus Background Color
+
+```css
+--color-bg-focus: var(--color-base-300)
+```
+
+**Usage:**
+- Unified background-based focus indicator for all interactive elements
+- Applied automatically to buttons, inputs, links, and all focusable elements
+- Provides sufficient contrast (3:1+) to meet WCAG 2.4.11 (Focus Visible)
+- Modern, clean aesthetic matching Cursor/Obsidian/Arc patterns
+
+**Light Theme:**
+- `--color-bg-focus`: `#d4d4d4` (base-300)
+
+**Dark Theme:**
+- `--color-bg-focus`: `#404040` (base-300)
+
+**Design Philosophy:**
+- **Unified approach**: All interactive elements use the same focus pattern (background color change)
+- **No outlines/rings**: Clean, minimal focus indicators that don't take extra space
+- **No clipping**: Background-based focus works in constrained spaces (collapsed sidebars, etc.)
+- **Consistent**: Same pattern across buttons, inputs, links, and all focusable elements
+
+**Example Usage:**
+```css
+/* Automatically applied to all interactive elements */
+button:focus-visible,
+input:focus-visible,
+a:focus-visible {
+  background-color: var(--color-bg-focus);
+  outline: none;
+}
+```
+
+**Note:** This replaces the old outline/ring-based focus indicators. All components now use this unified background-based approach.
+
+## Icon Tokens
+
+### Icon Stroke Width
+
+```css
+--icon-stroke-width: 1.5
+```
+
+**Usage:**
+- Default stroke width for all icons (1.5px)
+- Applied globally via CSS to all icons with `.icon` class
+- Can be overridden per-container or per-icon via CSS
+
+**Example Usage:**
+```css
+/* Icons automatically get stroke-width from token */
+.icon {
+  stroke-width: var(--icon-stroke-width);
+}
+
+/* Override for specific container */
+.bold-icons .icon {
+  stroke-width: 2;
+}
+
+/* Override for specific icon */
+.icon.thin {
+  stroke-width: 1;
+}
+```
+
 ## Usage Examples
 
 ### In CSS
@@ -212,6 +338,7 @@ Status colors use grayscale values (monochromatic approach):
   padding: var(--space-4);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-border-primary);
+  transition: background-color var(--transition-base), color var(--transition-base);
 }
 ```
 

@@ -452,6 +452,61 @@ export function MyComponent(): HTMLElement {
 </div>
 ```
 
+## Layout Components
+
+### Using the Layout Component
+
+The `Layout` component provides the main application structure with collapsible sidebars and center content area:
+
+```tsx
+import { Layout } from './components/Layout'
+import { MyView } from './views/MyView'
+
+export function App(): HTMLElement {
+  return Layout({ view: MyView })
+}
+```
+
+### Creating Views
+
+Views are components that render in the center area of the layout:
+
+```tsx
+/**
+ * MyView
+ * 
+ * A custom view component that displays in the center area.
+ * 
+ * @returns {HTMLElement} The view element
+ */
+export function MyView(): HTMLElement {
+  return (
+    <div className="card-padded">
+      <h1 className="text-2xl font-bold mb-4 text-text-primary">
+        My View Title
+      </h1>
+      <p className="text-text-secondary">
+        View content goes here
+      </p>
+    </div>
+  ) as HTMLElement
+}
+```
+
+**View Guidelines:**
+- Views should be self-contained components
+- Use design tokens for styling
+- Follow accessibility guidelines
+- Views are rendered in the center area automatically
+
+### Sidebar Structure
+
+The left sidebar is managed by the `Layout` component and includes:
+- Collapsible toggle button
+- Navigation area (ready for navigation items)
+- Icon-only mode when collapsed (48px width)
+- Expanded mode (250px width)
+
 ## See Also
 
 - [Design Tokens](./design-tokens.md) - Complete design token reference

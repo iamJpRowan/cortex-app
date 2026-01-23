@@ -338,6 +338,56 @@ export function AsyncComponent(): HTMLElement {
 }
 ```
 
+### Pattern 4: Complex Stateful Component with DOM Updates
+
+```tsx
+export function LayoutComponent(): HTMLElement {
+  // State management
+  const state = {
+    sidebar: { collapsed: false }
+  }
+  
+  let sidebarElement: HTMLElement
+  
+  function handleToggle() {
+    state.sidebar.collapsed = !state.sidebar.collapsed
+    updateLayout()
+  }
+  
+  function updateLayout() {
+    // Update DOM directly using classes (preserves CSS transitions)
+    if (sidebarElement) {
+      if (state.sidebar.collapsed) {
+        sidebarElement.classList.add('collapsed')
+      } else {
+        sidebarElement.classList.remove('collapsed')
+      }
+    }
+  }
+  
+  // Initial render
+  sidebarElement = Sidebar({
+    collapsed: state.sidebar.collapsed,
+    onToggle: handleToggle
+  })
+  
+  return (
+    <div className="layout-container">
+      {sidebarElement}
+      <main className="center-area">
+        Content
+      </main>
+    </div>
+  ) as HTMLElement
+}
+```
+
+**Key Points:**
+- Use closure-based state for component state
+- Update DOM directly using classes (not inline styles)
+- CSS handles transitions automatically
+- Store element references for updates
+
 ## Common Pitfalls
 
 ### ❌ Don't: Forget to Check Element Exists

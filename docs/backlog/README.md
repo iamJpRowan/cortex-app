@@ -31,7 +31,6 @@ When backlog items are being implemented the file should reflect the current sta
 - **[plugin-extensibility-framework.md](./plugin-extensibility-framework.md)** - Plugin system for user-contributed tools and integrations. requires: LangChain Integration, Configuration System, Tool Permission System
 
 ### User Interface Features
-- **[basic-layout-structure.md](./basic-layout-structure.md)** - Minimal layout foundation with collapsible left sidebar and center area
 - **[ui-layout-framework.md](./ui-layout-framework.md)** - Complete layout system with sidebars, tabs, panels, and extensible component architecture. requires: Basic Layout Structure
 - **[drag-and-drop-system.md](./drag-and-drop-system.md)** - Drag-and-drop functionality for widgets. requires: UI Layout Framework
 - **[component-composition-system.md](./component-composition-system.md)** - Custom view builder for assembling widgets. requires: UI Layout Framework, Drag and Drop System, Plugin Extensibility Framework

@@ -1,7 +1,15 @@
 import { createElement } from './lib/jsx'
-import { TestPanel } from './components/TestPanel'
+import { Layout } from './components/Layout'
+import { TestView } from './views/TestView'
 import './main.css'
 
+/**
+ * App Component
+ * 
+ * Root application component that sets up the main layout structure.
+ * 
+ * @returns {HTMLElement} The root application element
+ */
 export function App(): HTMLElement {
-  return TestPanel()
+  return Layout({ view: TestView })
 }

@@ -238,14 +238,31 @@ button:focus {
 
 ### Focus Indicators
 
-All focusable elements automatically get focus indicators via `:focus-visible`:
+All focusable elements automatically get focus indicators via `:focus-visible` using a modern, background-based approach
 
 ```css
-*:focus-visible {
-  outline: 2px solid var(--color-border-focus);
-  outline-offset: 2px;
+/* Unified background-based focus for all interactive elements */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  background-color: var(--color-bg-focus);
+  outline: none;
 }
 ```
+
+**Benefits:**
+- Clean, modern appearance without distracting outlines
+- Meets WCAG contrast requirements (3:1 ratio)
+- Consistent across all interactive elements
+- Matches industry-standard design patterns
+
+**Implementation:**
+- Focus indicators use `--color-bg-focus` design token
+- Background color change provides clear visual feedback
+- Works with both light and dark themes
 
 ### Focus Trap (Modals)
 

@@ -1,10 +1,13 @@
 {
   "*.{ts,tsx}": [
     "node scripts/validate-design-tokens.js",
-    "node scripts/validate-accessibility.js"
+    "node scripts/validate-accessibility.js",
+    "node scripts/validate-transitions.js",
+    "node scripts/validate-inline-styles.js"
   ],
   "*.css": [
-    "stylelint --fix"
+    "stylelint --fix",
+    "node scripts/validate-transitions.js"
   ],
   "**/*.{ts,tsx}": [
     "bash -c 'npm run type-check'"
