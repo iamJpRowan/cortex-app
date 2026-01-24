@@ -7,7 +7,7 @@ This directory contains design system documentation, UI patterns, and visual gui
 ## Documentation
 
 - **[terminology.md](./terminology.md)** - UI terminology and naming conventions
-- **[design-tokens.md](./design-tokens.md)** - Design token system (colors, spacing, typography)
+- **[design-tokens.md](./design-tokens.md)** - Design token system (color tokens only; spacing/typography use Tailwind)
 - **[ui-guide.md](./ui-guide.md)** - Component usage patterns and styling conventions
 - **[accessibility.md](./accessibility.md)** - Accessibility standards and patterns
 
@@ -31,8 +31,9 @@ Cortex follows a **monochromatic aesthetic** with:
 
 ### Styling
 
-- Use **design tokens** for all colors, spacing, and typography
-- Use **component classes** (`.btn-primary`, `.card-padded`, etc.) for consistency
+- Use **design tokens** for colors (see [Design Tokens](./design-tokens.md))
+- Use **shadcn/ui components** for UI elements (see [shadcn/ui docs](https://ui.shadcn.com/docs))
+- Use **Tailwind CSS utilities** for spacing, typography, transitions (see [Tailwind docs](https://tailwindcss.com/docs))
 - Follow **responsive patterns** (mobile-first approach)
 - Maintain **accessibility** standards (WCAG AA minimum)
 

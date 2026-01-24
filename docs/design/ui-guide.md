@@ -4,206 +4,41 @@
 
 This guide covers component usage patterns, styling conventions, and best practices for creating UI components in Cortex.
 
-## Component Classes
+## Component Library
 
-All component classes are defined in `src/renderer/src/main.css` using Tailwind's `@layer components`. They use design tokens and automatically adapt to light/dark themes.
+Cortex uses **[shadcn/ui](https://ui.shadcn.com/docs)** as its component library. shadcn/ui provides copy-paste React components built with Radix UI primitives and styled with Tailwind CSS.
 
-### Buttons
+### Using shadcn/ui Components
 
-#### `.btn-primary` (Default)
-Neutral black/white button with subtle border:
+All components are installed via the shadcn CLI and live in `src/renderer/src/components/ui/`. Components automatically use design tokens and adapt to light/dark themes.
 
+**Example:**
 ```tsx
-<button className="btn-primary">Primary Action</button>
-```
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 
-**Use for:** Default button actions, most common use case.
+<Button variant="default">Primary Action</Button>
+<Button variant="secondary">Secondary Action</Button>
+<Button variant="destructive">Delete</Button>
+<Button variant="ghost">Ghost Action</Button>
 
-#### `.btn-accent`
-Colored button for explicit emphasis:
-
-```tsx
-<button className="btn-accent">Important Action</button>
-```
-
-**Use for:** Very specific cases where color emphasis is intentionally required.
-
-#### `.btn-secondary`
-Secondary button with border:
-
-```tsx
-<button className="btn-secondary">Secondary Action</button>
-```
-
-**Use for:** Secondary actions, cancel buttons.
-
-#### `.btn-danger`
-Danger/error button:
-
-```tsx
-<button className="btn-danger">Delete</button>
-```
-
-**Use for:** Destructive actions (delete, remove, etc.).
-
-#### `.btn-ghost`
-Ghost button with transparent background:
-
-```tsx
-<button className="btn-ghost">Ghost Action</button>
-```
-
-**Use for:** Tertiary actions, less prominent buttons.
-
-### Inputs
-
-#### `.input`
-Standard input field:
-
-```tsx
-<input type="text" className="input" placeholder="Enter text" />
-```
-
-**Features:**
-- Full width by default
-- Subtle border
-- Grayscale focus ring
-- Disabled state support
-
-#### `.input-error`
-Input with error styling:
-
-```tsx
-<input type="text" className="input-error" />
-```
-
-**Use for:** Form validation errors.
-
-### Cards
-
-#### `.card`
-Base card container:
-
-```tsx
-<div className="card">
+<Card className="p-4">
   Card content
-</div>
+</Card>
+
+<Input placeholder="Enter text" />
 ```
 
-#### `.card-padded`
-Card with padding:
-
-```tsx
-<div className="card-padded">
-  Padded card content
-</div>
-```
-
-**Use for:** Most card use cases.
-
-### Containers
-
-#### `.container`
-Max-width container:
-
-```tsx
-<div className="container">
-  Content
-</div>
-```
-
-#### `.container-center`
-Centered container:
-
-```tsx
-<div className="container-center">
-  Centered content
-</div>
-```
-
-### Form Elements
-
-#### `.form-group`
-Form field group:
-
-```tsx
-<div className="form-group">
-  <label className="form-label">Label</label>
-  <input className="input" />
-  <p className="form-help">Help text</p>
-</div>
-```
-
-#### `.form-label`
-Form label:
-
-```tsx
-<label className="form-label">Field Label</label>
-```
-
-#### `.form-help`
-Help text:
-
-```tsx
-<p className="form-help">Additional information</p>
-```
-
-#### `.form-error`
-Error message:
-
-```tsx
-<p className="form-error">Error message</p>
-```
-
-### Status Messages
-
-#### `.status-info`
-Info message:
-
-```tsx
-<div className="status-info">
-  Information message
-</div>
-```
-
-#### `.status-success`
-Success message:
-
-```tsx
-<div className="status-success">
-  Success message
-</div>
-```
-
-#### `.status-error`
-Error message:
-
-```tsx
-<div className="status-error">
-  Error message
-</div>
-```
-
-#### `.status-warning`
-Warning message:
-
-```tsx
-<div className="status-warning">
-  Warning message
-</div>
-```
+**See [shadcn/ui documentation](https://ui.shadcn.com/docs) for:**
+- Available components
+- Component variants and props
+- Installation instructions
+- Customization patterns
 
 ## Responsive Design Patterns
 
-### Mobile-First Approach
-
-Always design for mobile first, then enhance for larger screens:
-
-```tsx
-<div className="p-4 sm:p-8">
-  {/* 16px padding on mobile, 32px on tablet+ */}
-</div>
-```
+Follow [Tailwind CSS responsive design patterns](https://tailwindcss.com/docs/responsive-design). Cortex uses a mobile-first approach.
 
 ### Breakpoints
 
@@ -215,29 +50,10 @@ Always design for mobile first, then enhance for larger screens:
 
 ### Common Patterns
 
-#### Responsive Padding
-
-```tsx
-<div className="p-4 sm:p-6 md:p-8">
-  Content
-</div>
-```
-
-#### Responsive Grid
-
-```tsx
-<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-  Items
-</div>
-```
-
-#### Responsive Text
-
-```tsx
-<h1 className="text-2xl sm:text-3xl lg:text-4xl">
-  Responsive Heading
-</h1>
-```
+See [Tailwind CSS Responsive Design](https://tailwindcss.com/docs/responsive-design) for patterns including:
+- Responsive padding (`p-4 sm:p-8`)
+- Responsive grids (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`)
+- Responsive typography (`text-2xl sm:text-3xl lg:text-4xl`)
 
 ## Component Composition
 
@@ -310,7 +126,7 @@ function CardLayout(): HTMLElement {
 
 ## Styling Conventions
 
-### Use Design Tokens
+### Use Design Tokens for Colors
 
 ✅ **Do:**
 ```tsx
@@ -322,17 +138,32 @@ function CardLayout(): HTMLElement {
 <div className="bg-white text-black">
 ```
 
-### Use Component Classes
+### Use shadcn/ui Components
 
 ✅ **Do:**
 ```tsx
-<button className="btn-primary">Click</button>
+import { Button } from "@/components/ui/button"
+<Button variant="default">Click</Button>
 ```
 
 ❌ **Don't:**
 ```tsx
 <button className="px-4 py-2 bg-white border rounded-md">Click</button>
 ```
+
+### Use Tailwind Utilities for Spacing/Typography
+
+✅ **Do:**
+```tsx
+<div className="p-4 text-sm">
+```
+
+❌ **Don't:**
+```tsx
+<div style={{ padding: 'var(--space-4)', fontSize: 'var(--font-size-sm)' }}>
+```
+
+See [Tailwind CSS documentation](https://tailwindcss.com/docs) for all available utilities.
 
 ### Maintain Monochromatic Aesthetic
 
@@ -360,26 +191,29 @@ function CardLayout(): HTMLElement {
 
 ## Best Practices
 
-### 1. Always Use Component Classes
+### 1. Use shadcn/ui Components
 
-Prefer component classes over inline Tailwind utilities for consistency.
+Prefer shadcn/ui components over custom implementations. They provide accessibility, theming, and consistent styling out of the box.
 
 ### 2. Use Semantic Color Tokens
 
 Use `text-text-primary` instead of `text-base-950` for better theme support.
 
-### 3. Responsive by Default
+### 3. Use Tailwind Utilities Directly
 
-Always consider mobile-first responsive design.
+For spacing, typography, transitions, etc., use Tailwind utilities directly (`p-4`, `text-sm`, `duration-300`). See [Tailwind CSS documentation](https://tailwindcss.com/docs).
 
-### 4. Maintain Accessibility
+### 4. Responsive by Default
+
+Always consider mobile-first responsive design. See [Tailwind Responsive Design](https://tailwindcss.com/docs/responsive-design).
+
+### 5. Maintain Accessibility
 
 - Use semantic HTML
-- Include ARIA labels where needed
-- Ensure keyboard navigation works
-- Maintain focus indicators
+- shadcn/ui components include accessibility features (ARIA, keyboard navigation)
+- Ensure custom components follow [WCAG AA standards](https://www.w3.org/WAI/WCAG21/quickref/?currentsidebar=%23col_overview&levels=aaa)
 
-### 5. Theme Support
+### 6. Theme Support
 
 All components automatically support light/dark themes via design tokens.
 
@@ -387,129 +221,58 @@ All components automatically support light/dark themes via design tokens.
 
 When creating a new component:
 
-1. **Use existing component classes** when possible
-2. **Use design tokens** for any custom styling
-3. **Follow responsive patterns** (mobile-first)
-4. **Include accessibility features** (ARIA, keyboard nav)
-5. **Test in both themes** (light and dark)
-6. **Document usage** in component comments
+1. **Use shadcn/ui components** when possible (check if a component exists first)
+2. **Use design tokens** for color styling
+3. **Use Tailwind utilities** for spacing, typography, transitions
+4. **Follow responsive patterns** (mobile-first)
+5. **Include accessibility features** (ARIA, keyboard nav)
+6. **Test in both themes** (light and dark)
+7. **Document usage** in component comments
 
-### Example: New Component
+### Example: React Component
 
 ```tsx
+import { Card } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+
 /**
  * MyComponent
  * 
  * A custom component that demonstrates proper patterns.
- * 
- * @returns {HTMLElement} The component element
  */
-export function MyComponent(): HTMLElement {
+export function MyComponent() {
   return (
-    <div className="card-padded">
+    <Card className="p-4">
       <h2 className="text-xl font-semibold mb-4 text-text-primary">
         Component Title
       </h2>
       <p className="text-text-secondary mb-6">
         Component description
       </p>
-      <button className="btn-primary">Action</button>
-    </div>
-  ) as HTMLElement
+      <Button variant="default">Action</Button>
+    </Card>
+  )
 }
 ```
 
 ## Common Patterns
 
-### Centered Content
-
-```tsx
-<div className="min-h-screen bg-bg-secondary flex items-center justify-center p-4 sm:p-8">
-  <div className="container card-padded">
-    Content
-  </div>
-</div>
-```
-
-### Flex Layouts
-
-```tsx
-<div className="flex gap-4">
-  <button className="btn-primary flex-1">Primary</button>
-  <button className="btn-secondary flex-1">Secondary</button>
-</div>
-```
-
-### Grid Layouts
-
-```tsx
-<div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-  {items.map(item => (
-    <div className="card-padded" key={item.id}>
-      {item.content}
-    </div>
-  ))}
-</div>
-```
+See [Tailwind CSS documentation](https://tailwindcss.com/docs) for common patterns including:
+- [Flexbox layouts](https://tailwindcss.com/docs/flex)
+- [Grid layouts](https://tailwindcss.com/docs/grid-template-columns)
+- [Centering content](https://tailwindcss.com/docs/justify-content)
+- [Spacing utilities](https://tailwindcss.com/docs/padding)
 
 ## Layout Components
 
-### Using the Layout Component
+See [Terminology](./terminology.md) for layout structure definitions (Sidebars, Panels, Views, Components, Widgets).
 
-The `Layout` component provides the main application structure with collapsible sidebars and center content area:
-
-```tsx
-import { Layout } from './components/Layout'
-import { MyView } from './views/MyView'
-
-export function App(): HTMLElement {
-  return Layout({ view: MyView })
-}
-```
-
-### Creating Views
-
-Views are components that render in the center area of the layout:
-
-```tsx
-/**
- * MyView
- * 
- * A custom view component that displays in the center area.
- * 
- * @returns {HTMLElement} The view element
- */
-export function MyView(): HTMLElement {
-  return (
-    <div className="card-padded">
-      <h1 className="text-2xl font-bold mb-4 text-text-primary">
-        My View Title
-      </h1>
-      <p className="text-text-secondary">
-        View content goes here
-      </p>
-    </div>
-  ) as HTMLElement
-}
-```
-
-**View Guidelines:**
-- Views should be self-contained components
-- Use design tokens for styling
-- Follow accessibility guidelines
-- Views are rendered in the center area automatically
-
-### Sidebar Structure
-
-The left sidebar is managed by the `Layout` component and includes:
-- Collapsible toggle button
-- Navigation area (ready for navigation items)
-- Icon-only mode when collapsed (48px width)
-- Expanded mode (250px width)
+Layout components are built with React and shadcn/ui. See the layout implementation in `src/renderer/src/components/` for examples.
 
 ## See Also
 
-- [Design Tokens](./design-tokens.md) - Complete design token reference
+- [Design Tokens](./design-tokens.md) - Color token reference
 - [Accessibility](./accessibility.md) - Accessibility guidelines
 - [Terminology](./terminology.md) - UI terminology and naming conventions
-- [Component Lifecycle](../development/component-lifecycle.md) - Component patterns
+- [shadcn/ui Documentation](https://ui.shadcn.com/docs) - Component library reference
+- [Tailwind CSS Documentation](https://tailwindcss.com/docs) - Utility classes reference
