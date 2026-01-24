@@ -266,6 +266,28 @@ html[data-theme="dark"] {
   --color-info-500: var(--color-base-600);
   --color-info-600: var(--color-base-700);
   --color-info-700: var(--color-base-800);
+
+  /* shadcn/ui Token Mappings - Dark Theme */
+  --background: var(--color-bg-primary);
+  --foreground: var(--color-text-primary);
+  --card: var(--color-bg-primary);
+  --card-foreground: var(--color-text-primary);
+  --popover: var(--color-bg-primary);
+  --popover-foreground: var(--color-text-primary);
+  --primary: var(--color-base-900);
+  --primary-foreground: var(--color-text-inverse);
+  --secondary: var(--color-bg-secondary);
+  --secondary-foreground: var(--color-text-primary);
+  --muted: var(--color-bg-secondary);
+  --muted-foreground: var(--color-text-secondary);
+  --accent: var(--color-accent-500);
+  --accent-foreground: var(--color-text-inverse);
+  --destructive: var(--color-error-500);
+  --destructive-foreground: var(--color-text-inverse);
+  --border: var(--color-border-primary);
+  --input: var(--color-border-primary);
+  --ring: var(--color-border-focus);
+  --radius: var(--radius-base);
 }
 
 /* System Preference Detection */
@@ -338,6 +360,28 @@ html[data-theme="dark"] {
     --color-info-500: var(--color-base-600);
     --color-info-600: var(--color-base-700);
     --color-info-700: var(--color-base-800);
+
+    /* shadcn/ui Token Mappings - System Preference (Dark) */
+    --background: var(--color-bg-primary);
+    --foreground: var(--color-text-primary);
+    --card: var(--color-bg-primary);
+    --card-foreground: var(--color-text-primary);
+    --popover: var(--color-bg-primary);
+    --popover-foreground: var(--color-text-primary);
+    --primary: var(--color-base-900);
+    --primary-foreground: var(--color-text-inverse);
+    --secondary: var(--color-bg-secondary);
+    --secondary-foreground: var(--color-text-primary);
+    --muted: var(--color-bg-secondary);
+    --muted-foreground: var(--color-text-secondary);
+    --accent: var(--color-accent-500);
+    --accent-foreground: var(--color-text-inverse);
+    --destructive: var(--color-error-500);
+    --destructive-foreground: var(--color-text-inverse);
+    --border: var(--color-border-primary);
+    --input: var(--color-border-primary);
+    --ring: var(--color-border-focus);
+    --radius: var(--radius-base);
   }
 }
 

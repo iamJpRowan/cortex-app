@@ -3,17 +3,19 @@
 /**
  * Design Token Validation Script
  * 
- * Checks for hardcoded color and spacing values that should use design tokens instead.
+ * Checks for hardcoded color values that should use design tokens instead.
+ * Spacing, typography, and other values should use Tailwind utilities.
  * 
  * Allowed patterns:
  * - CSS variables: var(--color-*), var(--space-*), etc.
  * - Tailwind semantic classes: bg-bg-primary, text-text-primary, etc.
+ * - Tailwind spacing utilities: p-*, m-*, gap-*, etc.
  * - Component classes: btn-primary, card-padded, etc.
  * 
  * Disallowed patterns:
  * - Hardcoded hex colors: #ffffff, #000000, etc.
  * - Hardcoded rgb/rgba colors: rgb(255, 255, 255), etc.
- * - Hardcoded spacing: 16px, 1rem (unless in design token definitions)
+ * - Hardcoded spacing in inline styles (use Tailwind utilities instead)
  */
 
 const fs = require('fs')
@@ -136,6 +138,7 @@ function checkFile(filePath) {
     })
 
     // Check for hardcoded spacing in inline styles (TSX/TS files)
+    // Note: Tailwind spacing utilities (p-*, m-*, gap-*, etc.) are allowed in className
     if ((filePath.endsWith('.tsx') || filePath.endsWith('.ts')) && line.includes('style=')) {
       HARDCODED_SPACING_PATTERNS.forEach(pattern => {
         const matches = [...line.matchAll(pattern)]
@@ -153,13 +156,18 @@ function checkFile(filePath) {
               file: filePath,
               line: lineNum + 1,
               column: matchIndex + 1,
-              message: `Hardcoded spacing in inline style found. Consider using Tailwind spacing utilities or design tokens.`,
+              message: `Hardcoded spacing in inline style found. Use Tailwind spacing utilities (p-*, m-*, gap-*, etc.) instead.`,
               value: value,
               code: line.trim(),
             })
           }
         })
       })
+    }
+    
+    // Allow Tailwind spacing utilities in className (p-*, m-*, gap-*, w-*, h-*, etc.)
+    if (line.includes('className') && /(?:p|m|gap|w|h|top|right|bottom|left)-\d+/.test(line)) {
+      return
     }
   })
 

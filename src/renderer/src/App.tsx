@@ -1,6 +1,3 @@
-import { createElement } from './lib/jsx'
-import { Layout } from './components/Layout'
-import { TestView } from './views/TestView'
 import './main.css'
 
 /**
@@ -8,8 +5,15 @@ import './main.css'
  * 
  * Root application component that sets up the main layout structure.
  * 
- * @returns {HTMLElement} The root application element
+ * TODO: Convert Layout and other components to React in Phase 4
  */
-export function App(): HTMLElement {
-  return Layout({ view: TestView })
+export function App() {
+  return (
+    <div className="layout-container">
+      <div className="p-4">
+        <h1 className="text-xl font-semibold">React Migration - Step 1 Complete</h1>
+        <p className="mt-2">React is now set up. Components will be converted in Phase 4.</p>
+      </div>
+    </div>
+  )
 }

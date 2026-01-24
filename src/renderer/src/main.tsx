@@ -1,4 +1,5 @@
 import './main.css'
+import { createRoot } from 'react-dom/client'
 import { App } from './App'
 import { initTheme } from './lib/theme'
 
@@ -6,13 +7,14 @@ function init() {
   // Initialize theme system first
   initTheme()
   
-  const root = document.getElementById('root')
-  if (!root) {
+  const rootElement = document.getElementById('root')
+  if (!rootElement) {
     console.error('Root element not found')
     return
   }
   
-  root.appendChild(App())
+  const root = createRoot(rootElement)
+  root.render(<App />)
 }
 
 // Wait for DOM to be ready

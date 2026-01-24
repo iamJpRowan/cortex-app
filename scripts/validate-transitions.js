@@ -9,10 +9,11 @@
  * - CSS variables: var(--transition-*)
  * - Design token definitions in main.css
  * - Reduced motion overrides (0.01ms)
+ * - Tailwind transition utilities: duration-*, delay-*, ease-* (in className)
  * 
  * Disallowed patterns:
- * - Hardcoded durations: duration-300, 300ms, etc.
- * - Hardcoded easing: ease-in-out, cubic-bezier(...), etc.
+ * - Hardcoded durations in CSS: 300ms, etc. (use Tailwind utilities or tokens)
+ * - Hardcoded easing in CSS: ease-in-out, cubic-bezier(...), etc. (use Tailwind utilities or tokens)
  * - Hardcoded transition properties: transition: all 300ms ease-in-out
  */
 
@@ -20,11 +21,9 @@ const fs = require('fs')
 
 // Patterns to detect hardcoded transition values
 const HARDCODED_TRANSITION_PATTERNS = [
-  // Tailwind duration classes (should use tokens in CSS)
-  /(?:className|class)=["'][^"']*\b(?:duration|delay)-\d+\b[^"']*["']/g,
-  // Hardcoded transition durations in CSS
+  // Hardcoded transition durations in CSS (allow Tailwind utilities in className)
   /transition[^:]*:\s*[^;]*(?:\d+\.?\d*ms|\d+\.?\d*s)(?!\s*var\(--transition)/gi,
-  // Hardcoded easing functions (not in token definitions)
+  // Hardcoded easing functions in CSS (allow Tailwind utilities in className)
   /transition[^:]*:\s*[^;]*(?:ease|ease-in|ease-out|ease-in-out|cubic-bezier\([^)]+\))(?!\s*var\(--transition)/gi,
   // Direct style manipulation with transition values
   /\.style\.(?:transition|transitionDuration|transitionTimingFunction)\s*=\s*["'][^"']*(?:\d+ms|ease|cubic-bezier)/gi,
@@ -102,6 +101,11 @@ function checkFile(filePath) {
       return
     }
 
+    // Allow Tailwind transition utilities in className (duration-*, delay-*, ease-*)
+    if (line.includes('className') && (line.includes('duration-') || line.includes('delay-') || line.includes('ease-'))) {
+      return
+    }
+
     // Check for hardcoded transition values
     HARDCODED_TRANSITION_PATTERNS.forEach(pattern => {
       const matches = [...line.matchAll(pattern)]
@@ -124,7 +128,7 @@ function checkFile(filePath) {
             file: filePath,
             line: lineNum + 1,
             column: matchIndex + 1,
-            message: `Hardcoded transition value found. Use design tokens (var(--transition-*)) instead.`,
+            message: `Hardcoded transition value found. Use Tailwind utilities (duration-*, ease-*) or design tokens (var(--transition-*)) instead.`,
             value: value,
             code: line.trim(),
           })

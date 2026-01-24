@@ -8,6 +8,8 @@
  * - Missing form labels
  * - Missing keyboard event handlers on clickable elements
  * - Missing ARIA roles where needed
+ * 
+ * Note: React uses camelCase event handlers (onClick, onKeyDown) which are already supported.
  */
 
 const fs = require('fs')
@@ -59,10 +61,11 @@ function checkFile(filePath) {
       }
     }
 
-    // Check for onClick without onKeyDown
-    if (line.includes('onClick=') && !line.includes('onKeyDown')) {
-      // Check if it's a button or has role="button"
-      if (line.includes('<button') || line.includes('role="button"')) {
+    // Check for onClick without onKeyDown (React uses camelCase)
+    // Also check for onClick without onKeyDown or onKeyPress
+    if ((line.includes('onClick=') || line.includes('onClick =')) && !line.includes('onKeyDown') && !line.includes('onKeyPress')) {
+      // Check if it's a button or has role="button" or role="button"
+      if (line.includes('<button') || line.includes('role="button"') || line.includes("role='button'")) {
         warnings.push({
           file: filePath,
           line: lineNum + 1,
