@@ -1,5 +1,6 @@
 {
   "*.{ts,tsx}": [
+    "eslint --fix",
     "node scripts/validate-design-tokens.js",
     "node scripts/validate-accessibility.js",
     "node scripts/validate-transitions.js",

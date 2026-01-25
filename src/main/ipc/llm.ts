@@ -78,7 +78,7 @@ export function registerLLMHandlers() {
   /**
    * Test a tool directly (bypasses agent)
    */
-  ipcMain.handle('llm:tools:test', async (_event, toolName: string, args: Record<string, any>) => {
+  ipcMain.handle('llm:tools:test', async (_event, toolName: string, args: Record<string, unknown>) => {
     try {
       const tool = toolRegistry.get(toolName)
       

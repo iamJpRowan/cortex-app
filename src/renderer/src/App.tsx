@@ -1,4 +1,5 @@
 import './main.css'
+import { TitleBar } from './components/TitleBar'
 
 /**
  * App Component
@@ -9,10 +10,13 @@ import './main.css'
  */
 export function App() {
   return (
-    <div className="layout-container">
-      <div className="p-4">
-        <h1 className="text-xl font-semibold">React Migration - Step 1 Complete</h1>
-        <p className="mt-2">React is now set up. Components will be converted in Phase 4.</p>
+    <div className="flex flex-col h-screen bg-bg-primary">
+      <TitleBar />
+      <div className="flex-1 overflow-auto">
+        <div className="p-4">
+          <h1 className="text-xl font-semibold">React Migration - Phase 3 Complete</h1>
+          <p className="mt-2">Frameless window with custom controls is now set up.</p>
+        </div>
       </div>
     </div>
   )

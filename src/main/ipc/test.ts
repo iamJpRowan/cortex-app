@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron'
 import { getDriver } from '../services/neo4j'
-import { initializeOllama, testQuery, listModels, getDefaultModel } from '../services/ollama'
+import { testQuery, listModels, getDefaultModel } from '../services/ollama'
 
 export function registerTestHandlers() {
   ipcMain.handle('test:neo4j-query', async () => {

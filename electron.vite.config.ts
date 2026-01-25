@@ -19,7 +19,7 @@ export default defineConfig({
     plugins: [react()],
     resolve: {
       alias: {
-        '@': resolve(__dirname, './src/renderer')
+        '@': resolve(__dirname, './src/renderer/src')
       }
     }
   }

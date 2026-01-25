@@ -1,4 +1,3 @@
-import { app } from 'electron'
 import { SqliteSaver } from '@langchain/langgraph-checkpoint-sqlite'
 import Database from 'better-sqlite3'
 import path from 'path'

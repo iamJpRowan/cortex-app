@@ -46,7 +46,7 @@ function checkJava(): { available: boolean; error?: string; warning?: string } {
     }
     
     return { available: true }
-  } catch (err) {
+  } catch {
     const platform = process.platform
     let installInstructions = ''
     
@@ -124,7 +124,7 @@ export async function startNeo4j(): Promise<Driver> {
     console.log('[Neo4j] Already running, connecting to existing instance')
     driver = testDriver
     return driver
-  } catch (err) {
+  } catch {
     // Not running, continue to start it
     console.log('[Neo4j] Starting new instance...')
   }
@@ -145,7 +145,7 @@ export async function startNeo4j(): Promise<Driver> {
       }
     )
     console.log('[Neo4j] Password set via neo4j-admin')
-  } catch (err) {
+  } catch {
     // If password was already set, this may fail - that's OK, we'll use existing password
     // For fresh databases, NEO4J_AUTH will set it on first start
     console.log('[Neo4j] Using NEO4J_AUTH for password (first run or password already set)')

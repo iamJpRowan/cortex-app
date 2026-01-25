@@ -13,7 +13,7 @@ export interface API {
       trace?: Array<{
         type: 'tool_call' | 'tool_result' | 'assistant_message'
         toolName?: string
-        args?: Record<string, any>
+        args?: Record<string, unknown>
         result?: string
         content?: string
         timestamp?: number
@@ -21,14 +21,24 @@ export interface API {
       error?: string
       suggestion?: string
     }>
-    toolsList: () => Promise<{ success: boolean; tools?: Array<{ name: string; metadata: any }>; error?: string }>
-    toolsTest: (toolName: string, args: Record<string, any>) => Promise<{
+    toolsList: () => Promise<{ success: boolean; tools?: Array<{ name: string; metadata: unknown }>; error?: string }>
+    toolsTest: (toolName: string, args: Record<string, unknown>) => Promise<{
       success: boolean
       toolName?: string
-      result?: any
-      args?: Record<string, any>
+      result?: unknown
+      args?: Record<string, unknown>
       error?: string
     }>
+  }
+  window: {
+    close: () => Promise<void>
+    minimize: () => Promise<void>
+    maximize: () => Promise<void>
+    // Note: isMaximized, onMaximized, onUnmaximized are available but not currently used
+    // They can be added back when Windows/Linux window controls are implemented
+    isMaximized: () => Promise<boolean>
+    onMaximized: (callback: () => void) => () => void
+    onUnmaximized: (callback: () => void) => () => void
   }
 }
 

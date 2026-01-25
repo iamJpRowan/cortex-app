@@ -4,6 +4,7 @@ import { startNeo4j, stopNeo4j } from './services/neo4j'
 import { initializeOllama } from './services/ollama'
 import { registerTestHandlers } from './ipc/test'
 import { registerLLMHandlers } from './ipc/llm'
+import { registerWindowHandlers, setMainWindow, setupWindowListeners } from './ipc/window'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -11,12 +12,19 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    frame: false,
+    // Use 'hiddenInset' to get native macOS traffic light controls
+    titleBarStyle: 'hiddenInset',
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       nodeIntegration: false,
       contextIsolation: true
     }
   })
+
+  // Set main window reference for IPC handlers
+  setMainWindow(mainWindow)
+  setupWindowListeners()
 
   // Load the renderer
   if (process.env.NODE_ENV === 'development') {
@@ -45,8 +53,9 @@ app.whenReady().then(async () => {
     // Register IPC handlers
     registerTestHandlers()
     registerLLMHandlers()
+    registerWindowHandlers()
     
-    // Create window
+    // Create window (must be after handlers are registered)
     createWindow()
   } catch (error) {
     console.error('[App] Failed to start:', error)
@@ -63,6 +72,8 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow()
+  } else if (mainWindow) {
+    mainWindow.show()
   }
 })
 

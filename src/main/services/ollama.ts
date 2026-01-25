@@ -14,7 +14,7 @@ export function checkOllamaInstallation(): { installed: boolean; error?: string 
   try {
     execSync('which ollama', { encoding: 'utf8', stdio: 'pipe' })
     return { installed: true }
-  } catch (err) {
+  } catch {
     const platform = process.platform
     let installInstructions = ''
     
@@ -41,7 +41,7 @@ export async function checkOllamaServer(): Promise<{ running: boolean; error?: s
     const client = new Ollama({ host: OLLAMA_ENDPOINT })
     await client.list()
     return { running: true }
-  } catch (err) {
+  } catch {
     return {
       running: false,
       error: `Ollama server is not running or not accessible at ${OLLAMA_ENDPOINT}.\nPlease start the Ollama server:\n  ollama serve`

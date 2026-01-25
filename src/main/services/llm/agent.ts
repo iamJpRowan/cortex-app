@@ -158,7 +158,7 @@ export class LLMAgentService {
   private extractTrace(messages: BaseMessage[]): Array<{
     type: 'tool_call' | 'tool_result' | 'assistant_message'
     toolName?: string
-    args?: Record<string, any>
+    args?: Record<string, unknown>
     result?: string
     content?: string
     timestamp?: number
@@ -166,7 +166,7 @@ export class LLMAgentService {
     const trace: Array<{
       type: 'tool_call' | 'tool_result' | 'assistant_message'
       toolName?: string
-      args?: Record<string, any>
+      args?: Record<string, unknown>
       result?: string
       content?: string
       timestamp?: number
@@ -179,7 +179,7 @@ export class LLMAgentService {
           trace.push({
             type: 'tool_call',
             toolName: toolCall.name,
-            args: toolCall.args as Record<string, any>,
+            args: toolCall.args as Record<string, unknown>,
             timestamp: Date.now()
           })
           console.log(`[LLMAgent] Tool call: ${toolCall.name} with args:`, toolCall.args)
@@ -225,7 +225,7 @@ export class LLMAgentService {
     trace: Array<{
       type: 'tool_call' | 'tool_result' | 'assistant_message'
       toolName?: string
-      args?: Record<string, any>
+      args?: Record<string, unknown>
       result?: string
       content?: string
       timestamp?: number
@@ -281,8 +281,8 @@ export class LLMAgentService {
       // Provide clearer error messages for common issues
       if (error instanceof Error) {
         const errorMessage = error.message.toLowerCase()
-        const errorAny = error as any
-        const cause = errorAny.cause
+        const errorWithCause = error as Error & { cause?: { code?: string; message?: string } }
+        const cause = errorWithCause.cause
         
         // Check for connection refused errors (Ollama not running)
         if (errorMessage.includes('fetch failed') || errorMessage.includes('econnrefused') || 
@@ -297,8 +297,9 @@ export class LLMAgentService {
         
         // Check for model not found errors (from Ollama ResponseError or error message)
         const modelName = this.config.llm.model || 'llama3.2'
+        const errorWithStatus = errorWithCause as Error & { status_code?: number }
         if ((errorMessage.includes('model') && (errorMessage.includes('not found') || errorMessage.includes('does not exist'))) ||
-            (errorAny.status_code === 404 && errorMessage.includes('model'))) {
+            (errorWithStatus.status_code === 404 && errorMessage.includes('model'))) {
           throw new Error(
             `Model "${modelName}" not found in Ollama.\n` +
             `Please pull the model:\n` +
