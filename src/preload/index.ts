@@ -10,10 +10,10 @@ contextBridge.exposeInMainWorld('api', {
     ollamaGetDefaultModel: () => ipcRenderer.invoke('test:ollama-get-default-model')
   },
   llm: {
-    query: (message: string, conversationId?: string) => 
+    query: (message: string, conversationId?: string) =>
       ipcRenderer.invoke('llm:query', message, conversationId),
     toolsList: () => ipcRenderer.invoke('llm:tools:list'),
-    toolsTest: (toolName: string, args: Record<string, unknown>) => 
+    toolsTest: (toolName: string, args: Record<string, unknown>) =>
       ipcRenderer.invoke('llm:tools:test', toolName, args)
   },
   window: {
@@ -21,6 +21,7 @@ contextBridge.exposeInMainWorld('api', {
     minimize: () => ipcRenderer.invoke('window:minimize'),
     maximize: () => ipcRenderer.invoke('window:maximize'),
     isMaximized: () => ipcRenderer.invoke('window:isMaximized'),
+    setButtonVisibility: (visible: boolean) => ipcRenderer.invoke('window:setButtonVisibility', visible),
     onMaximized: (callback: () => void) => {
       ipcRenderer.on('window:maximized', callback)
       return () => ipcRenderer.removeListener('window:maximized', callback)

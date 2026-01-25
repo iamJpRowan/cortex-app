@@ -33,6 +33,12 @@ export function registerWindowHandlers() {
     return mainWindow?.isMaximized() ?? false
   })
 
+  ipcMain.handle('window:setButtonVisibility', (_event, visible: boolean) => {
+    if (mainWindow && process.platform === 'darwin') {
+      mainWindow.setWindowButtonVisibility(visible)
+    }
+  })
+
   // Set up window state listeners when window is created
   // This will be called from main/index.ts after window creation
 }

@@ -203,17 +203,50 @@ Use `text-text-primary` instead of `text-base-950` for better theme support.
 
 For spacing, typography, transitions, etc., use Tailwind utilities directly (`p-4`, `text-sm`, `duration-300`). See [Tailwind CSS documentation](https://tailwindcss.com/docs).
 
-### 4. Responsive by Default
+### 4. Use Canonical Animation System
+
+All animations use **`tailwindcss-animate`** as the canonical approach. This provides consistent animation classes across all components.
+
+**Animation Classes:**
+- Entry animations: `animate-in`, `fade-in-0`, `zoom-in-95`, `slide-in-from-*`
+- Exit animations: `animate-out`, `fade-out-0`, `zoom-out-95`, `slide-out-to-*`
+- Duration: `duration-200`, `duration-300`, `duration-500`
+- Built-in: `animate-pulse` (for loading states), `transition-*` (for property transitions)
+
+**Examples:**
+```tsx
+// Tooltip with fade and zoom
+<div className="animate-in fade-in-0 zoom-in-95">
+  Tooltip content
+</div>
+
+// Sheet with slide animation
+<div className="data-[state=open]:animate-in data-[state=open]:slide-in-from-left">
+  Sheet content
+</div>
+
+// Loading skeleton
+<div className="animate-pulse">Loading...</div>
+
+// Color transition
+<button className="transition-colors hover:bg-accent">
+  Hover me
+</button>
+```
+
+See [Animations](#animations) section below for detailed usage patterns.
+
+### 5. Responsive by Default
 
 Always consider mobile-first responsive design. See [Tailwind Responsive Design](https://tailwindcss.com/docs/responsive-design).
 
-### 5. Maintain Accessibility
+### 6. Maintain Accessibility
 
 - Use semantic HTML
 - shadcn/ui components include accessibility features (ARIA, keyboard navigation)
 - Ensure custom components follow [WCAG AA standards](https://www.w3.org/WAI/WCAG21/quickref/?currentsidebar=%23col_overview&levels=aaa)
 
-### 6. Theme Support
+### 7. Theme Support
 
 All components automatically support light/dark themes via design tokens.
 

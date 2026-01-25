@@ -711,3 +711,55 @@ textarea:focus-visible,
     }
   }
 }
+
+
+
+@layer base {
+  /* Light Theme - Sidebar uses bg-secondary for distinction */
+  :root,
+  html[data-theme="light"],
+  html:not([data-theme]) {
+    --sidebar-background: 0 0% 98%; /* bg-secondary (#fafafa) */
+    --sidebar-foreground: 0 0% 4%; /* text-primary */
+    --sidebar-primary: 0 0% 10%; /* base-900 */
+    --sidebar-primary-foreground: 0 0% 98%; /* bg-primary */
+    --sidebar-accent: 0 0% 96%; /* bg-tertiary (#f5f5f5) */
+    --sidebar-accent-foreground: 0 0% 4%; /* text-primary */
+    --sidebar-border: 0 0% 90%; /* border-primary (#e5e5e5) */
+    --sidebar-ring: 0 0% 75%; /* border-focus */
+  }
+  
+  /* Dark Theme - Sidebar uses bg-secondary for distinction */
+  html[data-theme="dark"] {
+    --sidebar-background: 0 0% 9%; /* bg-secondary (#171717) */
+    --sidebar-foreground: 0 0% 98%; /* text-primary */
+    --sidebar-primary: 0 0% 96%; /* base-900 */
+    --sidebar-primary-foreground: 0 0% 4%; /* bg-primary */
+    --sidebar-accent: 0 0% 15%; /* bg-tertiary (#262626) */
+    --sidebar-accent-foreground: 0 0% 98%; /* text-primary */
+    --sidebar-border: 0 0% 25%; /* border-primary (#404040) */
+    --sidebar-ring: 0 0% 64%; /* border-focus */
+  }
+  
+  /* System Preference (Dark) */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme]) {
+      --sidebar-background: 0 0% 9%; /* bg-secondary (#171717) */
+      --sidebar-foreground: 0 0% 98%; /* text-primary */
+      --sidebar-primary: 0 0% 96%; /* base-900 */
+      --sidebar-primary-foreground: 0 0% 4%; /* bg-primary */
+      --sidebar-accent: 0 0% 15%; /* bg-tertiary (#262626) */
+      --sidebar-accent-foreground: 0 0% 98%; /* text-primary */
+      --sidebar-border: 0 0% 25%; /* border-primary (#404040) */
+      --sidebar-ring: 0 0% 64%; /* border-focus */
+    }
+  }
+}
+
+
+
+@layer base {
+  body {
+    @apply bg-background text-foreground;
+  }
+}

@@ -37,6 +37,7 @@ export interface API {
     // Note: isMaximized, onMaximized, onUnmaximized are available but not currently used
     // They can be added back when Windows/Linux window controls are implemented
     isMaximized: () => Promise<boolean>
+    setButtonVisibility: (visible: boolean) => Promise<void>
     onMaximized: (callback: () => void) => () => void
     onUnmaximized: (callback: () => void) => () => void
   }
