@@ -6,16 +6,31 @@ This guide covers the development workflow for building Cortex as a native Elect
 
 ## Documentation
 
-- **[setup.md](./setup.md)** - Prerequisites, initial setup, and project structure
-- **[workflow.md](./workflow.md)** - Running the app, hot reload, and debugging
-- **[patterns.md](./patterns.md)** - Development patterns: adding features, JSX, state, IPC, services
-- **[testing.md](./testing.md)** - Testing strategies and pre-commit checks
-- **[build.md](./build.md)** - Production builds and distribution
-- **[code-style.md](./code-style.md)** - Naming conventions and style guide
-- **[use-case-workflow.md](./use-case-workflow.md)** - Four-phase feature implementation workflow
-- **[guardrails.md](./guardrails.md)** - Technical constraints, decision shortcuts, and red flags
-- **[feature-development.md](./feature-development.md)** - Feature workflow summary
-- **[component-lifecycle.md](./component-lifecycle.md)** - Component initialization and cleanup patterns
+### Getting started
+
+- **[setup.md](./setup.md)** — Prerequisites, initial setup, and project structure
+- **[workflow.md](./workflow.md)** — Running the app, hot reload, and debugging
+
+### Development patterns
+
+- **[patterns.md](./patterns.md)** — Adding features, JSX, state, IPC, and services
+- **[use-case-workflow.md](./use-case-workflow.md)** — Four-phase feature implementation workflow
+- **[feature-development.md](./feature-development.md)** — Feature workflow summary
+- **[component-lifecycle.md](./component-lifecycle.md)** — Component initialization and cleanup patterns
+
+### Feature guides
+
+How to add specific capabilities:
+
+- **[commands-and-hotkeys.md](./commands-and-hotkeys.md)** — Register a command and hotkey
+- **[settings.md](./settings.md)** — Create a new setting
+
+### Quality and release
+
+- **[testing.md](./testing.md)** — Testing strategies and pre-commit checks
+- **[build.md](./build.md)** — Production builds and distribution
+- **[code-style.md](./code-style.md)** — Naming conventions and style guide
+- **[guardrails.md](./guardrails.md)** — Technical constraints, decision shortcuts, and red flags
 
 ## Design Documentation
 

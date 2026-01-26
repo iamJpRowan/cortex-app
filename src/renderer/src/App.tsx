@@ -1,11 +1,14 @@
 import './main.css'
-import { HashRouter, Routes, Route, useLocation } from 'react-router-dom'
+import * as React from 'react'
+import { HashRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom'
 import { AppSidebar } from './components/AppSidebar'
 import { MainHeader } from './components/MainHeader'
 import { HomeView } from './components/HomeView'
 import { SettingsView } from './components/SettingsView'
+import { CommandPalette } from './components/CommandPalette'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { cn } from '@/lib/utils'
+import { initHotkeys } from '@/lib/hotkeys'
 
 /**
  * AppContent Component
@@ -14,12 +17,28 @@ import { cn } from '@/lib/utils'
  */
 function AppContent() {
   const location = useLocation()
+  const navigate = useNavigate()
+
+  // Initialize hotkeys on mount
+  React.useEffect(() => {
+    let cleanup: (() => void) | undefined
+
+    initHotkeys({
+      openSettings: () => navigate('/settings'),
+    }).then(cleanupFn => {
+      cleanup = cleanupFn
+    })
+
+    return () => {
+      if (cleanup) {
+        cleanup()
+      }
+    }
+  }, [navigate])
 
   // Get title based on current route
   const getTitle = () => {
     if (location.pathname === '/settings') return 'Settings'
-    if (location.pathname === '/chat') return 'Chat'
-    if (location.pathname === '/graph') return 'Graph'
     return 'Cortex'
   }
 
@@ -65,24 +84,6 @@ function AppContent() {
             <Routes>
               <Route path="/" element={<HomeView />} />
               <Route path="/settings" element={<SettingsView />} />
-              <Route
-                path="/chat"
-                element={
-                  <div className="p-6">
-                    <h1 className="text-xl font-semibold text-text-primary">Chat</h1>
-                    <p className="mt-2 text-text-secondary">Chat view coming soon</p>
-                  </div>
-                }
-              />
-              <Route
-                path="/graph"
-                element={
-                  <div className="p-6">
-                    <h1 className="text-xl font-semibold text-text-primary">Graph</h1>
-                    <p className="mt-2 text-text-secondary">Graph view coming soon</p>
-                  </div>
-                }
-              />
             </Routes>
           </div>
         </SidebarInset>
@@ -103,7 +104,9 @@ function AppContent() {
 export function App() {
   return (
     <HashRouter>
-      <AppContent />
+      <CommandPalette>
+        <AppContent />
+      </CommandPalette>
     </HashRouter>
   )
 }

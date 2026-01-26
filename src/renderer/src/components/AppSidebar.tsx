@@ -11,7 +11,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '@/components/ui/sidebar'
-import { Home, Settings, MessageSquare, Network } from 'lucide-react'
+import { Home, Settings } from 'lucide-react'
 
 /**
  * AppSidebar Component
@@ -61,26 +61,6 @@ export function AppSidebar() {
                 >
                   <Home />
                   <span>Home</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  tooltip="Chat"
-                  isActive={isActive('/chat')}
-                  onClick={() => navigate('/chat')}
-                >
-                  <MessageSquare />
-                  <span>Chat</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  tooltip="Graph"
-                  isActive={isActive('/graph')}
-                  onClick={() => navigate('/graph')}
-                >
-                  <Network />
-                  <span>Graph</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>

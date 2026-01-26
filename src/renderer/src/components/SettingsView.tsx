@@ -74,21 +74,11 @@ export function SettingsView() {
     }
   }
 
-  const handleThemeChange = async (value: Theme) => {
+  const handleThemeChange = (value: Theme) => {
     if (!settings) return
-
-    try {
-      const result = await window.api?.settings?.set('appearance.theme', value)
-      if (result?.success) {
-        setSettings({ ...settings, 'appearance.theme': value })
-        // Update theme in UI immediately
-        setTheme(value)
-      } else {
-        console.error('[SettingsView] Failed to set theme:', result?.error)
-      }
-    } catch (error) {
-      console.error('[SettingsView] Failed to set theme:', error)
-    }
+    // setTheme(persist: true) writes to settings; avoids feedback loop from onChange.
+    setTheme(value, { persist: true })
+    setSettings({ ...settings, 'appearance.theme': value })
   }
 
   const handleOpenInEditor = async () => {

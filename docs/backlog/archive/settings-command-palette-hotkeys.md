@@ -1,6 +1,15 @@
-[Docs](../README.md) / [Backlog](./README.md) / Settings, Command Palette & Hotkeys
+---
+status: completed
+completed_date: 2025-01-25
+---
+
+[Docs](../../README.md) / [Backlog](../README.md) / Archive / Settings, Command Palette & Hotkeys
 
 # Settings, Command Palette & Hotkeys
+
+## Implementation status
+
+Phases 1–6 are implemented. For adding new commands or hotkeys, see **[Commands and Hotkeys](../../development/commands-and-hotkeys.md)** in the development guide. For adding new settings, see **[Settings](../../development/settings.md)**.
 
 ## Goal
 
@@ -87,7 +96,7 @@ Implement a comprehensive settings system with JSON file storage (editable via U
 1. Install and set up Kbar
    - Install `kbar` package
    - Create Kbar provider wrapper (`src/renderer/src/components/CommandPalette.tsx`)
-   - Set up KbarProvider in App root
+   - Set up KBarProvider in App root
 2. Create command registry
    - Define command interface
    - Create initial commands:
@@ -302,4 +311,4 @@ But stored in file as flat dot notation: `"appearance.theme": "dark"`
 - Settings categories/tabs in UI
 
 ### Related Backlog Items
-- **[Configuration System](./configuration-system.md)** - This is a user-facing subset focused on UI preferences. The full configuration system would handle service-level configs (LLM, tools, etc.)
+- **[Configuration System](../configuration-system.md)** - This is a user-facing subset focused on UI preferences. The full configuration system would handle service-level configs (LLM, tools, etc.)

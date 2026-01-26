@@ -19,6 +19,7 @@ Use the [TEMPLATE.md](./TEMPLATE.md) to create new entries with format: `YYYY-MM
 
 ## Historical Logs
 
+- [2025-01-25-settings-command-palette-hotkeys.md](./2025-01-25-settings-command-palette-hotkeys.md) - Settings system, command palette (Kbar), app-level hotkeys, and developer documentation
 - [2025-01-25-sidebar-layout-implementation.md](./2025-01-25-sidebar-layout-implementation.md) - Sidebar layout with collapsible icon mode and mobile support
 - [2025-01-24-react-shadcn-migration.md](./2025-01-24-react-shadcn-migration.md) - Migrate from Vanilla TS and JSX to React and shadcn/ui
 - [2025-01-21-langchain-integration.md](./2025-01-21-langchain-integration.md) - LangChain/LangGraph integration
