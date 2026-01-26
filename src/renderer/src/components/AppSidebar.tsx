@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import {
   Sidebar,
   SidebarContent,
@@ -23,6 +24,8 @@ import { Home, Settings, MessageSquare, Network } from 'lucide-react'
 export function AppSidebar() {
   const { state, isMobile } = useSidebar()
   const isCollapsed = state === 'collapsed'
+  const navigate = useNavigate()
+  const location = useLocation()
 
   // Hide/show traffic lights based on sidebar state and mobile breakpoint
   React.useEffect(() => {
@@ -30,6 +33,14 @@ export function AppSidebar() {
       window.api.window.setButtonVisibility(!isCollapsed && !isMobile)
     }
   }, [isCollapsed, isMobile])
+
+  // Check if a route is active
+  const isActive = (path: string) => {
+    if (path === '/') {
+      return location.pathname === '/' || location.pathname === ''
+    }
+    return location.pathname === path
+  }
 
   return (
     <Sidebar variant="sidebar" collapsible="icon">
@@ -43,19 +54,31 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton tooltip="Home" isActive>
+                <SidebarMenuButton
+                  tooltip="Home"
+                  isActive={isActive('/')}
+                  onClick={() => navigate('/')}
+                >
                   <Home />
                   <span>Home</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton tooltip="Chat">
+                <SidebarMenuButton
+                  tooltip="Chat"
+                  isActive={isActive('/chat')}
+                  onClick={() => navigate('/chat')}
+                >
                   <MessageSquare />
                   <span>Chat</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
-                <SidebarMenuButton tooltip="Graph">
+                <SidebarMenuButton
+                  tooltip="Graph"
+                  isActive={isActive('/graph')}
+                  onClick={() => navigate('/graph')}
+                >
                   <Network />
                   <span>Graph</span>
                 </SidebarMenuButton>
@@ -69,7 +92,11 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton tooltip="Settings">
+                <SidebarMenuButton
+                  tooltip="Settings"
+                  isActive={isActive('/settings')}
+                  onClick={() => navigate('/settings')}
+                >
                   <Settings />
                   <span>Settings</span>
                 </SidebarMenuButton>

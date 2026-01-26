@@ -2,9 +2,14 @@ import { app, BrowserWindow } from 'electron'
 import path from 'path'
 import { startNeo4j, stopNeo4j } from './services/neo4j'
 import { initializeOllama } from './services/ollama'
+import { initializeSettings } from './services/settings'
 import { registerTestHandlers } from './ipc/test'
 import { registerLLMHandlers } from './ipc/llm'
 import { registerWindowHandlers, setMainWindow, setupWindowListeners } from './ipc/window'
+import {
+  registerSettingsHandlers,
+  setMainWindow as setSettingsMainWindow,
+} from './ipc/settings'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -24,6 +29,7 @@ function createWindow() {
 
   // Set main window reference for IPC handlers
   setMainWindow(mainWindow)
+  setSettingsMainWindow(mainWindow)
   setupWindowListeners()
 
   // Load the renderer
@@ -37,6 +43,10 @@ function createWindow() {
 
 app.whenReady().then(async () => {
   try {
+    // Initialize settings service (must be early, before other services)
+    initializeSettings()
+    console.log('[App] Settings service initialized')
+
     // Start Neo4j
     await startNeo4j()
     console.log('[App] Neo4j started successfully')
@@ -56,6 +66,7 @@ app.whenReady().then(async () => {
     registerTestHandlers()
     registerLLMHandlers()
     registerWindowHandlers()
+    registerSettingsHandlers()
 
     // Create window (must be after handlers are registered)
     createWindow()
@@ -76,6 +87,9 @@ app.on('activate', () => {
     createWindow()
   } else if (mainWindow) {
     mainWindow.show()
+    // Update window references when window is shown
+    setMainWindow(mainWindow)
+    setSettingsMainWindow(mainWindow)
   }
 })
 

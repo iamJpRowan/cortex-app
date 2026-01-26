@@ -32,4 +32,22 @@ contextBridge.exposeInMainWorld('api', {
       return () => ipcRenderer.removeListener('window:unmaximized', callback)
     },
   },
+  settings: {
+    get: (key?: string) => ipcRenderer.invoke('settings:get', key),
+    set: (key: string, value: unknown) => ipcRenderer.invoke('settings:set', key, value),
+    getFilePath: () => ipcRenderer.invoke('settings:get-file-path'),
+    openInEditor: () => ipcRenderer.invoke('settings:open-in-editor'),
+    onChange: (
+      callback: (data: { key: string; value: unknown; previous: unknown }) => void
+    ) => {
+      const handler = (
+        _event: Electron.IpcRendererEvent,
+        data: { key: string; value: unknown; previous: unknown }
+      ) => {
+        callback(data)
+      }
+      ipcRenderer.on('settings:changed', handler)
+      return () => ipcRenderer.removeListener('settings:changed', handler)
+    },
+  },
 })

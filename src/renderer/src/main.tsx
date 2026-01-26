@@ -3,9 +3,9 @@ import { createRoot } from 'react-dom/client'
 import { App } from './App'
 import { initTheme } from './lib/theme'
 
-function init() {
+async function init() {
   // Initialize theme system first
-  initTheme()
+  await initTheme()
 
   const rootElement = document.getElementById('root')
   if (!rootElement) {

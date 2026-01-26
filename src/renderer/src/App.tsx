@@ -1,19 +1,28 @@
 import './main.css'
+import { HashRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { AppSidebar } from './components/AppSidebar'
 import { MainHeader } from './components/MainHeader'
+import { HomeView } from './components/HomeView'
+import { SettingsView } from './components/SettingsView'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { cn } from '@/lib/utils'
 
 /**
- * App Component
+ * AppContent Component
  *
- * Layout structure:
- * - Outer container (grey bg) wraps both sidebar and main content
- * - Sidebar is part of outer container (same color, no border)
- * - Main content is inset within outer container, creating frame effect
- * - Top edge of outer container is draggable for window movement
+ * Inner app content with routing
  */
-export function App() {
+function AppContent() {
+  const location = useLocation()
+
+  // Get title based on current route
+  const getTitle = () => {
+    if (location.pathname === '/settings') return 'Settings'
+    if (location.pathname === '/chat') return 'Chat'
+    if (location.pathname === '/graph') return 'Graph'
+    return 'Cortex'
+  }
+
   return (
     <SidebarProvider
       defaultOpen={true}
@@ -51,19 +60,50 @@ export function App() {
           )}
           style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         >
-          <MainHeader title="Cortex" />
+          <MainHeader title={getTitle()} />
           <div className="flex flex-1 flex-col gap-4 p-4 overflow-auto">
-            <div className="rounded-lg border border-border-primary bg-bg-primary p-6">
-              <h1 className="text-xl font-semibold text-text-primary">Layout</h1>
-              <p className="mt-2 text-text-secondary">
-                Outer container (grey) wraps the main content. Main content is inset with
-                padding, creating a frame effect on all sides. Sidebar and frame share the
-                same background color.
-              </p>
-            </div>
+            <Routes>
+              <Route path="/" element={<HomeView />} />
+              <Route path="/settings" element={<SettingsView />} />
+              <Route
+                path="/chat"
+                element={
+                  <div className="p-6">
+                    <h1 className="text-xl font-semibold text-text-primary">Chat</h1>
+                    <p className="mt-2 text-text-secondary">Chat view coming soon</p>
+                  </div>
+                }
+              />
+              <Route
+                path="/graph"
+                element={
+                  <div className="p-6">
+                    <h1 className="text-xl font-semibold text-text-primary">Graph</h1>
+                    <p className="mt-2 text-text-secondary">Graph view coming soon</p>
+                  </div>
+                }
+              />
+            </Routes>
           </div>
         </SidebarInset>
       </div>
     </SidebarProvider>
+  )
+}
+
+/**
+ * App Component
+ *
+ * Layout structure:
+ * - Outer container (grey bg) wraps both sidebar and main content
+ * - Sidebar is part of outer container (same color, no border)
+ * - Main content is inset within outer container, creating frame effect
+ * - Top edge of outer container is draggable for window movement
+ */
+export function App() {
+  return (
+    <HashRouter>
+      <AppContent />
+    </HashRouter>
   )
 }

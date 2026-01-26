@@ -57,6 +57,33 @@ export interface API {
     onMaximized: (callback: () => void) => () => void
     onUnmaximized: (callback: () => void) => () => void
   }
+  settings: {
+    get: (key?: string) => Promise<{
+      success: boolean
+      data?: unknown
+      error?: string
+    }>
+    set: (
+      key: string,
+      value: unknown
+    ) => Promise<{
+      success: boolean
+      data?: unknown
+      error?: string
+    }>
+    getFilePath: () => Promise<{
+      success: boolean
+      data?: string
+      error?: string
+    }>
+    openInEditor: () => Promise<{
+      success: boolean
+      error?: string
+    }>
+    onChange: (
+      callback: (data: { key: string; value: unknown; previous: unknown }) => void
+    ) => () => void
+  }
 }
 
 declare global {

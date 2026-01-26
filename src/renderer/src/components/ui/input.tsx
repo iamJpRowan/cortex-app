@@ -21,7 +21,10 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<'input'>>(
           // Transitions
           'transition-colors',
           // File input styling
-          'file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground',
+          `
+            file:border-0 file:bg-transparent file:text-sm file:font-medium
+            file:text-foreground
+          `,
           // Placeholder
           'placeholder:text-muted-foreground',
           // Focus states
