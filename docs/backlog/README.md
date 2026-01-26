@@ -31,6 +31,7 @@ When backlog items are being implemented the file should reflect the current sta
 - **[plugin-extensibility-framework.md](./plugin-extensibility-framework.md)** - Plugin system for user-contributed tools and integrations. requires: LangChain Integration, Configuration System, Tool Permission System
 
 ### User Interface Features
+- **[settings-command-palette-hotkeys.md](./settings-command-palette-hotkeys.md)** - Settings system with JSON file storage, command palette (Kbar), and global hotkeys. Migrates theme from localStorage to settings.
 - **[ui-layout-framework.md](./ui-layout-framework.md)** - Complete layout system with sidebars, tabs, panels, and extensible component architecture. requires: React + shadcn/ui Migration
 - **[drag-and-drop-system.md](./drag-and-drop-system.md)** - Drag-and-drop functionality for widgets. requires: UI Layout Framework
 - **[component-composition-system.md](./component-composition-system.md)** - Custom view builder for assembling widgets. requires: UI Layout Framework, Drag and Drop System, Plugin Extensibility Framework
