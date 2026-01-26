@@ -1,33 +1,33 @@
-import * as React from "react"
+import * as React from 'react'
 
-import { cn } from "@/lib/utils"
+import { cn } from '@/lib/utils'
 
-const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
+const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<'input'>>(
   ({ className, type, ...props }, ref) => {
     return (
       <input
         type={type}
         className={cn(
           // Layout
-          "flex h-9 w-full rounded-md",
+          'flex h-9 w-full rounded-md',
           // Border and background
-          "border border-input bg-transparent",
+          'border border-input bg-transparent',
           // Padding
-          "px-3 py-1",
+          'px-3 py-1',
           // Typography
-          "text-base shadow-sm",
+          'text-base shadow-sm',
           // Responsive typography
-          "md:text-sm",
+          'md:text-sm',
           // Transitions
-          "transition-colors",
+          'transition-colors',
           // File input styling
-          "file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground",
+          'file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground',
           // Placeholder
-          "placeholder:text-muted-foreground",
+          'placeholder:text-muted-foreground',
           // Focus states
-          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
+          'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring',
           // Disabled states
-          "disabled:cursor-not-allowed disabled:opacity-50",
+          'disabled:cursor-not-allowed disabled:opacity-50',
           className
         )}
         ref={ref}
@@ -36,6 +36,6 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
     )
   }
 )
-Input.displayName = "Input"
+Input.displayName = 'Input'
 
 export { Input }

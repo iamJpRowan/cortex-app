@@ -12,13 +12,13 @@ export async function initializeStatePersistence(
   config: LLMServiceConfig['state']
 ): Promise<SqliteSaver> {
   const dbPath = config.dbPath
-  
+
   // Ensure directory exists
   const dbDir = path.dirname(dbPath)
   if (!fs.existsSync(dbDir)) {
     fs.mkdirSync(dbDir, { recursive: true })
   }
-  
+
   // Initialize database with WAL mode if enabled
   if (config.enableWAL) {
     const db = new Database(dbPath)
@@ -28,11 +28,11 @@ export async function initializeStatePersistence(
   } else {
     console.log(`[State] SQLite database initialized: ${dbPath}`)
   }
-  
+
   // Create SqliteSaver with connection string
   // Setup is called automatically when needed (put/get/list methods)
   const checkpointer = SqliteSaver.fromConnString(dbPath)
-  
+
   console.log('[State] Conversation state persistence initialized')
   return checkpointer
 }

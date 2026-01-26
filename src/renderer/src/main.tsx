@@ -6,13 +6,13 @@ import { initTheme } from './lib/theme'
 function init() {
   // Initialize theme system first
   initTheme()
-  
+
   const rootElement = document.getElementById('root')
   if (!rootElement) {
     console.error('Root element not found')
     return
   }
-  
+
   const root = createRoot(rootElement)
   root.render(<App />)
 }

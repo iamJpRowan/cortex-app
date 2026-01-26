@@ -114,7 +114,7 @@
 
 /* Light Theme - Default (black & white with color accents only) */
 :root,
-html[data-theme="light"],
+html[data-theme='light'],
 html:not([data-theme]) {
   /* Base Colors - Pure grayscale for black & white aesthetic */
   --color-base-50: #fafafa;
@@ -192,7 +192,7 @@ html:not([data-theme]) {
 }
 
 /* Dark Theme - Pure black & white */
-html[data-theme="dark"] {
+html[data-theme='dark'] {
   /* Base Colors - Pure grayscale for black & white aesthetic */
   --color-base-50: #0a0a0a;
   --color-base-100: #171717;
@@ -387,7 +387,6 @@ html[data-theme="dark"] {
 
 /* Reduced Motion Support */
 @media (prefers-reduced-motion: reduce) {
-
   *,
   *::before,
   *::after {
@@ -403,7 +402,9 @@ html[data-theme="dark"] {
 html {
   background-color: var(--color-bg-primary);
   color: var(--color-text-primary);
-  transition: background-color var(--transition-base), color var(--transition-base);
+  transition:
+    background-color var(--transition-base),
+    color var(--transition-base);
 }
 
 body {
@@ -411,9 +412,9 @@ body {
   color: var(--color-text-primary);
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu',
+    'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -466,7 +467,6 @@ textarea:focus-visible,
    ========================================================================== */
 
 @layer components {
-
   /* Icon Styling - Global stroke width for consistency */
   svg[data-lucide],
   svg.icon {
@@ -678,7 +678,6 @@ textarea:focus-visible,
     width: 48px;
   }
 
-
   .center-area {
     min-width: 0;
     min-height: 0;
@@ -712,12 +711,10 @@ textarea:focus-visible,
   }
 }
 
-
-
 @layer base {
   /* Light Theme - Sidebar uses bg-secondary for distinction */
   :root,
-  html[data-theme="light"],
+  html[data-theme='light'],
   html:not([data-theme]) {
     --sidebar-background: 0 0% 98%; /* bg-secondary (#fafafa) */
     --sidebar-foreground: 0 0% 4%; /* text-primary */
@@ -728,9 +725,9 @@ textarea:focus-visible,
     --sidebar-border: 0 0% 90%; /* border-primary (#e5e5e5) */
     --sidebar-ring: 0 0% 75%; /* border-focus */
   }
-  
+
   /* Dark Theme - Sidebar uses bg-secondary for distinction */
-  html[data-theme="dark"] {
+  html[data-theme='dark'] {
     --sidebar-background: 0 0% 9%; /* bg-secondary (#171717) */
     --sidebar-foreground: 0 0% 98%; /* text-primary */
     --sidebar-primary: 0 0% 96%; /* base-900 */
@@ -740,7 +737,7 @@ textarea:focus-visible,
     --sidebar-border: 0 0% 25%; /* border-primary (#404040) */
     --sidebar-ring: 0 0% 64%; /* border-focus */
   }
-  
+
   /* System Preference (Dark) */
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme]) {
@@ -755,8 +752,6 @@ textarea:focus-visible,
     }
   }
 }
-
-
 
 @layer base {
   body {

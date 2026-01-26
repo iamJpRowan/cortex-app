@@ -33,15 +33,15 @@ export class ToolRegistry {
     if (this.tools.has(name)) {
       console.warn(`[ToolRegistry] Tool "${name}" already registered, overwriting`)
     }
-    
+
     this.tools.set(name, {
       tool,
       metadata: {
         ...metadata,
-        name
-      }
+        name,
+      },
     })
-    
+
     console.log(`[ToolRegistry] Registered tool: ${name}`)
   }
 
@@ -65,7 +65,7 @@ export class ToolRegistry {
   list(): Array<{ name: string; metadata: ToolMetadata }> {
     return Array.from(this.tools.entries()).map(([name, definition]) => ({
       name,
-      metadata: definition.metadata
+      metadata: definition.metadata,
     }))
   }
 

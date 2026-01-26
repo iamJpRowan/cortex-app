@@ -1,6 +1,6 @@
 /**
  * Theme Management Utility
- * 
+ *
  * Handles theme detection, switching, and persistence for light/dark modes.
  * Uses CSS variables defined in main.css and data-theme attribute on <html>.
  */
@@ -42,12 +42,12 @@ export function getTheme(): Theme {
   if (typeof window === 'undefined' || !window.localStorage) {
     return 'system'
   }
-  
+
   const stored = localStorage.getItem(THEME_STORAGE_KEY)
   if (stored === 'light' || stored === 'dark' || stored === 'system') {
     return stored
   }
-  
+
   return 'system'
 }
 
@@ -58,7 +58,7 @@ export function setTheme(theme: Theme): void {
   if (typeof window === 'undefined' || !window.localStorage) {
     return
   }
-  
+
   localStorage.setItem(THEME_STORAGE_KEY, theme)
   const effectiveTheme = getEffectiveTheme(theme)
   applyTheme(effectiveTheme)
@@ -72,13 +72,13 @@ export function initTheme(): void {
   // Get theme from storage
   const storedTheme = getTheme()
   const effectiveTheme = getEffectiveTheme(storedTheme)
-  
+
   // Apply the effective theme (overrides any CSS media query default)
   applyTheme(effectiveTheme)
-  
+
   // Watch for manual attribute changes and persist them
-  const observer = new MutationObserver((mutations) => {
-    mutations.forEach((mutation) => {
+  const observer = new MutationObserver(mutations => {
+    mutations.forEach(mutation => {
       if (mutation.type === 'attributes' && mutation.attributeName === THEME_ATTRIBUTE) {
         const currentValue = document.documentElement.getAttribute(THEME_ATTRIBUTE)
         if (currentValue === 'light' || currentValue === 'dark') {
@@ -88,16 +88,16 @@ export function initTheme(): void {
       }
     })
   })
-  
+
   observer.observe(document.documentElement, {
     attributes: true,
-    attributeFilter: [THEME_ATTRIBUTE]
+    attributeFilter: [THEME_ATTRIBUTE],
   })
-  
+
   // Listen for system preference changes when theme is set to 'system'
   if (storedTheme === 'system' && window.matchMedia) {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-    mediaQuery.addEventListener('change', (e) => {
+    mediaQuery.addEventListener('change', e => {
       const currentTheme = getTheme()
       if (currentTheme === 'system') {
         applyTheme(e.matches ? 'dark' : 'light')
@@ -113,7 +113,7 @@ export function initTheme(): void {
 export function toggleTheme(): void {
   const currentTheme = getTheme()
   const effectiveTheme = getEffectiveTheme(currentTheme)
-  
+
   // Toggle between light and dark
   const newTheme = effectiveTheme === 'light' ? 'dark' : 'light'
   setTheme(newTheme)

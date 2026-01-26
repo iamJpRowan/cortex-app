@@ -1,4 +1,4 @@
-import * as React from "react"
+import * as React from 'react'
 import {
   Sidebar,
   SidebarContent,
@@ -9,12 +9,12 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
-} from "@/components/ui/sidebar"
-import { Home, Settings, MessageSquare, Network } from "lucide-react"
+} from '@/components/ui/sidebar'
+import { Home, Settings, MessageSquare, Network } from 'lucide-react'
 
 /**
  * AppSidebar Component
- * 
+ *
  * Sidebar that extends to the top of the window.
  * Includes top padding to account for macOS traffic light controls.
  * Top area is draggable for window movement.
@@ -22,7 +22,7 @@ import { Home, Settings, MessageSquare, Network } from "lucide-react"
  */
 export function AppSidebar() {
   const { state, isMobile } = useSidebar()
-  const isCollapsed = state === "collapsed"
+  const isCollapsed = state === 'collapsed'
 
   // Hide/show traffic lights based on sidebar state and mobile breakpoint
   React.useEffect(() => {
@@ -32,13 +32,10 @@ export function AppSidebar() {
   }, [isCollapsed, isMobile])
 
   return (
-    <Sidebar
-      variant="sidebar"
-      collapsible="icon"
-    >
+    <Sidebar variant="sidebar" collapsible="icon">
       {/* Draggable header area for traffic light spacing */}
       <div
-        className={isCollapsed ? "h-0" : "h-7"}
+        className={isCollapsed ? 'h-0' : 'h-7'}
         style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
       />
       <SidebarContent>

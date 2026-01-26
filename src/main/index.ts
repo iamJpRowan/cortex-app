@@ -18,8 +18,8 @@ function createWindow() {
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       nodeIntegration: false,
-      contextIsolation: true
-    }
+      contextIsolation: true,
+    },
   })
 
   // Set main window reference for IPC handlers
@@ -40,21 +40,23 @@ app.whenReady().then(async () => {
     // Start Neo4j
     await startNeo4j()
     console.log('[App] Neo4j started successfully')
-    
+
     // Initialize Ollama (non-blocking - app can run without it)
     const ollamaResult = await initializeOllama()
     if (ollamaResult.success) {
-      console.log(`[App] Ollama initialized successfully with model: ${ollamaResult.model}`)
+      console.log(
+        `[App] Ollama initialized successfully with model: ${ollamaResult.model}`
+      )
     } else {
       console.warn(`[App] Ollama initialization failed: ${ollamaResult.error}`)
       console.warn('[App] App will continue without Ollama (limited functionality)')
     }
-    
+
     // Register IPC handlers
     registerTestHandlers()
     registerLLMHandlers()
     registerWindowHandlers()
-    
+
     // Create window (must be after handlers are registered)
     createWindow()
   } catch (error) {

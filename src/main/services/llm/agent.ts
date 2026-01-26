@@ -1,5 +1,10 @@
 import { ChatOllama } from '@langchain/ollama'
-import { HumanMessage, AIMessage, ToolMessage, BaseMessage } from '@langchain/core/messages'
+import {
+  HumanMessage,
+  AIMessage,
+  ToolMessage,
+  BaseMessage,
+} from '@langchain/core/messages'
 import { LLMServiceConfig, defaultLLMConfig } from '../../config/defaults'
 import { toolRegistry } from './tools/registry'
 import { initializeStatePersistence } from './state'
@@ -24,16 +29,16 @@ export class LLMAgentService {
       ...config,
       llm: {
         ...defaultLLMConfig.llm,
-        ...config?.llm
+        ...config?.llm,
       },
       state: {
         ...defaultLLMConfig.state,
-        ...config?.state
+        ...config?.state,
       },
       tools: {
         ...defaultLLMConfig.tools,
-        ...config?.tools
-      }
+        ...config?.tools,
+      },
     }
 
     // Normalize baseUrl to use IPv4 (127.0.0.1) instead of localhost to avoid IPv6 issues
@@ -42,8 +47,10 @@ export class LLMAgentService {
     } else if (!this.config.llm.baseUrl) {
       this.config.llm.baseUrl = 'http://127.0.0.1:11434'
     }
-    
-    console.log('[LLMAgent] Service created (model will be discovered during initialization)')
+
+    console.log(
+      '[LLMAgent] Service created (model will be discovered during initialization)'
+    )
   }
 
   /**
@@ -52,7 +59,9 @@ export class LLMAgentService {
    */
   private selectModel(installedModels: string[], preferredName?: string): string {
     if (installedModels.length === 0) {
-      throw new Error('No models installed in Ollama. Please pull a model:\n  ollama pull llama3.2:3b')
+      throw new Error(
+        'No models installed in Ollama. Please pull a model:\n  ollama pull llama3.2:3b'
+      )
     }
 
     // If preferred name is provided, try to find exact or partial match
@@ -65,10 +74,8 @@ export class LLMAgentService {
 
       // Try partial match (e.g., "llama3.2" matches "llama3.2:3b")
       const baseName = preferredName.split(':')[0]
-      const partialMatch = installedModels.find(m => 
-        m === baseName || 
-        m.startsWith(baseName + ':') ||
-        m.includes(baseName)
+      const partialMatch = installedModels.find(
+        m => m === baseName || m.startsWith(baseName + ':') || m.includes(baseName)
       )
       if (partialMatch) {
         return partialMatch
@@ -86,29 +93,33 @@ export class LLMAgentService {
   async initialize(): Promise<void> {
     // Initialize state persistence
     this.checkpointer = await initializeStatePersistence(this.config.state)
-    
+
     // Query Ollama for installed models BEFORE creating ChatOllama
     // This ensures we use the exact model name (including tags like :3b)
     let selectedModel: string
     try {
       const { Ollama } = await import('ollama')
-      const ollamaClient = new Ollama({ host: this.config.llm.baseUrl || 'http://127.0.0.1:11434' })
+      const ollamaClient = new Ollama({
+        host: this.config.llm.baseUrl || 'http://127.0.0.1:11434',
+      })
       const modelsResponse = await ollamaClient.list()
-      
+
       if (!modelsResponse.models || modelsResponse.models.length === 0) {
         throw new Error(
           'No models installed in Ollama.\n' +
-          'Please pull a model:\n' +
-          '  ollama pull llama3.2:3b'
+            'Please pull a model:\n' +
+            '  ollama pull llama3.2:3b'
         )
       }
 
       const installedModels = modelsResponse.models.map(m => m.name)
       const preferredModel = this.config.llm.model || getDefaultModel() || undefined
-      
+
       selectedModel = this.selectModel(installedModels, preferredModel)
-      console.log(`[LLMAgent] Selected model: ${selectedModel} (from ${installedModels.length} available)`)
-      
+      console.log(
+        `[LLMAgent] Selected model: ${selectedModel} (from ${installedModels.length} available)`
+      )
+
       // Update config with the actual model name
       this.config.llm.model = selectedModel
     } catch (error) {
@@ -118,36 +129,38 @@ export class LLMAgentService {
       // If Ollama query fails, provide helpful error
       throw new Error(
         `Failed to query Ollama for installed models: ${error instanceof Error ? error.message : 'Unknown error'}\n` +
-        'Please ensure Ollama is running:\n' +
-        '  ollama serve'
+          'Please ensure Ollama is running:\n' +
+          '  ollama serve'
       )
     }
-    
+
     // Now create ChatOllama with the verified model name
     this.llm = new ChatOllama({
       model: selectedModel,
       baseUrl: this.config.llm.baseUrl || 'http://127.0.0.1:11434',
-      temperature: this.config.llm.temperature
+      temperature: this.config.llm.temperature,
     })
-    
+
     // Get tools from registry
     const tools = toolRegistry.getAll()
-    
+
     if (tools.length === 0) {
-      console.warn('[LLMAgent] No tools registered. Agent will work but cannot use tools.')
+      console.warn(
+        '[LLMAgent] No tools registered. Agent will work but cannot use tools.'
+      )
     } else {
       console.log(`[LLMAgent] Initialized with ${tools.length} tool(s)`)
     }
-    
+
     // Create agent using LangChain's createAgent (v1.0+ API)
     // Pass checkpointer directly to enable state persistence
     this.executor = createAgent({
       model: this.llm,
       tools: tools,
       systemPrompt: this.config.llm.systemPrompt,
-      checkpointer: this.checkpointer
+      checkpointer: this.checkpointer,
     })
-    
+
     console.log('[LLMAgent] Agent executor initialized')
   }
 
@@ -174,13 +187,17 @@ export class LLMAgentService {
 
     for (const message of messages) {
       // Check for AIMessage with tool calls
-      if (message instanceof AIMessage && message.tool_calls && message.tool_calls.length > 0) {
+      if (
+        message instanceof AIMessage &&
+        message.tool_calls &&
+        message.tool_calls.length > 0
+      ) {
         for (const toolCall of message.tool_calls) {
           trace.push({
             type: 'tool_call',
             toolName: toolCall.name,
             args: toolCall.args as Record<string, unknown>,
-            timestamp: Date.now()
+            timestamp: Date.now(),
           })
           console.log(`[LLMAgent] Tool call: ${toolCall.name} with args:`, toolCall.args)
         }
@@ -191,20 +208,29 @@ export class LLMAgentService {
         trace.push({
           type: 'tool_result',
           toolName: message.name,
-          result: typeof message.content === 'string' ? message.content : JSON.stringify(message.content),
-          timestamp: Date.now()
+          result:
+            typeof message.content === 'string'
+              ? message.content
+              : JSON.stringify(message.content),
+          timestamp: Date.now(),
         })
         console.log(`[LLMAgent] Tool result from ${message.name}:`, message.content)
       }
 
       // Check for final assistant message
-      if (message instanceof AIMessage && (!message.tool_calls || message.tool_calls.length === 0)) {
-        const content = typeof message.content === 'string' ? message.content : JSON.stringify(message.content)
+      if (
+        message instanceof AIMessage &&
+        (!message.tool_calls || message.tool_calls.length === 0)
+      ) {
+        const content =
+          typeof message.content === 'string'
+            ? message.content
+            : JSON.stringify(message.content)
         if (content && content.trim()) {
           trace.push({
             type: 'assistant_message',
             content: content,
-            timestamp: Date.now()
+            timestamp: Date.now(),
           })
         }
       }
@@ -240,20 +266,23 @@ export class LLMAgentService {
       : { configurable: { thread_id: `conv-${Date.now()}` } }
 
     console.log(`[LLMAgent] Query: ${message}`)
-    
+
     try {
       const result = await this.executor.invoke(
         {
-          messages: [new HumanMessage(message)]
+          messages: [new HumanMessage(message)],
         },
         config
       )
-      
+
       // Extract the final response (last non-tool message)
       let response = 'No response'
       for (let i = result.messages.length - 1; i >= 0; i--) {
         const msg = result.messages[i]
-        if (msg instanceof AIMessage && (!msg.tool_calls || msg.tool_calls.length === 0)) {
+        if (
+          msg instanceof AIMessage &&
+          (!msg.tool_calls || msg.tool_calls.length === 0)
+        ) {
           const content = msg.content
           if (content) {
             response = typeof content === 'string' ? content : JSON.stringify(content)
@@ -261,53 +290,63 @@ export class LLMAgentService {
           }
         }
       }
-      
+
       const convId = config.configurable.thread_id
-      
+
       // Extract trace from messages
       const trace = this.extractTrace(result.messages)
-      
+
       console.log(`[LLMAgent] Response: ${response}`)
       console.log(`[LLMAgent] Trace contains ${trace.length} step(s)`)
-      
+
       return {
         response,
         conversationId: convId,
-        trace
+        trace,
       }
     } catch (error) {
       console.error('[LLMAgent] Query failed:', error)
-      
+
       // Provide clearer error messages for common issues
       if (error instanceof Error) {
         const errorMessage = error.message.toLowerCase()
-        const errorWithCause = error as Error & { cause?: { code?: string; message?: string } }
+        const errorWithCause = error as Error & {
+          cause?: { code?: string; message?: string }
+        }
         const cause = errorWithCause.cause
-        
+
         // Check for connection refused errors (Ollama not running)
-        if (errorMessage.includes('fetch failed') || errorMessage.includes('econnrefused') || 
-            (cause && (cause.code === 'ECONNREFUSED' || cause.message?.includes('ECONNREFUSED')))) {
+        if (
+          errorMessage.includes('fetch failed') ||
+          errorMessage.includes('econnrefused') ||
+          (cause &&
+            (cause.code === 'ECONNREFUSED' || cause.message?.includes('ECONNREFUSED')))
+        ) {
           throw new Error(
             'Ollama server is not running or not accessible.\n' +
-            'Please start the Ollama server:\n' +
-            '  ollama serve\n\n' +
-            'If Ollama is already running, check that it is accessible at http://127.0.0.1:11434'
+              'Please start the Ollama server:\n' +
+              '  ollama serve\n\n' +
+              'If Ollama is already running, check that it is accessible at http://127.0.0.1:11434'
           )
         }
-        
+
         // Check for model not found errors (from Ollama ResponseError or error message)
         const modelName = this.config.llm.model || 'llama3.2'
         const errorWithStatus = errorWithCause as Error & { status_code?: number }
-        if ((errorMessage.includes('model') && (errorMessage.includes('not found') || errorMessage.includes('does not exist'))) ||
-            (errorWithStatus.status_code === 404 && errorMessage.includes('model'))) {
+        if (
+          (errorMessage.includes('model') &&
+            (errorMessage.includes('not found') ||
+              errorMessage.includes('does not exist'))) ||
+          (errorWithStatus.status_code === 404 && errorMessage.includes('model'))
+        ) {
           throw new Error(
             `Model "${modelName}" not found in Ollama.\n` +
-            `Please pull the model:\n` +
-            `  ollama pull ${modelName}`
+              `Please pull the model:\n` +
+              `  ollama pull ${modelName}`
           )
         }
       }
-      
+
       throw error
     }
   }

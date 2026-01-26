@@ -9,21 +9,22 @@ import { getDriver } from '../../../../neo4j'
  */
 export const countNodesTool = new DynamicStructuredTool({
   name: 'count_nodes',
-  description: 'Counts the total number of nodes in the Neo4j graph database. Useful for getting graph statistics or verifying database connectivity.',
+  description:
+    'Counts the total number of nodes in the Neo4j graph database. Useful for getting graph statistics or verifying database connectivity.',
   schema: z.object({
     // No parameters needed for simple count
   }),
   func: async () => {
     try {
       console.log('[CountNodesTool] Executing count query...')
-      
+
       const driver = getDriver()
       const session = driver.session()
-      
+
       try {
         const result = await session.run('MATCH (n) RETURN count(n) as count')
         const count = result.records[0]?.get('count')?.toNumber() ?? 0
-        
+
         console.log(`[CountNodesTool] Found ${count} node(s)`)
         return `The Neo4j database contains ${count} node(s).`
       } finally {
@@ -34,5 +35,5 @@ export const countNodesTool = new DynamicStructuredTool({
       console.error(`[CountNodesTool] Error: ${errorMessage}`)
       throw new Error(`Failed to count nodes: ${errorMessage}`)
     }
-  }
+  },
 })

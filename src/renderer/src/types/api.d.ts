@@ -1,12 +1,21 @@
 export interface API {
   test: {
     neo4jQuery: () => Promise<{ success: boolean; message?: string; error?: string }>
-    ollamaQuery: (prompt?: string) => Promise<{ success: boolean; response?: string; error?: string }>
-    ollamaListModels: () => Promise<{ success: boolean; models?: string[]; error?: string }>
+    ollamaQuery: (
+      prompt?: string
+    ) => Promise<{ success: boolean; response?: string; error?: string }>
+    ollamaListModels: () => Promise<{
+      success: boolean
+      models?: string[]
+      error?: string
+    }>
     ollamaGetDefaultModel: () => Promise<{ success: boolean; model: string | null }>
   }
   llm: {
-    query: (message: string, conversationId?: string) => Promise<{
+    query: (
+      message: string,
+      conversationId?: string
+    ) => Promise<{
       success: boolean
       response?: string
       conversationId?: string
@@ -21,8 +30,15 @@ export interface API {
       error?: string
       suggestion?: string
     }>
-    toolsList: () => Promise<{ success: boolean; tools?: Array<{ name: string; metadata: unknown }>; error?: string }>
-    toolsTest: (toolName: string, args: Record<string, unknown>) => Promise<{
+    toolsList: () => Promise<{
+      success: boolean
+      tools?: Array<{ name: string; metadata: unknown }>
+      error?: string
+    }>
+    toolsTest: (
+      toolName: string,
+      args: Record<string, unknown>
+    ) => Promise<{
       success: boolean
       toolName?: string
       result?: unknown

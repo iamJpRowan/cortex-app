@@ -4,10 +4,12 @@ const tsparser = require('@typescript-eslint/parser')
 const react = require('eslint-plugin-react')
 const reactHooks = require('eslint-plugin-react-hooks')
 const betterTailwindcss = require('eslint-plugin-better-tailwindcss')
+const prettier = require('eslint-config-prettier')
 const globals = require('globals')
 
 module.exports = [
   js.configs.recommended,
+  prettier,
   {
     files: ['**/*.{ts,tsx}'],
     languageOptions: {
@@ -42,11 +44,22 @@ module.exports = [
       'react/prop-types': 'off',
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       'no-undef': 'off', // TypeScript handles this
+      // Enforce 90 character line limit (Prettier handles formatting, this is a backup)
+      'max-len': [
+        'warn',
+        {
+          code: 90,
+          ignoreUrls: true,
+          ignoreStrings: true,
+          ignoreTemplateLiterals: true,
+          ignoreRegExpLiterals: true
+        }
+      ],
       // Enforce multiline className formatting for readability
       'better-tailwindcss/enforce-consistent-line-wrapping': [
         'warn',
         {
-          printWidth: 100, // Break lines after 100 characters
+          printWidth: 90, // Break lines after 90 characters
           classesPerLine: 0, // No limit on classes per line (use printWidth instead)
           group: 'newLine', // Put each logical group on a new line
           preferSingleLine: false, // Always break long classNames

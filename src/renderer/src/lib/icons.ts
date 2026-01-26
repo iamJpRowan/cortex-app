@@ -1,6 +1,6 @@
 /**
  * Icon Helper Utility
- * 
+ *
  * Converts Lucide icons to HTMLElement for use with vanilla JSX.
  * Uses Lucide's createElement to automatically handle all icon rendering.
  */
@@ -17,7 +17,7 @@ type IconName = Exclude<
 
 /**
  * Renders a Lucide icon as an HTMLElement
- * 
+ *
  * @param name - The name of the Lucide icon (e.g., 'PanelLeft', 'Menu', 'Home')
  * @param props - Optional props for the icon (size, color, className, etc.)
  * @returns HTMLElement representing the icon
@@ -47,7 +47,7 @@ export function Icon(
   // Use Lucide's createElement to convert IconNode to SVG element
   const svg = lucideCreateElement(iconData, {
     size: props.size || 20,
-    color: props.color || 'currentColor'
+    color: props.color || 'currentColor',
   }) as SVGElement
 
   // Add icon class for CSS styling (stroke-width will be applied via CSS)
