@@ -17,9 +17,6 @@ When backlog items are being implemented the file should reflect the current sta
 
 ## Current Backlog
 
-### Infrastructure
-- **[deep-agents-adoption.md](./deep-agents-adoption.md)** - Migrate to Deep Agents when advanced capabilities (planning, filesystem, sub-agents) are needed. requires: LangChain Integration
-
 
 ### Database & Knowledge Graphs
 - **[multi-knowledge-graphs.md](./multi-knowledge-graphs.md)** - Enable users to create and manage multiple Neo4j databases (Knowledge Graphs)
@@ -27,12 +24,20 @@ When backlog items are being implemented the file should reflect the current sta
 
 ### Configuration & Extensibility
 - **[configuration-system.md](./configuration-system.md)** - User configuration system with file loading, UI, and hot reload
-- **[tool-permission-system.md](./tool-permission-system.md)** - User-controlled tool permissions with runtime approval. requires: LangChain Integration
 - **[plugin-extensibility-framework.md](./plugin-extensibility-framework.md)** - Plugin system for user-contributed tools and integrations. requires: LangChain Integration, Configuration System, Tool Permission System
+
+### Chat & AI Interface
+- **[chat-interface-mvp.md](./chat-interface-mvp.md)** - Production chat interface with streaming, traces, conversation management, and AI integration patterns
+- **[tool-permission-system.md](./tool-permission-system.md)** - User-controlled tool permissions with runtime approval
+- **[multi-provider-model-selection.md](./multi-provider-model-selection.md)** - Support for multiple LLM providers (Ollama, OpenAI, Anthropic, etc.) and model selection. requires: Chat Interface (MVP)
+- **[chat-sidebar-integration.md](./chat-sidebar-integration.md)** - Add chat to right sidebar, implement context injection from views. requires: Chat Interface (MVP), UI Layout Framework
+- **[kbar-smart-chat-detection.md](./kbar-smart-chat-detection.md)** - Detect long-form questions in KBar and offer to start chat. requires: Chat Interface (MVP)
+- **[chat-quick-launcher.md](./chat-quick-launcher.md)** - Dedicated hotkey + overlay with reusable chat input. requires: Chat Interface (MVP)
+- **[chat-personas.md](./chat-personas.md)** - Persona management, switching, and smart suggestions. requires: Chat Interface (MVP)
+- **[deep-agents-adoption.md](./deep-agents-adoption.md)** - Migrate to Deep Agents when advanced capabilities (planning, filesystem, sub-agents) are needed. requires: LangChain Integration
 
 ### User Interface Features
 - **[ui-layout-framework.md](./ui-layout-framework.md)** - Complete layout system with sidebars, tabs, panels, and extensible component architecture. requires: React + shadcn/ui Migration
 - **[drag-and-drop-system.md](./drag-and-drop-system.md)** - Drag-and-drop functionality for widgets. requires: UI Layout Framework
 - **[component-composition-system.md](./component-composition-system.md)** - Custom view builder for assembling widgets. requires: UI Layout Framework, Drag and Drop System, Plugin Extensibility Framework
-- **[chat-interface.md](./chat-interface.md)** - Production chat interface with conversation management and audit trail. requires: LangChain Integration
 
