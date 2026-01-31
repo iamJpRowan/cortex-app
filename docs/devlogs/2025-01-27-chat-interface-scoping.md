@@ -9,7 +9,7 @@ related_files:
   - docs/backlog/chat-sidebar-integration.md
   - docs/backlog/kbar-smart-chat-detection.md
   - docs/backlog/chat-quick-launcher.md
-  - docs/backlog/chat-personas.md
+  - docs/backlog/custom-agents.md
   - docs/backlog/archive/chat-interface.md
 related_issues: []
 related_devlogs: []
@@ -24,7 +24,7 @@ outcome: success
 
 ## Context
 
-The original `chat-interface.md` backlog item contained a broad vision for chat functionality covering many large areas: UI/UX, app awareness, configurations, personas, extensibility, graph exploration, and file editing. The scope was too large to tackle as a single item and risked significant rework if approached incorrectly.
+The original `chat-interface.md` backlog item contained a broad vision for chat functionality covering many large areas: UI/UX, app awareness, configurations, custom agents, extensibility, graph exploration, and file editing. The scope was too large to tackle as a single item and risked significant rework if approached incorrectly.
 
 Developer wanted help breaking this into multiple logical backlog items that build on each other, with the first item establishing patterns that make it easy to build AI into all future features (similar to other framework tasks like settings, command palette, UI layout).
 
@@ -41,7 +41,7 @@ Developer wanted help breaking this into multiple logical backlog items that bui
 - What "patterns for AI in future features" means concretely
 - How chat placement (standalone vs sidebar) affects sequencing
 - Which features are "MVP" vs "enhancement"
-- Where to include prep work for future features (personas, permissions, context)
+- Where to include prep work for future features (agents, permissions, context)
 - What level of polish is needed from day 1 (streaming, traces, conversation management)
 
 ## Solution
@@ -67,7 +67,7 @@ Developer wanted help breaking this into multiple logical backlog items that bui
 
 5. **Tool permissions and Tool Permission System**: Work without permissions initially. Prep work: refactor to use `getToolsForAgent()` helper function. Tool Permission System (separate item) enhances that helper later without touching chat code.
 
-6. **Personas**: Out of scope for first item. Prep work: Persona type definitions, optional persona parameter in agent/IPC, conversation storage includes personaId. Chat Personas (separate item) adds full feature.
+6. **Agents**: Out of scope for first item. Prep work: Agent type definitions, optional agent parameter in agent/IPC, conversation storage includes agentId. Custom Agents (separate item) adds full feature.
 
 7. **Execution trace / audit trail**: Polished from day 1 using shadcn AI components (Chain of Thought, Tool, Reasoning). Display everything (tool calls, reasoning, timing, errors). Auto-expand during execution, auto-collapse when done.
 
@@ -85,9 +85,9 @@ Developer wanted help breaking this into multiple logical backlog items that bui
 
 3. **KBar Smart Chat Detection** - Detect long-form text in KBar → offer "Start chat with this"
 
-4. **Chat Quick Launcher** - Dedicated hotkey + rich overlay with message input, model selector, persona selector
+4. **Chat Quick Launcher** - Dedicated hotkey + rich overlay with message input, model selector, agent selector
 
-5. **Chat Personas** - Persona management UI, create/edit/delete personas, switch during conversation, smart suggestions
+5. **Custom Agents** - Agent management UI, create/edit/delete agents, switch during conversation, smart suggestions
 
 ## Outcome
 
@@ -106,7 +106,7 @@ Developer wanted help breaking this into multiple logical backlog items that bui
 
 **Key Patterns Established:**
 
-1. **"Prep work for future features"** - Define types/interfaces and add optional parameters now (context, persona), pass defaults/undefined initially. When feature is built later, just pass real values—no refactoring.
+1. **"Prep work for future features"** - Define types/interfaces and add optional parameters now (context, agent), pass defaults/undefined initially. When feature is built later, just pass real values—no refactoring.
 
 2. **"Single touch point for integration"** - Abstract integration points into helper functions (`getToolsForAgent()`, context collector). New features only change the helper, not all callers.
 
@@ -114,7 +114,7 @@ Developer wanted help breaking this into multiple logical backlog items that bui
 
 4. **"Polished from day 1 where it matters"** - Streaming and trace display are core to chat UX. Using shadcn AI components delivers production quality without custom implementation work.
 
-5. **"Separate concerns cleanly"** - Personas, permissions, smart launchers are separate items. MVP chat doesn't depend on them, but prep work ensures clean integration later.
+5. **"Separate concerns cleanly"** - Agents, permissions, smart launchers are separate items. MVP chat doesn't depend on them, but prep work ensures clean integration later.
 
 **Follow-up Work:**
 - Implement Chat Interface (MVP) as first item
@@ -135,7 +135,7 @@ Developer wanted help breaking this into multiple logical backlog items that bui
 
 **Scope Management:**
 - First item is substantial (streaming, traces, full conversation management) but all fundamental to "production chat"
-- Enhancements (sidebar, launchers, personas) cleanly separated
+- Enhancements (sidebar, launchers, agents) cleanly separated
 - Each item is independently valuable and shippable
 
 **Technical Considerations:**

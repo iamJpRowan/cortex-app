@@ -173,7 +173,7 @@ Enable users to choose from multiple LLM providers (Ollama local models, OpenAI,
 - [Chat Interface (MVP)](./chat-interface-mvp.md) - Model parameter and conversation storage
 
 **Related:**
-- [Chat Personas](./chat-personas.md) - Personas can have default model preference
+- [Custom Agents](./custom-agents.md) - Agents can have default model preference
 - [Chat Quick Launcher](./chat-quick-launcher.md) - Model selector in launcher
 - [Configuration System](./configuration-system.md) - Settings storage for provider credentials
 
@@ -239,14 +239,14 @@ Each provider adapter:
 - Require explicit selection of paid models
 - Save model choice per conversation (avoid accidental expensive usage)
 
-### Persona Integration
+### Agent Integration
 
-When Chat Personas is implemented, personas can specify default model:
-- **General Chat** persona: Uses smaller, faster model (e.g., GPT-3.5, llama3.2:3b)
-- **Code Assistant** persona: Uses more capable model (e.g., GPT-4, Claude Sonnet)
-- **Research Assistant** persona: Uses model with large context window
+When Custom Agents is implemented, agents can specify default model:
+- **General Chat** agent: Uses smaller, faster model (e.g., GPT-3.5, llama3.2:3b)
+- **Code Assistant** agent: Uses more capable model (e.g., GPT-4, Claude Sonnet)
+- **Research Assistant** agent: Uses model with large context window
 
-This allows "load persona, get right model" workflow without manual model selection each time.
+This allows "load agent, get right model" workflow without manual model selection each time.
 
 ### Ollama Model Management
 

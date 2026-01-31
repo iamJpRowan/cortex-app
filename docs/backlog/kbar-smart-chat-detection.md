@@ -29,7 +29,7 @@ Enhance KBar command palette to detect when user types long-form questions that 
 ### Chat Integration
 - Selecting action navigates to `/chat` (or opens sidebar if that exists)
 - Creates new conversation with detected text as initial message
-- No model/persona selection—uses defaults
+- No model/agent selection—uses defaults
 - Seamless transition from KBar to chat
 
 ## Implementation Approach
@@ -79,4 +79,4 @@ Enhance KBar command palette to detect when user types long-form questions that 
 
 This is a lightweight enhancement that makes KBar more intelligent. Users often start typing in command palette before realizing they want a conversation, not a command. This feature gracefully handles that case.
 
-Key distinction from Chat Quick Launcher: This is a fallback in the existing KBar when input doesn't match commands. Chat Quick Launcher is a separate, dedicated hotkey with richer controls (model/persona selection).
+Key distinction from Chat Quick Launcher: This is a fallback in the existing KBar when input doesn't match commands. Chat Quick Launcher is a separate, dedicated hotkey with richer controls (model/agent selection).

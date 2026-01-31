@@ -120,17 +120,33 @@ Can be implemented without these, but integration is cleaner if prep work exists
 - [ ] Bulk actions work (allow/deny by category)
 - [ ] Export/import permission profiles
 
+## Deep Agents Integration
+
+The "ask" permission level (runtime approval) maps directly to LangChain Deep Agents' `interrupt_on` feature.
+
+**How it works:**
+- Tools with "ask" permission are registered with `interrupt_on: True` in Deep Agents
+- When the agent attempts to use an "ask" tool, Deep Agents pauses execution
+- Our UI shows the approval modal with tool details and arguments
+- User approves or denies; Deep Agents resumes or blocks accordingly
+
+**Benefits:**
+- Leverages Deep Agents' built-in human-in-the-loop mechanism
+- No custom interruption handling needed
+- Works with sub-agents (approval happens at any depth)
+
 ## Related Backlog Items
 
 **Depends on (recommended):**
 - [Chat Interface (MVP)](./chat-interface-mvp.md) - Includes `getToolsForAgent()` helper function
 - [Configuration System](./configuration-system.md) - Settings storage for permissions
+- [Deep Agents Adoption](./deep-agents-adoption.md) - Provides `interrupt_on` for "ask" permissions
 
 **Prerequisite for:**
 - [Plugin Extensibility Framework](./plugin-extensibility-framework.md) - Permission system critical before community tools
 
 **Related:**
-- [Chat Personas](./chat-personas.md) - Personas can have per-persona permission overrides
+- [Custom Agents](./custom-agents.md) - Agents can have per-agent permission overrides
 
 ## Notes
 
@@ -168,11 +184,11 @@ Users need confidence that:
 
 Permissions are for **tools** (agent capabilities), not for **commands** (user-initiated actions). When the user clicks a button or uses a hotkey, they're explicitly authorizing that action. Permissions only apply to what the LLM can do autonomously or when requested by the user in chat.
 
-### Future: Persona Integration
+### Future: Agent Integration
 
-When Chat Personas is implemented, personas can have per-persona permission overrides. For example:
-- **General Chat** persona: minimal tools, very restricted
-- **Code Assistant** persona: filesystem and terminal access allowed
-- **Research Assistant** persona: graph queries and web search allowed
+When Custom Agents is implemented, agents can have per-agent permission overrides. For example:
+- **General Chat** agent: minimal tools, very restricted
+- **Code Assistant** agent: filesystem and terminal access allowed
+- **Research Assistant** agent: graph queries and web search allowed
 
-This allows users to grant different capabilities to different personas while maintaining global defaults.
+This allows users to grant different capabilities to different agents while maintaining global defaults.

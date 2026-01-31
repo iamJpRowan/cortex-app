@@ -20,7 +20,7 @@ None. LangChain Integration is complete and provides the backend infrastructure 
 - **Prep work for future features**:
   - Optional `context` parameter in IPC/agent (for future sidebar integration)
   - `getToolsForAgent()` helper function (for future tool permissions)
-  - `Persona` type definitions + optional persona parameter (for future personas)
+  - `Agent` type definitions + optional agent parameter (for future custom agents)
   - Optional `model` parameter in IPC/agent (for future multi-provider model selection)
   - Message storage includes `model` field (tracks which model generated each message)
   - Conversation storage includes `currentModel` field (tracks default/last-used model)
@@ -75,7 +75,7 @@ None. LangChain Integration is complete and provides the backend infrastructure 
 The LangChain integration provides:
 - Agent with tool support
 - Conversation state persistence (LangGraph checkpointer)
-- IPC API: `llm:query(message, conversationId?, context?, persona?, model?)`
+- IPC API: `llm:query(message, conversationId?, context?, agent?, model?)`
 - Tool registry with `getToolsForAgent()` helper
 - Execution trace format structured for chat UI rendering
 
@@ -88,8 +88,8 @@ This backlog item builds the chat UI that consumes that backend infrastructure.
 2. Create context collector/registry mechanism
 3. Implement context contract for one view (e.g. Home or Settings)
 4. Add optional `context` parameter to IPC handler and agent service
-5. Define `Persona` type interface (`{ id, name, instructions?, ... }`)
-6. Add optional `persona` parameter to agent query
+5. Define `Agent` type interface (`{ id, name, instructions?, ... }`)
+6. Add optional `agent` parameter to agent query
 7. Add optional `model` parameter to IPC handler and agent service
 8. Create `getToolsForAgent()` helper function (initially passthrough to `toolRegistry.getAll()`)
 9. Implement one LLM-invokable command (theme toggle via command registry)
@@ -105,7 +105,7 @@ This backlog item builds the chat UI that consumes that backend infrastructure.
 
 ### Phase 3: Conversation Storage & Management
 1. Leverage LangGraph checkpointer for conversation persistence
-2. Add conversation metadata storage (title, personaId, currentModel, timestamps)
+2. Add conversation metadata storage (title, agentId, currentModel, timestamps)
 3. Add message metadata storage (model used for each message)
 4. Implement conversation CRUD operations
 5. Create conversation list/sidebar UI
@@ -153,7 +153,7 @@ This backlog item builds the chat UI that consumes that backend infrastructure.
 - [ ] Conversations persist across app restarts
 - [ ] Rich content (markdown, code blocks) renders correctly
 - [ ] UI is polished and uses shadcn AI components consistently
-- [ ] Prep work in place for future features (context, persona, permissions parameters)
+- [ ] Prep work in place for future features (context, agent, permissions parameters)
 
 ## Related Backlog Items
 
@@ -161,9 +161,10 @@ This backlog item builds the chat UI that consumes that backend infrastructure.
 - [Chat Sidebar Integration](./chat-sidebar-integration.md) - Move chat to right sidebar, add context injection
 - [KBar Smart Chat Detection](./kbar-smart-chat-detection.md) - Long-form text in KBar → start chat
 - [Chat Quick Launcher](./chat-quick-launcher.md) - Dedicated hotkey + overlay with controls
-- [Chat Personas](./chat-personas.md) - Persona management and switching
+- [Custom Agents](./custom-agents.md) - Agent management and switching
 - [Multi-Provider Model Selection](./multi-provider-model-selection.md) - Support for multiple LLM providers and models
 - [Tool Permission System](./tool-permission-system.md) - Per-tool permissions (uses `getToolsForAgent()`)
+- [Deep Agents Adoption](./deep-agents-adoption.md) - Enhanced context management, filesystem tools (optional upgrade)
 
 ## Notes
 
@@ -175,3 +176,14 @@ The "AI integration patterns" objective means this item defines:
 3. How AI surfaces integrate (single chat UI, others open it with context)
 
 These patterns make it easy to add AI to future features without rebuilding infrastructure.
+
+### Future: Deep Agents Enhancement
+
+Chat MVP can be implemented with standard LangGraph agents. When [Deep Agents Adoption](./deep-agents-adoption.md) is complete, the chat experience gains:
+
+- **Automatic context management**: Conversation summarization prevents context overflow
+- **Large result handling**: Tool outputs auto-offloaded to filesystem
+- **Enhanced streaming**: Built-in streaming with agent metadata
+- **Filesystem tools**: Agents can save/read files for intermediate work
+
+This is additive—Chat MVP works without Deep Agents, but gains these capabilities when Deep Agents is adopted.

@@ -16,8 +16,8 @@ This backlog item has been **decomposed** into multiple focused backlog items th
 1. **[Chat Interface (MVP)](../chat-interface-mvp.md)** - Core chat interface with streaming, traces, conversation management, and AI integration patterns
 2. **[Chat Sidebar Integration](../chat-sidebar-integration.md)** - Move chat to right sidebar, implement context injection from views
 3. **[KBar Smart Chat Detection](../kbar-smart-chat-detection.md)** - Detect long-form questions in KBar and offer to start chat
-4. **[Chat Quick Launcher](../chat-quick-launcher.md)** - Dedicated hotkey + overlay with model/persona selectors
-5. **[Chat Personas](../chat-personas.md)** - Persona management, switching, and smart suggestions
+4. **[Chat Quick Launcher](../chat-quick-launcher.md)** - Dedicated hotkey + overlay with model/agent selectors
+5. **[Custom Agents](../custom-agents.md)** - Agent management, switching, and smart suggestions
 
 ## Original Goal
 
@@ -28,7 +28,7 @@ Implement production-quality chat interface for conversing with the LLM agent. P
 Through detailed discussion, the original broad scope was narrowed and split to:
 - **Build AI integration patterns** that make it easy to add AI to future features (context contract, action via commands, single AI surface)
 - **Ship polished MVP** with streaming, full trace display, and conversation management
-- **Defer enhancements** that can be added later without refactoring (sidebar placement, smart launchers, personas)
+- **Defer enhancements** that can be added later without refactoring (sidebar placement, smart launchers, agents)
 
 See [devlog 2025-01-27](../../devlogs/2025-01-27-chat-interface-scoping.md) for full scoping discussion and rationale.
 
@@ -39,7 +39,7 @@ See [devlog 2025-01-27](../../devlogs/2025-01-27-chat-interface-scoping.md) for 
 3. **Overlay/Launchers**: Separate backlog items (KBar detection, Quick Launcher)
 4. **App Awareness**: Context injection deferred to sidebar item (when multiple views exist)
 5. **Tool Permissions**: Prep work in MVP, full system is separate backlog item
-6. **Personas**: Prep work in MVP, full feature is separate backlog item
+6. **Agents**: Prep work in MVP, full feature is separate backlog item
 7. **Execution Trace**: Polished from day 1 using shadcn AI components
 8. **Streaming**: Full streaming (IPC + UI) from day 1
 9. **UI Stack**: Commit to shadcn AI chatbot components
@@ -58,8 +58,8 @@ I will want to make the chat app aware, as in able to recognize what view is ope
 **Configurations**
 I want the user to have ways to customize the chat's behavior.  I'm leaning towards being able to upload .md instruction files as the mvp for this.  I also want the user to be able to control what actions the chat is allowed to perform based on the tools (or similar) that are added into the app.  So basically some way to view available actions and toggle between "no", "ask", or "yes" for each given permission
 
-**Chat Personas**
-Additionally I have an idea to give the user to create chat "personas" or "modes" that are bespoke set of instructions and tooling permissions.  These personas should be accessible as a select field during a chat and can be switched at any point in the conversation to update the current instructions and permissions.  Might even be nice if the chat recognizes a request sounds like its meant for a different personality and will pause real quick before additional processing to see if the user wants to switch mode first
+**Custom Agents**
+Additionally I have an idea to give the user the ability to create custom "agents" that are bespoke configurations of instructions, tool permissions, and runtime parameters. These agents should be accessible as a select field during a chat and can be switched at any point in the conversation to update the current instructions and permissions. Might even be nice if the chat recognizes a request sounds like it's meant for a different agent and will pause real quick before additional processing to see if the user wants to switch agent first
 
 **Extensibility**
 Following the extensibility design of this project I would like to make adding skills and tools something that can be additive, installed from a marketplace or developed locally.  The implementation should follow patterns that make internal and external features integrate similarly

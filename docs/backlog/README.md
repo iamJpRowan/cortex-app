@@ -33,8 +33,10 @@ When backlog items are being implemented the file should reflect the current sta
 - **[chat-sidebar-integration.md](./chat-sidebar-integration.md)** - Add chat to right sidebar, implement context injection from views. requires: Chat Interface (MVP), UI Layout Framework
 - **[kbar-smart-chat-detection.md](./kbar-smart-chat-detection.md)** - Detect long-form questions in KBar and offer to start chat. requires: Chat Interface (MVP)
 - **[chat-quick-launcher.md](./chat-quick-launcher.md)** - Dedicated hotkey + overlay with reusable chat input. requires: Chat Interface (MVP)
-- **[chat-personas.md](./chat-personas.md)** - Persona management, switching, and smart suggestions. requires: Chat Interface (MVP)
-- **[deep-agents-adoption.md](./deep-agents-adoption.md)** - Migrate to Deep Agents when advanced capabilities (planning, filesystem, sub-agents) are needed. requires: LangChain Integration
+- **[deep-agents-adoption.md](./deep-agents-adoption.md)** - Migrate to Deep Agents for advanced capabilities (planning, filesystem, sub-agents, memory). requires: LangChain Integration
+- **[custom-agents.md](./custom-agents.md)** - Custom agent management, switching, and smart suggestions. requires: Chat Interface (MVP), Deep Agents Adoption
+- **[sub-agent-delegation.md](./sub-agent-delegation.md)** - Enable agents to delegate tasks to other agents. requires: Custom Agents, Deep Agents Adoption, Tool Permission System
+- **[chat-features-future.md](./chat-features-future.md)** - Future chat features to consider: memory, RAG, attachments, feedback, branching, and more
 
 ### User Interface Features
 - **[ui-layout-framework.md](./ui-layout-framework.md)** - Complete layout system with sidebars, tabs, panels, and extensible component architecture. requires: React + shadcn/ui Migration

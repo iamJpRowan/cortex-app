@@ -15,4 +15,4 @@ Each archived item has YAML frontmatter indicating its status and date.
 
 ## Decomposed
 
-- **[chat-interface.md](./chat-interface.md)** — Production chat interface (original broad scope). Decomposed 2025-01-27 into: Chat Interface (MVP), Chat Sidebar Integration, KBar Smart Chat Detection, Chat Quick Launcher, Chat Personas.
+- **[chat-interface.md](./chat-interface.md)** — Production chat interface (original broad scope). Decomposed 2025-01-27 into: Chat Interface (MVP), Chat Sidebar Integration, KBar Smart Chat Detection, Chat Quick Launcher, Custom Agents.
