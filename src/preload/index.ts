@@ -41,6 +41,11 @@ contextBridge.exposeInMainWorld('api', {
     toolsList: () => ipcRenderer.invoke('llm:tools:list'),
     toolsTest: (toolName: string, args: Record<string, unknown>) =>
       ipcRenderer.invoke('llm:tools:test', toolName, args),
+    /**
+     * Reload the LLM agent configuration.
+     * Resets the agent so next query uses fresh prompts from disk.
+     */
+    reloadAgent: () => ipcRenderer.invoke('llm:reloadAgent'),
   },
   window: {
     close: () => ipcRenderer.invoke('window:close'),

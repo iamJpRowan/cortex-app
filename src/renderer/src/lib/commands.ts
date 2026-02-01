@@ -52,5 +52,25 @@ export function getCommands(deps: CommandDependencies): Action[] {
         toggleTheme()
       },
     },
+
+    // Development Section
+    {
+      id: 'dev-reload-agent',
+      name: 'Reload LLM Agent',
+      keywords: 'reload agent llm prompt refresh dev development',
+      section: 'Development',
+      perform: async () => {
+        try {
+          const result = await window.api.llm.reloadAgent()
+          if (result.success) {
+            console.log('[Commands] Agent reloaded:', result.message)
+          } else {
+            console.error('[Commands] Agent reload failed:', result.error)
+          }
+        } catch (error) {
+          console.error('[Commands] Failed to reload agent:', error)
+        }
+      },
+    },
   ]
 }

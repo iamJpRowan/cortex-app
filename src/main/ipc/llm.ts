@@ -1,6 +1,6 @@
 import { ipcMain, BrowserWindow } from 'electron'
 import { toolRegistry } from '../services/llm/tools/registry'
-import { getLLMAgentService } from '../services/llm/agent'
+import { getLLMAgentService, resetAgentService } from '../services/llm/agent'
 import type { LLMQueryOptions, StreamQueryResult } from '../../shared/types'
 // Import builtin tools to trigger auto-registration
 import '../services/llm/tools/builtin'
@@ -249,4 +249,29 @@ export function registerLLMHandlers() {
       }
     }
   )
+
+  /**
+   * Reload the LLM agent configuration
+   *
+   * Resets the agent singleton so the next query will create a fresh
+   * instance with updated configuration (including re-reading prompt files).
+   * Useful for development iteration on prompts without restarting the server.
+   */
+  ipcMain.handle('llm:reloadAgent', async () => {
+    try {
+      console.log('[LLM IPC] Reloading agent configuration...')
+      resetAgentService()
+      console.log('[LLM IPC] Agent reset - will reinitialize on next query')
+      return {
+        success: true,
+        message: 'Agent configuration reloaded. Changes will take effect on next query.',
+      }
+    } catch (error) {
+      console.error('[LLM IPC] Failed to reload agent:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      }
+    }
+  })
 }

@@ -87,6 +87,27 @@ You are a research assistant specialized in exploring knowledge graphs...
 - An agent cannot grant a tool that is globally denied
 - An agent can further restrict tools that are globally allowed
 
+### Prompt Layering
+
+Agent instructions are layered on top of a base system prompt that is always applied:
+
+| Layer | Source | Editable | Purpose |
+|-------|--------|----------|---------|
+| Base System Prompt | Hardcoded in app | No | Tool usage rules, response formatting, core behaviors |
+| Agent Instructions | Agent MD body | Yes | Role, persona, domain expertise, specific guidelines |
+
+**Base System Prompt includes:**
+- Tool result handling ("use tool results in your answer")
+- Response formatting (markdown guidelines)
+- Core behavioral constraints
+
+**Why layering?**
+- Prevents users from accidentally breaking core behaviors (e.g., tool result handling)
+- Agent authors focus on persona/expertise, not boilerplate
+- Consistent formatting across all agents
+
+**Future consideration:** `inherits_base: false` frontmatter flag for power users who want full control over the system prompt.
+
 ### Agent Management
 
 - Create new agent (creates MD file)
@@ -222,6 +243,7 @@ You are a research assistant specialized in exploring knowledge graphs...
 - [ ] Default agent setting stored in user settings
 - [ ] File watcher updates registry when MD files change externally
 - [ ] Agent MD configs correctly convert to Deep Agents format at runtime
+- [ ] Base system prompt is always prepended to agent instructions (layered prompts)
 
 ## Deep Agents Integration
 
@@ -235,11 +257,13 @@ When an agent is loaded, the `AgentRegistry` converts the MD configuration to De
 |----------------|-------------------|
 | `name` | `name` |
 | `description` | `description` |
-| Markdown body (instructions) | `system_prompt` |
+| Base prompt + Markdown body | `system_prompt` (concatenated) |
 | `tools.allow` (resolved) | `tools` |
 | `tools.ask` | `interrupt_on` configuration |
 | `model` | `model` override |
 | `memory.namespace` | `StoreBackend` namespace |
+
+**Note:** The `system_prompt` is constructed by concatenating the hardcoded base system prompt with the agent's markdown body instructions.
 
 ### Deep Agents Features Used
 
@@ -288,6 +312,16 @@ The smart suggestion feature ("This sounds like a job for...") helps users disco
 
 The Chat MVP includes agent type definitions (`Agent` type, optional `agent` parameter) which means integration is clean—just implement the management UI and wire the selector to the existing parameter.
 
+### Prep Work: Layered Prompts
+
+Prior to custom agents implementation, the codebase has been prepared with:
+- **Base system prompt** (`base-system.md`): Hardcoded prompt with tool usage rules and response formatting
+- **Default agent instructions** (`default-agent.md`): Editable default persona, will become the built-in default agent
+- **Prompt concatenation**: `getFullSystemPrompt()` combines base + agent instructions
+- **Reload command**: `llm:reloadAgent` IPC handler allows prompt iteration without server restart
+
+This establishes the layered prompt architecture that custom agents will build upon.
+
 ### Design Decisions
 
 1. **MD file format**: Enables version control, external editing, and marketplace distribution
@@ -297,6 +331,7 @@ The Chat MVP includes agent type definitions (`Agent` type, optional `agent` par
 5. **Deep Agents as runtime**: Use LangChain Deep Agents harness for execution; our layer provides user-facing management
 6. **Three-tier permissions**: `allow`/`ask`/`deny` aligns with Tool Permission System and Deep Agents' `interrupt_on`
 7. **Memory via filesystem**: Leverage Deep Agents' `StoreBackend` for persistent memory, not a separate system
+8. **Layered prompts**: Base system prompt (hardcoded) + agent instructions (editable). Prevents users from accidentally breaking core behaviors like tool result handling or markdown formatting. Agent authors focus on persona and expertise rather than boilerplate.
 
 ### Open Questions for Implementation
 

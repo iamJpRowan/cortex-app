@@ -1,5 +1,6 @@
 import { app } from 'electron'
 import { getDefaultModel } from '../services/ollama'
+import { getFullSystemPrompt } from './prompts'
 
 /**
  * Configuration interface for LLM service
@@ -21,22 +22,38 @@ export interface LLMServiceConfig {
 }
 
 /**
+ * Get default LLM configuration
+ * Uses a function to ensure prompts are read fresh each time
+ * (enables reload without restart)
+ */
+export function getDefaultLLMConfig(): LLMServiceConfig {
+  return {
+    llm: {
+      model: getDefaultModel() || 'llama3.2', // Fallback if Ollama not initialized
+      temperature: 0,
+      systemPrompt: getFullSystemPrompt(),
+      baseUrl: 'http://127.0.0.1:11434', // Use IPv4 to avoid IPv6 connection issues
+    },
+    state: {
+      dbPath: app.getPath('userData') + '/conversations.db',
+      enableWAL: true,
+    },
+    tools: {
+      enabled: [], // Empty means all registered tools are enabled
+    },
+  }
+}
+
+/**
  * Default configuration for LLM service
- * Uses structured defaults pattern - can be overridden for testing
+ * @deprecated Use getDefaultLLMConfig() for fresh prompt loading
  */
 export const defaultLLMConfig: LLMServiceConfig = {
   llm: {
-    model: getDefaultModel() || 'llama3.2', // Fallback if Ollama not initialized
+    model: getDefaultModel() || 'llama3.2',
     temperature: 0,
-    systemPrompt:
-      'You are a helpful assistant with access to tools. ' +
-      'When you use a tool, you will receive its result. ' +
-      'IMPORTANT: Always use the tool result to formulate your final answer. ' +
-      'If a tool returns data, include that data in your response to the user. ' +
-      'Do not say you lack information if a tool has already provided it. ' +
-      'Format your responses using markdown for readability: ' +
-      'use headings, bullet points, numbered lists, bold, and code blocks where appropriate.',
-    baseUrl: 'http://127.0.0.1:11434', // Use IPv4 to avoid IPv6 connection issues
+    systemPrompt: getFullSystemPrompt(),
+    baseUrl: 'http://127.0.0.1:11434',
   },
   state: {
     dbPath: app.getPath('userData') + '/conversations.db',

@@ -6,7 +6,7 @@ import {
   BaseMessage,
   SystemMessage,
 } from '@langchain/core/messages'
-import { LLMServiceConfig, defaultLLMConfig } from '../../config/defaults'
+import { LLMServiceConfig, getDefaultLLMConfig } from '../../config/defaults'
 import { toolRegistry } from './tools/registry'
 import { initializeStatePersistence } from './state'
 import { SqliteSaver } from '@langchain/langgraph-checkpoint-sqlite'
@@ -33,20 +33,23 @@ export class LLMAgentService {
   private config: LLMServiceConfig
 
   constructor(config?: Partial<LLMServiceConfig>) {
+    // Get fresh defaults (reads prompt files each time)
+    const defaults = getDefaultLLMConfig()
+
     // Merge with defaults
     this.config = {
-      ...defaultLLMConfig,
+      ...defaults,
       ...config,
       llm: {
-        ...defaultLLMConfig.llm,
+        ...defaults.llm,
         ...config?.llm,
       },
       state: {
-        ...defaultLLMConfig.state,
+        ...defaults.state,
         ...config?.state,
       },
       tools: {
-        ...defaultLLMConfig.tools,
+        ...defaults.tools,
         ...config?.tools,
       },
     }
@@ -762,4 +765,18 @@ export function getLLMAgentService(config?: Partial<LLMServiceConfig>): LLMAgent
     agentService = new LLMAgentService(config)
   }
   return agentService
+}
+
+/**
+ * Reset the agent service singleton
+ * Forces the next getLLMAgentService() call to create a fresh instance
+ * with updated configuration (including re-reading prompt files)
+ *
+ * Used by the 'Reload LLM Agent' command for development iteration
+ */
+export function resetAgentService(): void {
+  if (agentService) {
+    console.log('[LLMAgent] Resetting agent service (will reinitialize on next query)')
+    agentService = null
+  }
 }

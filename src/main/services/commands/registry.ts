@@ -12,6 +12,7 @@
  */
 
 import { getSettingsService } from '../settings'
+import { resetAgentService } from '../llm/agent'
 
 /**
  * Command definition for LLM-invokable commands
@@ -142,6 +143,21 @@ export function registerBuiltinCommands(): void {
       return {
         success: true,
         message: `Theme changed to ${newTheme}`,
+      }
+    },
+  })
+
+  // Reload LLM Agent command (for development)
+  commandRegistry.register({
+    id: 'dev.reload-agent',
+    name: 'Reload LLM Agent',
+    description: 'Reload LLM agent configuration including prompts. For development use.',
+    category: 'Development',
+    execute: async () => {
+      resetAgentService()
+      return {
+        success: true,
+        message: 'Agent configuration reloaded. Changes will take effect on next query.',
       }
     },
   })

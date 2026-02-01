@@ -67,6 +67,15 @@ export interface API {
       args?: Record<string, unknown>
       error?: string
     }>
+    /**
+     * Reload the LLM agent configuration.
+     * Resets the agent so next query uses fresh prompts from disk.
+     */
+    reloadAgent: () => Promise<{
+      success: boolean
+      message?: string
+      error?: string
+    }>
   }
   window: {
     close: () => Promise<void>
