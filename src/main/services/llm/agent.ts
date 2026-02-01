@@ -4,6 +4,7 @@ import {
   AIMessage,
   ToolMessage,
   BaseMessage,
+  SystemMessage,
 } from '@langchain/core/messages'
 import { LLMServiceConfig, defaultLLMConfig } from '../../config/defaults'
 import { toolRegistry } from './tools/registry'
@@ -11,6 +12,11 @@ import { initializeStatePersistence } from './state'
 import { SqliteSaver } from '@langchain/langgraph-checkpoint-sqlite'
 import { getDefaultModel } from '../ollama'
 import { createAgent, ReactAgent } from 'langchain'
+import type {
+  LLMQueryOptions,
+  TraceEntry,
+  StreamEventHandler,
+} from '../../../shared/types'
 
 /**
  * LLM Agent Service
@@ -141,8 +147,9 @@ export class LLMAgentService {
       temperature: this.config.llm.temperature,
     })
 
-    // Get tools from registry
-    const tools = toolRegistry.getAll()
+    // Get tools from registry using getToolsForAgent()
+    // This provides a single touch point for future tool permission filtering
+    const tools = toolRegistry.getToolsForAgent()
 
     if (tools.length === 0) {
       console.warn(
@@ -168,22 +175,8 @@ export class LLMAgentService {
    * Extract execution trace from agent result messages
    * Identifies tool calls and their results for audit trail
    */
-  private extractTrace(messages: BaseMessage[]): Array<{
-    type: 'tool_call' | 'tool_result' | 'assistant_message'
-    toolName?: string
-    args?: Record<string, unknown>
-    result?: string
-    content?: string
-    timestamp?: number
-  }> {
-    const trace: Array<{
-      type: 'tool_call' | 'tool_result' | 'assistant_message'
-      toolName?: string
-      args?: Record<string, unknown>
-      result?: string
-      content?: string
-      timestamp?: number
-    }> = []
+  private extractTrace(messages: BaseMessage[]): TraceEntry[] {
+    const trace: TraceEntry[] = []
 
     for (const message of messages) {
       // Check for AIMessage with tool calls
@@ -240,26 +233,55 @@ export class LLMAgentService {
   }
 
   /**
+   * Build system prompt including agent instructions and context
+   */
+  private buildSystemPrompt(options: LLMQueryOptions): string | undefined {
+    const parts: string[] = []
+
+    // Add agent instructions if provided
+    if (options.agent?.instructions) {
+      parts.push(options.agent.instructions)
+    }
+
+    // Add context if provided
+    if (options.context) {
+      const contextParts: string[] = []
+      if (options.context.viewId) {
+        contextParts.push(`Current view: ${options.context.viewId}`)
+      }
+      if (options.context.summary) {
+        contextParts.push(`Context: ${options.context.summary}`)
+      }
+      if (options.context.details && Object.keys(options.context.details).length > 0) {
+        contextParts.push(`Details: ${JSON.stringify(options.context.details)}`)
+      }
+      if (contextParts.length > 0) {
+        parts.push(`\n\n## Current Application Context\n${contextParts.join('\n')}`)
+      }
+    }
+
+    return parts.length > 0 ? parts.join('\n\n') : undefined
+  }
+
+  /**
    * Query the agent with a message
+   *
+   * @param message The user's message
+   * @param options Query options including conversationId, context, agent, model
    */
   async query(
     message: string,
-    conversationId?: string
+    options?: LLMQueryOptions
   ): Promise<{
     response: string
     conversationId: string
-    trace: Array<{
-      type: 'tool_call' | 'tool_result' | 'assistant_message'
-      toolName?: string
-      args?: Record<string, unknown>
-      result?: string
-      content?: string
-      timestamp?: number
-    }>
+    trace: TraceEntry[]
   }> {
     if (!this.executor || !this.llm) {
       throw new Error('Agent not initialized. Call initialize() first.')
     }
+
+    const { conversationId, context, agent, model } = options ?? {}
 
     const config = conversationId
       ? { configurable: { thread_id: conversationId } }
@@ -267,10 +289,35 @@ export class LLMAgentService {
 
     console.log(`[LLMAgent] Query: ${message}`)
 
+    // Log context and agent info for debugging
+    if (context?.viewId) {
+      console.log(`[LLMAgent] Context from: ${context.viewId}`)
+    }
+    if (agent?.id) {
+      console.log(`[LLMAgent] Agent: ${agent.name} (${agent.id})`)
+    }
+    if (model) {
+      console.log(`[LLMAgent] Model override: ${model}`)
+    }
+
+    // Build messages with context/instructions if provided
+    const systemPrompt = this.buildSystemPrompt({ context, agent, model })
+    const messages: BaseMessage[] = []
+
+    if (systemPrompt) {
+      messages.push(new SystemMessage(systemPrompt))
+    }
+    messages.push(new HumanMessage(message))
+
+    // TODO: When Multi-Provider Model Selection is implemented:
+    // - If model is provided, create a temporary LLM instance with that model
+    // - Route to appropriate provider based on model prefix (ollama:, openai:, etc.)
+    void model // Acknowledge for future use
+
     try {
       const result = await this.executor.invoke(
         {
-          messages: [new HumanMessage(message)],
+          messages,
         },
         config
       )
@@ -348,6 +395,219 @@ export class LLMAgentService {
       }
 
       throw error
+    }
+  }
+
+  /**
+   * Query the agent with streaming response.
+   *
+   * Streams tokens and trace events as they occur, calling the provided
+   * event handler for each event. This enables real-time UI updates.
+   *
+   * @param message The user's message
+   * @param streamId Unique stream ID for correlating events
+   * @param options Query options including conversationId, context, agent, model
+   * @param onEvent Callback for handling stream events
+   * @returns Promise that resolves when streaming is complete
+   */
+  async queryStream(
+    message: string,
+    streamId: string,
+    options: LLMQueryOptions | undefined,
+    onEvent: StreamEventHandler
+  ): Promise<void> {
+    if (!this.executor || !this.llm) {
+      throw new Error('Agent not initialized. Call initialize() first.')
+    }
+
+    const { conversationId, context, agent, model } = options ?? {}
+
+    // Use provided conversationId or generate new one
+    const convId = conversationId ?? `conv-${Date.now()}`
+
+    const config = { configurable: { thread_id: convId } }
+
+    console.log(`[LLMAgent] Streaming query: ${message} (streamId: ${streamId})`)
+
+    // Log context and agent info for debugging
+    if (context?.viewId) {
+      console.log(`[LLMAgent] Context from: ${context.viewId}`)
+    }
+    if (agent?.id) {
+      console.log(`[LLMAgent] Agent: ${agent.name} (${agent.id})`)
+    }
+    if (model) {
+      console.log(`[LLMAgent] Model override: ${model}`)
+    }
+
+    // Build messages with context/instructions if provided
+    const systemPrompt = this.buildSystemPrompt({ context, agent, model })
+    const messages: BaseMessage[] = []
+
+    if (systemPrompt) {
+      messages.push(new SystemMessage(systemPrompt))
+    }
+    messages.push(new HumanMessage(message))
+
+    // Acknowledge model override for future use
+    void model
+
+    // Emit start event
+    onEvent({
+      type: 'start',
+      streamId,
+      conversationId: convId,
+    })
+
+    const trace: TraceEntry[] = []
+    let accumulated = ''
+
+    try {
+      // Use streamEvents for comprehensive streaming
+      const stream = await this.executor.streamEvents(
+        { messages },
+        { ...config, version: 'v2' }
+      )
+
+      for await (const event of stream) {
+        // Handle different event types from LangGraph
+        if (event.event === 'on_chat_model_stream') {
+          // Token streaming from the LLM
+          const chunk = event.data?.chunk
+          if (chunk?.content && typeof chunk.content === 'string') {
+            accumulated += chunk.content
+            onEvent({
+              type: 'token',
+              streamId,
+              conversationId: convId,
+              token: chunk.content,
+              accumulated,
+            })
+          }
+        } else if (event.event === 'on_tool_start') {
+          // Tool invocation started
+          const toolName = event.name || 'unknown'
+          const toolInput = event.data?.input
+          const traceEntry: TraceEntry = {
+            type: 'tool_call',
+            toolName,
+            args: toolInput as Record<string, unknown>,
+            timestamp: Date.now(),
+          }
+          trace.push(traceEntry)
+          onEvent({
+            type: 'trace',
+            streamId,
+            conversationId: convId,
+            trace: traceEntry,
+          })
+          console.log(`[LLMAgent] Tool call: ${toolName}`)
+        } else if (event.event === 'on_tool_end') {
+          // Tool invocation completed
+          const toolName = event.name || 'unknown'
+          const toolOutput = event.data?.output
+
+          // Extract the actual result content from the tool output
+          // Tool output may be a string, a LangChain message object, or other structure
+          let resultContent: string
+          if (typeof toolOutput === 'string') {
+            resultContent = toolOutput
+          } else if (toolOutput?.content !== undefined) {
+            // LangChain ToolMessage has a content property
+            resultContent =
+              typeof toolOutput.content === 'string'
+                ? toolOutput.content
+                : JSON.stringify(toolOutput.content)
+          } else if (toolOutput?.kwargs?.content !== undefined) {
+            // Serialized LangChain message format
+            resultContent =
+              typeof toolOutput.kwargs.content === 'string'
+                ? toolOutput.kwargs.content
+                : JSON.stringify(toolOutput.kwargs.content)
+          } else {
+            // Fallback: stringify the output but try to extract meaningful data
+            resultContent = JSON.stringify(toolOutput)
+          }
+
+          const traceEntry: TraceEntry = {
+            type: 'tool_result',
+            toolName,
+            result: resultContent,
+            timestamp: Date.now(),
+          }
+          trace.push(traceEntry)
+          onEvent({
+            type: 'trace',
+            streamId,
+            conversationId: convId,
+            trace: traceEntry,
+          })
+          console.log(`[LLMAgent] Tool result from ${toolName}`)
+        }
+      }
+
+      // Add final assistant message to trace
+      if (accumulated.trim()) {
+        trace.push({
+          type: 'assistant_message',
+          content: accumulated,
+          timestamp: Date.now(),
+        })
+      }
+
+      // Emit completion event
+      onEvent({
+        type: 'complete',
+        streamId,
+        conversationId: convId,
+        response: accumulated || 'No response',
+        trace,
+      })
+
+      console.log(`[LLMAgent] Streaming complete. Response length: ${accumulated.length}`)
+    } catch (error) {
+      console.error('[LLMAgent] Streaming query failed:', error)
+
+      let errorMessage = error instanceof Error ? error.message : 'Unknown error'
+      let suggestion = 'Check console logs for detailed error information.'
+
+      // Provide clearer error messages for common issues
+      if (error instanceof Error) {
+        const errMsg = error.message.toLowerCase()
+        const errorWithCause = error as Error & {
+          cause?: { code?: string; message?: string }
+        }
+        const cause = errorWithCause.cause
+
+        if (
+          errMsg.includes('fetch failed') ||
+          errMsg.includes('econnrefused') ||
+          (cause &&
+            (cause.code === 'ECONNREFUSED' || cause.message?.includes('ECONNREFUSED')))
+        ) {
+          errorMessage = 'Ollama server is not running or not accessible.'
+          suggestion = 'Please start the Ollama server with: ollama serve'
+        }
+
+        const modelName = this.config.llm.model || 'llama3.2'
+        const errorWithStatus = errorWithCause as Error & { status_code?: number }
+        if (
+          (errMsg.includes('model') &&
+            (errMsg.includes('not found') || errMsg.includes('does not exist'))) ||
+          (errorWithStatus.status_code === 404 && errMsg.includes('model'))
+        ) {
+          errorMessage = `Model "${modelName}" not found in Ollama.`
+          suggestion = `Please pull the model with: ollama pull ${modelName}`
+        }
+      }
+
+      onEvent({
+        type: 'error',
+        streamId,
+        conversationId: convId,
+        error: errorMessage,
+        suggestion,
+      })
     }
   }
 

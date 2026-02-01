@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
+import type { LLMQueryOptions, StreamEvent, StreamEventHandler } from '../shared/types'
 
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
@@ -10,8 +11,26 @@ contextBridge.exposeInMainWorld('api', {
     ollamaGetDefaultModel: () => ipcRenderer.invoke('test:ollama-get-default-model'),
   },
   llm: {
-    query: (message: string, conversationId?: string) =>
-      ipcRenderer.invoke('llm:query', message, conversationId),
+    query: (message: string, options?: LLMQueryOptions) =>
+      ipcRenderer.invoke('llm:query', message, options),
+    /**
+     * Start a streaming query.
+     * Returns stream info immediately; events arrive via onStream callback.
+     */
+    queryStream: (message: string, options?: LLMQueryOptions) =>
+      ipcRenderer.invoke('llm:queryStream', message, options),
+    /**
+     * Subscribe to streaming events.
+     * Call this before queryStream to receive events.
+     * Returns an unsubscribe function.
+     */
+    onStream: (callback: StreamEventHandler) => {
+      const handler = (_event: Electron.IpcRendererEvent, data: StreamEvent) => {
+        callback(data)
+      }
+      ipcRenderer.on('llm:stream', handler)
+      return () => ipcRenderer.removeListener('llm:stream', handler)
+    },
     toolsList: () => ipcRenderer.invoke('llm:tools:list'),
     toolsTest: (toolName: string, args: Record<string, unknown>) =>
       ipcRenderer.invoke('llm:tools:test', toolName, args),

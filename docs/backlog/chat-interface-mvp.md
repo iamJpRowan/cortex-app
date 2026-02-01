@@ -13,8 +13,8 @@ None. LangChain Integration is complete and provides the backend infrastructure 
 ## Key Capabilities
 
 ### AI Integration Patterns (Framework Setting)
-- **App context for AI contract**: Define contract for views to contribute context when active (`getContextForAI()`)
-- **Context collector**: Single place to gather context from active view (prep work, implemented for one view)
+- **App context for AI contract**: Define contract interface for views to contribute context (`getContextForAI()`)
+- **Context collector**: Define collector/registry mechanism (implementation in Chat Sidebar Integration)
 - **LLM actions via commands**: LLM invokes app commands (theme toggle as concrete example)
 - **Single AI surface pattern**: Chat is the one AI UI; future features integrate via context + commands
 - **Prep work for future features**:
@@ -85,8 +85,8 @@ This backlog item builds the chat UI that consumes that backend infrastructure.
 
 ### Phase 1: AI Integration Patterns & Prep Work
 1. Define `AppContext` type interface (`{ viewId?, summary?, details? }`)
-2. Create context collector/registry mechanism
-3. Implement context contract for one view (e.g. Home or Settings)
+2. Define `getContextForAI()` contract interface for views
+3. Define context collector/registry mechanism interface (no implementation yet)
 4. Add optional `context` parameter to IPC handler and agent service
 5. Define `Agent` type interface (`{ id, name, instructions?, ... }`)
 6. Add optional `agent` parameter to agent query
@@ -94,6 +94,8 @@ This backlog item builds the chat UI that consumes that backend infrastructure.
 8. Create `getToolsForAgent()` helper function (initially passthrough to `toolRegistry.getAll()`)
 9. Implement one LLM-invokable command (theme toggle via command registry)
 10. Update agent to accept and use command invocations
+
+Note: Context implementation (views implementing `getContextForAI()` and context collector gathering from active view) is deferred to Chat Sidebar Integration where it has demonstrable value.
 
 ### Phase 2: Backend Streaming Support
 1. Implement IPC streaming mechanism (choose: event-based, async iterator, or chunked)
@@ -149,7 +151,9 @@ This backlog item builds the chat UI that consumes that backend infrastructure.
 - [ ] Traces auto-expand during execution, auto-collapse when complete
 - [ ] User can manually expand collapsed traces
 - [ ] LLM can invoke app commands (theme toggle works)
-- [ ] One view contributes context for AI (contract proven)
+- [ ] `AppContext` type and `getContextForAI()` contract defined
+- [ ] Context collector interface defined (implementation in sidebar item)
+- [ ] Optional `context` parameter added to IPC/agent
 - [ ] Conversations persist across app restarts
 - [ ] Rich content (markdown, code blocks) renders correctly
 - [ ] UI is polished and uses shadcn AI components consistently

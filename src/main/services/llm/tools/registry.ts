@@ -1,4 +1,5 @@
 import { StructuredTool } from '@langchain/core/tools'
+import type { Agent } from '../../../../shared/types'
 
 /**
  * Metadata for a tool
@@ -81,6 +82,45 @@ export class ToolRegistry {
    */
   getAllDefinitions(): ToolDefinition[] {
     return Array.from(this.tools.values())
+  }
+
+  /**
+   * Get tools available for a specific agent.
+   *
+   * This method provides a single touch point for tool filtering based on:
+   * - Agent-specific tool permissions (allow/ask/deny)
+   * - Global permission settings (future: Tool Permission System)
+   *
+   * Currently a passthrough to getAll(), but the signature supports
+   * future permission filtering without requiring callers to change.
+   *
+   * @param options Options for filtering tools
+   * @param options.agent Agent configuration with tool permissions
+   * @returns Array of StructuredTool instances available for the agent
+   *
+   * @example
+   * ```typescript
+   * // Get all tools (default agent)
+   * const tools = toolRegistry.getToolsForAgent()
+   *
+   * // Get tools for specific agent
+   * const tools = toolRegistry.getToolsForAgent({
+   *   agent: { id: 'research', name: 'Research', tools: { allow: ['neo4j.*'] } }
+   * })
+   * ```
+   */
+  getToolsForAgent(options?: { agent?: Agent }): StructuredTool[] {
+    // Phase 1: Simple passthrough to getAll()
+    // Future: Filter based on agent.tools.allow/ask/deny and global permissions
+
+    // TODO: When Tool Permission System is implemented:
+    // 1. Load global permission settings
+    // 2. Intersect with options.agent.tools permissions (if agent provided)
+    // 3. Filter tools: exclude denied, mark ask tools for approval
+    // 4. Return only allowed tools
+    void options // Acknowledge parameter for future use
+
+    return this.getAll()
   }
 
   /**

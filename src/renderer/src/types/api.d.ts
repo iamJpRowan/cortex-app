@@ -1,3 +1,12 @@
+import type {
+  LLMQueryOptions,
+  LLMQueryResult,
+  TraceEntry,
+  StreamEvent,
+  StreamEventHandler,
+  StreamQueryResult,
+} from '../../../shared/types'
+
 export interface API {
   test: {
     neo4jQuery: () => Promise<{ success: boolean; message?: string; error?: string }>
@@ -12,24 +21,32 @@ export interface API {
     ollamaGetDefaultModel: () => Promise<{ success: boolean; model: string | null }>
   }
   llm: {
-    query: (
+    /**
+     * Query the LLM agent with a message (non-streaming)
+     *
+     * @param message The user's message to send to the agent
+     * @param options Optional parameters for the query
+     */
+    query: (message: string, options?: LLMQueryOptions) => Promise<LLMQueryResult>
+    /**
+     * Start a streaming query.
+     * Returns stream info immediately; events arrive via onStream callback.
+     *
+     * @param message The user's message
+     * @param options Optional parameters for the query
+     */
+    queryStream: (
       message: string,
-      conversationId?: string
-    ) => Promise<{
-      success: boolean
-      response?: string
-      conversationId?: string
-      trace?: Array<{
-        type: 'tool_call' | 'tool_result' | 'assistant_message'
-        toolName?: string
-        args?: Record<string, unknown>
-        result?: string
-        content?: string
-        timestamp?: number
-      }>
-      error?: string
-      suggestion?: string
-    }>
+      options?: LLMQueryOptions
+    ) => Promise<{ success: boolean } & Partial<StreamQueryResult> & { error?: string }>
+    /**
+     * Subscribe to streaming events.
+     * Call this before queryStream to receive events.
+     * Returns an unsubscribe function.
+     *
+     * @param callback Function called for each stream event
+     */
+    onStream: (callback: StreamEventHandler) => () => void
     toolsList: () => Promise<{
       success: boolean
       tools?: Array<{ name: string; metadata: unknown }>
@@ -90,4 +107,14 @@ declare global {
   interface Window {
     api: API
   }
+}
+
+// Re-export shared types for convenience
+export type {
+  LLMQueryOptions,
+  LLMQueryResult,
+  TraceEntry,
+  StreamEvent,
+  StreamEventHandler,
+  StreamQueryResult,
 }
