@@ -5,6 +5,7 @@ import { AppSidebar } from './components/AppSidebar'
 import { MainHeader } from './components/MainHeader'
 import { HomeView } from './components/HomeView'
 import { SettingsView } from './components/SettingsView'
+import { ChatView } from './components/ChatView'
 import { CommandPalette } from './components/CommandPalette'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { cn } from '@/lib/utils'
@@ -39,6 +40,7 @@ function AppContent() {
   // Get title based on current route
   const getTitle = () => {
     if (location.pathname === '/settings') return 'Settings'
+    if (location.pathname === '/chat') return 'Chat'
     return 'Cortex'
   }
 
@@ -83,6 +85,7 @@ function AppContent() {
           <div className="flex flex-1 flex-col gap-4 p-4 overflow-auto">
             <Routes>
               <Route path="/" element={<HomeView />} />
+              <Route path="/chat" element={<ChatView />} />
               <Route path="/settings" element={<SettingsView />} />
             </Routes>
           </div>

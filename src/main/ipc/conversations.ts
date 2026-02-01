@@ -1,0 +1,190 @@
+import { ipcMain } from 'electron'
+import { getConversationService } from '../services/llm/conversations'
+import { getLLMAgentService } from '../services/llm/agent'
+import type {
+  ListConversationsOptions,
+  CreateConversationOptions,
+  UpdateConversationOptions,
+} from '../../shared/types'
+
+/**
+ * Register IPC handlers for conversation management.
+ */
+export function registerConversationHandlers() {
+  /**
+   * List conversations with optional filtering.
+   */
+  ipcMain.handle(
+    'conversations:list',
+    async (_event, options?: ListConversationsOptions) => {
+      try {
+        const service = getConversationService()
+        const conversations = service.list(options)
+
+        return {
+          success: true,
+          conversations,
+        }
+      } catch (error) {
+        console.error('[Conversations IPC] List failed:', error)
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        }
+      }
+    }
+  )
+
+  /**
+   * Get a conversation by ID.
+   */
+  ipcMain.handle('conversations:get', async (_event, id: string) => {
+    try {
+      const service = getConversationService()
+      const conversation = service.get(id)
+
+      if (!conversation) {
+        return {
+          success: false,
+          error: `Conversation "${id}" not found`,
+        }
+      }
+
+      return {
+        success: true,
+        conversation,
+      }
+    } catch (error) {
+      console.error('[Conversations IPC] Get failed:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      }
+    }
+  })
+
+  /**
+   * Create a new conversation.
+   */
+  ipcMain.handle(
+    'conversations:create',
+    async (_event, options?: CreateConversationOptions) => {
+      try {
+        const service = getConversationService()
+        const conversation = service.create(options)
+
+        return {
+          success: true,
+          conversation,
+        }
+      } catch (error) {
+        console.error('[Conversations IPC] Create failed:', error)
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        }
+      }
+    }
+  )
+
+  /**
+   * Update a conversation.
+   */
+  ipcMain.handle(
+    'conversations:update',
+    async (_event, id: string, updates: UpdateConversationOptions) => {
+      try {
+        const service = getConversationService()
+
+        // Check if conversation exists
+        const existing = service.get(id)
+        if (!existing) {
+          return {
+            success: false,
+            error: `Conversation "${id}" not found`,
+          }
+        }
+
+        service.update(id, updates)
+
+        // Return updated conversation
+        const updated = service.get(id)
+
+        return {
+          success: true,
+          conversation: updated,
+        }
+      } catch (error) {
+        console.error('[Conversations IPC] Update failed:', error)
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        }
+      }
+    }
+  )
+
+  /**
+   * Delete a conversation.
+   */
+  ipcMain.handle('conversations:delete', async (_event, id: string) => {
+    try {
+      const service = getConversationService()
+
+      // Check if conversation exists
+      const existing = service.get(id)
+      if (!existing) {
+        return {
+          success: false,
+          error: `Conversation "${id}" not found`,
+        }
+      }
+
+      service.delete(id)
+
+      // TODO: Also delete from LangGraph checkpointer
+      // This requires access to the checkpointer's internal tables
+
+      return {
+        success: true,
+      }
+    } catch (error) {
+      console.error('[Conversations IPC] Delete failed:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      }
+    }
+  })
+
+  /**
+   * Get messages for a conversation from the LangGraph checkpointer.
+   */
+  ipcMain.handle('conversations:getMessages', async (_event, id: string) => {
+    try {
+      const agentService = getLLMAgentService()
+
+      // Ensure agent is initialized (needed for checkpointer)
+      if (!agentService.isInitialized()) {
+        console.log('[Conversations IPC] Initializing agent for getMessages...')
+        await agentService.initialize()
+      }
+
+      const messages = await agentService.getConversationMessages(id)
+
+      return {
+        success: true,
+        messages,
+      }
+    } catch (error) {
+      console.error('[Conversations IPC] GetMessages failed:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        messages: [],
+      }
+    }
+  })
+
+  console.log('[IPC] Conversation handlers registered')
+}

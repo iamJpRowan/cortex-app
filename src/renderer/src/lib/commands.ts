@@ -28,6 +28,13 @@ export function getCommands(deps: CommandDependencies): Action[] {
       perform: () => navigate('/'),
     },
     {
+      id: 'nav-chat',
+      name: 'Open Chat',
+      keywords: 'chat conversation ai assistant message',
+      section: 'Navigation',
+      perform: () => navigate('/chat'),
+    },
+    {
       id: 'nav-settings',
       name: 'Settings',
       keywords: 'settings preferences config configuration',

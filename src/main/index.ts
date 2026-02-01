@@ -5,6 +5,7 @@ import { initializeOllama } from './services/ollama'
 import { initializeSettings } from './services/settings'
 import { registerTestHandlers } from './ipc/test'
 import { registerLLMHandlers } from './ipc/llm'
+import { registerConversationHandlers } from './ipc/conversations'
 import { registerWindowHandlers, setMainWindow, setupWindowListeners } from './ipc/window'
 import {
   registerSettingsHandlers,
@@ -65,6 +66,7 @@ app.whenReady().then(async () => {
     // Register IPC handlers
     registerTestHandlers()
     registerLLMHandlers()
+    registerConversationHandlers()
     registerWindowHandlers()
     registerSettingsHandlers()
 

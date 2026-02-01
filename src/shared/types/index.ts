@@ -23,7 +23,14 @@ export type {
   TraceEntry,
   TraceEntryType,
   MessageMetadata,
+  // Chat message types
+  ChatMessageRole,
+  ChatMessage,
+  // Conversation types
   ConversationMetadata,
+  ListConversationsOptions,
+  CreateConversationOptions,
+  UpdateConversationOptions,
   // Streaming types
   StreamEventType,
   StreamEventBase,

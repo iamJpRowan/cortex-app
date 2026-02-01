@@ -11,21 +11,25 @@ import { toolRegistry } from './tools/registry'
 import { initializeStatePersistence } from './state'
 import { SqliteSaver } from '@langchain/langgraph-checkpoint-sqlite'
 import { getDefaultModel } from '../ollama'
-import { createAgent, ReactAgent } from 'langchain'
+import { createAgent, type ReactAgent } from 'langchain'
 import type {
   LLMQueryOptions,
   TraceEntry,
   StreamEventHandler,
+  ChatMessage,
 } from '../../../shared/types'
 
 /**
  * LLM Agent Service
  * Manages LangGraph agent with tool support and conversation state
  */
+// The agent executor type from langchain createAgent
+type AgentExecutor = ReactAgent
+
 export class LLMAgentService {
   private llm: ChatOllama | null = null
   private checkpointer: SqliteSaver | null = null
-  private executor: ReactAgent | null = null
+  private executor: AgentExecutor | null = null
   private config: LLMServiceConfig
 
   constructor(config?: Partial<LLMServiceConfig>) {
@@ -159,8 +163,8 @@ export class LLMAgentService {
       console.log(`[LLMAgent] Initialized with ${tools.length} tool(s)`)
     }
 
-    // Create agent using LangChain's createAgent (v1.0+ API)
-    // Pass checkpointer directly to enable state persistence
+    // Create agent using langchain's createAgent (modern API)
+    // This creates a proper ReAct loop that continues after tool execution
     this.executor = createAgent({
       model: this.llm,
       tools: tools,
@@ -460,97 +464,126 @@ export class LLMAgentService {
     })
 
     const trace: TraceEntry[] = []
+    let finalResponse = ''
     let accumulated = ''
+    let lastMessageCount = -1 // -1 = haven't seen initial state yet
+    const processedToolCalls = new Set<string>() // Track processed tool calls
 
     try {
-      // Use streamEvents for comprehensive streaming
-      const stream = await this.executor.streamEvents(
+      // Use stream with both "messages" (token streaming) and "values" (step updates)
+      const stream = await this.executor.stream(
         { messages },
-        { ...config, version: 'v2' }
+        { ...config, streamMode: ['messages', 'values'] }
       )
 
-      for await (const event of stream) {
-        // Handle different event types from LangGraph
-        if (event.event === 'on_chat_model_stream') {
-          // Token streaming from the LLM
-          const chunk = event.data?.chunk
-          if (chunk?.content && typeof chunk.content === 'string') {
-            accumulated += chunk.content
+      for await (const chunk of stream) {
+        // The chunk format depends on which mode emitted it
+        // [0] = stream mode identifier, [1] = data
+        const [mode, data] = chunk as [string, unknown]
+
+        if (mode === 'messages') {
+          // Token streaming from LLM - data is [messageChunk, metadata]
+          const [msgChunk] = data as [{ content?: string }, unknown]
+          if (msgChunk?.content && typeof msgChunk.content === 'string') {
+            accumulated += msgChunk.content
             onEvent({
               type: 'token',
               streamId,
               conversationId: convId,
-              token: chunk.content,
+              token: msgChunk.content,
               accumulated,
             })
           }
-        } else if (event.event === 'on_tool_start') {
-          // Tool invocation started
-          const toolName = event.name || 'unknown'
-          const toolInput = event.data?.input
-          const traceEntry: TraceEntry = {
-            type: 'tool_call',
-            toolName,
-            args: toolInput as Record<string, unknown>,
-            timestamp: Date.now(),
-          }
-          trace.push(traceEntry)
-          onEvent({
-            type: 'trace',
-            streamId,
-            conversationId: convId,
-            trace: traceEntry,
-          })
-          console.log(`[LLMAgent] Tool call: ${toolName}`)
-        } else if (event.event === 'on_tool_end') {
-          // Tool invocation completed
-          const toolName = event.name || 'unknown'
-          const toolOutput = event.data?.output
+        } else if (mode === 'values') {
+          // Step update - data contains full state
+          const stateData = data as { messages?: BaseMessage[] }
+          const allMessages = stateData.messages || []
 
-          // Extract the actual result content from the tool output
-          // Tool output may be a string, a LangChain message object, or other structure
-          let resultContent: string
-          if (typeof toolOutput === 'string') {
-            resultContent = toolOutput
-          } else if (toolOutput?.content !== undefined) {
-            // LangChain ToolMessage has a content property
-            resultContent =
-              typeof toolOutput.content === 'string'
-                ? toolOutput.content
-                : JSON.stringify(toolOutput.content)
-          } else if (toolOutput?.kwargs?.content !== undefined) {
-            // Serialized LangChain message format
-            resultContent =
-              typeof toolOutput.kwargs.content === 'string'
-                ? toolOutput.kwargs.content
-                : JSON.stringify(toolOutput.kwargs.content)
-          } else {
-            // Fallback: stringify the output but try to extract meaningful data
-            resultContent = JSON.stringify(toolOutput)
+          // On first values chunk, capture initial message count
+          if (lastMessageCount === -1) {
+            lastMessageCount = allMessages.length
+            continue
           }
 
-          const traceEntry: TraceEntry = {
-            type: 'tool_result',
-            toolName,
-            result: resultContent,
-            timestamp: Date.now(),
+          // Process new messages for tool calls and results
+          for (let i = lastMessageCount; i < allMessages.length; i++) {
+            const msg = allMessages[i]
+
+            if (msg instanceof AIMessage) {
+              // Check for tool calls
+              if (msg.tool_calls && msg.tool_calls.length > 0) {
+                for (const toolCall of msg.tool_calls) {
+                  // Avoid duplicate tool call events
+                  const toolCallKey = `${toolCall.name}-${JSON.stringify(toolCall.args)}`
+                  if (processedToolCalls.has(toolCallKey)) continue
+                  processedToolCalls.add(toolCallKey)
+
+                  const traceEntry: TraceEntry = {
+                    type: 'tool_call',
+                    toolName: toolCall.name,
+                    args: toolCall.args as Record<string, unknown>,
+                    timestamp: Date.now(),
+                  }
+                  trace.push(traceEntry)
+                  onEvent({
+                    type: 'trace',
+                    streamId,
+                    conversationId: convId,
+                    trace: traceEntry,
+                  })
+                  console.log(`[LLMAgent] Tool call: ${toolCall.name}`)
+                }
+              }
+
+              // Capture final response content
+              const content =
+                typeof msg.content === 'string'
+                  ? msg.content
+                  : JSON.stringify(msg.content)
+
+              if (content && content.trim() && !msg.tool_calls?.length) {
+                finalResponse = content
+              }
+            } else if (msg instanceof ToolMessage) {
+              // Tool result
+              const content =
+                typeof msg.content === 'string'
+                  ? msg.content
+                  : JSON.stringify(msg.content)
+
+              const traceEntry: TraceEntry = {
+                type: 'tool_result',
+                toolName: msg.name || 'unknown',
+                result: content,
+                timestamp: Date.now(),
+              }
+              trace.push(traceEntry)
+              onEvent({
+                type: 'trace',
+                streamId,
+                conversationId: convId,
+                trace: traceEntry,
+              })
+              console.log(`[LLMAgent] Tool result from ${msg.name}`)
+              // Reset accumulated for next LLM response after tool
+              accumulated = ''
+            }
           }
-          trace.push(traceEntry)
-          onEvent({
-            type: 'trace',
-            streamId,
-            conversationId: convId,
-            trace: traceEntry,
-          })
-          console.log(`[LLMAgent] Tool result from ${toolName}`)
+
+          lastMessageCount = allMessages.length
         }
       }
 
-      // Add final assistant message to trace
+      // Use accumulated tokens as final response if we have them
       if (accumulated.trim()) {
+        finalResponse = accumulated
+      }
+
+      // Add final assistant message to trace
+      if (finalResponse.trim()) {
         trace.push({
           type: 'assistant_message',
-          content: accumulated,
+          content: finalResponse,
           timestamp: Date.now(),
         })
       }
@@ -560,11 +593,13 @@ export class LLMAgentService {
         type: 'complete',
         streamId,
         conversationId: convId,
-        response: accumulated || 'No response',
+        response: finalResponse || 'No response',
         trace,
       })
 
-      console.log(`[LLMAgent] Streaming complete. Response length: ${accumulated.length}`)
+      console.log(
+        `[LLMAgent] Streaming complete. Response length: ${finalResponse.length}`
+      )
     } catch (error) {
       console.error('[LLMAgent] Streaming query failed:', error)
 
@@ -608,6 +643,94 @@ export class LLMAgentService {
         error: errorMessage,
         suggestion,
       })
+    }
+  }
+
+  /**
+   * Get conversation messages from the checkpointer.
+   *
+   * Reads the checkpoint state for a conversation and extracts
+   * messages in a format suitable for UI display.
+   *
+   * @param conversationId The conversation thread ID
+   * @returns Array of chat messages
+   */
+  async getConversationMessages(conversationId: string): Promise<ChatMessage[]> {
+    if (!this.checkpointer) {
+      throw new Error('Checkpointer not initialized. Call initialize() first.')
+    }
+
+    try {
+      // Get the latest checkpoint for this conversation
+      const checkpoint = await this.checkpointer.getTuple({
+        configurable: { thread_id: conversationId },
+      })
+
+      if (!checkpoint || !checkpoint.checkpoint) {
+        console.log(`[LLMAgent] No checkpoint found for: ${conversationId}`)
+        return []
+      }
+
+      // Extract messages from the checkpoint state
+      const state = checkpoint.checkpoint
+      const channelValues = state.channel_values as
+        | {
+            messages?: BaseMessage[]
+          }
+        | undefined
+
+      if (!channelValues?.messages || !Array.isArray(channelValues.messages)) {
+        console.log(`[LLMAgent] No messages in checkpoint for: ${conversationId}`)
+        return []
+      }
+
+      const messages: ChatMessage[] = []
+      let messageIndex = 0
+
+      for (const msg of channelValues.messages) {
+        // Skip system messages (they're internal context)
+        if (msg instanceof SystemMessage) {
+          continue
+        }
+
+        if (msg instanceof HumanMessage) {
+          const content =
+            typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)
+
+          messages.push({
+            id: `msg-${conversationId}-${messageIndex++}`,
+            role: 'user',
+            content,
+            timestamp: Date.now(), // Checkpointer doesn't store timestamps
+          })
+        } else if (msg instanceof AIMessage) {
+          // Skip AI messages that are just tool calls (no content)
+          if (msg.tool_calls && msg.tool_calls.length > 0 && !msg.content) {
+            continue
+          }
+
+          const content =
+            typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)
+
+          if (content && content.trim()) {
+            messages.push({
+              id: `msg-${conversationId}-${messageIndex++}`,
+              role: 'assistant',
+              content,
+              timestamp: Date.now(),
+            })
+          }
+        }
+        // Skip ToolMessages - they're internal to the agent
+      }
+
+      console.log(
+        `[LLMAgent] Retrieved ${messages.length} messages for: ${conversationId}`
+      )
+      return messages
+    } catch (error) {
+      console.error('[LLMAgent] Failed to get conversation messages:', error)
+      throw error
     }
   }
 

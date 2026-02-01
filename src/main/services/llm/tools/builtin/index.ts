@@ -1,7 +1,7 @@
 import { toolRegistry } from '../registry'
 import { echoTool } from './echo/echo.tool'
 import { countNodesTool } from './neo4j/count-nodes.tool'
-import { invokeCommandTool } from './command/invoke-command.tool'
+import { createInvokeCommandTool } from './command/invoke-command.tool'
 import { registerBuiltinCommands } from '../../../commands'
 
 /**
@@ -25,16 +25,15 @@ export function registerBuiltinTools(): void {
   // Register Neo4j count-nodes tool
   toolRegistry.register(countNodesTool, {
     name: 'count_nodes',
-    description:
-      'Counts the total number of nodes in the Neo4j graph database. Useful for getting graph statistics or verifying database connectivity.',
+    description: 'Counts the total number of nodes in the Neo4j graph database.',
     category: 'builtin',
   })
 
-  // Register invoke-command tool (for LLM to invoke app commands)
+  // Register invoke-command tool (created dynamically with enum of valid commands)
+  const invokeCommandTool = createInvokeCommandTool()
   toolRegistry.register(invokeCommandTool, {
     name: 'invoke_command',
-    description:
-      'Invoke an application command to take an action on behalf of the user, such as toggling theme.',
+    description: 'Invoke an application command to take an action on behalf of the user.',
     category: 'builtin',
   })
 

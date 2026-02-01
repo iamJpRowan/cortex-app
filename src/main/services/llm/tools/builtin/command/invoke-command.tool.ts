@@ -3,38 +3,60 @@ import { z } from 'zod'
 import { commandRegistry } from '../../../../commands'
 
 /**
- * Invoke Command Tool
+ * Invoke Command Tool Factory
  *
- * Allows the LLM to invoke application commands on behalf of the user.
- * This enables the AI to take actions like toggling theme, navigating,
- * or other user-facing operations.
+ * Creates the invoke_command tool with a dynamic enum schema based on
+ * the currently registered commands. This prevents the LLM from
+ * hallucinating command IDs that don't exist.
  *
- * Available commands are defined in the main process command registry.
- * The LLM receives a description of available commands in its context.
+ * Must be called AFTER commands are registered in the registry.
  *
  * @see src/main/services/commands/registry.ts
  */
-export const invokeCommandTool = new DynamicStructuredTool({
-  name: 'invoke_command',
-  description: `Invoke an application command to take an action on behalf of the user. 
-Available commands:
-- theme-toggle: Toggle between light and dark theme
+export function createInvokeCommandTool(): DynamicStructuredTool {
+  // Get available commands from registry
+  const commands = commandRegistry.list()
+  const commandIds = commands.map(c => c.id)
 
-Use this when the user asks you to change settings, switch themes, or perform other app actions.`,
-  schema: z.object({
-    commandId: z
-      .string()
-      .describe('The ID of the command to invoke (e.g., "theme-toggle")'),
-  }),
-  func: async ({ commandId }) => {
-    console.log(`[InvokeCommandTool] Invoking command: ${commandId}`)
+  // Build description with available commands
+  const commandDescriptions = commands.map(c => `- ${c.id}: ${c.description}`).join('\n')
 
-    const result = await commandRegistry.execute(commandId)
+  // Create enum schema - requires at least one value
+  // If no commands registered, use a placeholder that will fail gracefully
+  const validIds =
+    commandIds.length > 0
+      ? (commandIds as [string, ...string[]])
+      : (['no-commands-available'] as [string, ...string[]])
 
-    if (result.success) {
-      return `Command "${commandId}" executed successfully. ${result.message || ''}`
-    } else {
-      return `Command "${commandId}" failed: ${result.error || 'Unknown error'}`
-    }
-  },
-})
+  return new DynamicStructuredTool({
+    name: 'invoke_command',
+    description:
+      `Invoke an application command. ONLY use this tool when the user ` +
+      `EXPLICITLY asks to perform one of these actions:\n${commandDescriptions}\n\n` +
+      `Do NOT use this tool unless the user specifically requests it. ` +
+      `For example, only toggle the theme if the user says "toggle theme", ` +
+      `"switch to dark mode", "change theme", etc.`,
+    schema: z.object({
+      commandId: z.enum(validIds).describe('The exact ID of the command to invoke'),
+    }),
+    func: async ({ commandId }) => {
+      console.log(`[InvokeCommandTool] Invoking command: ${commandId}`)
+
+      const result = await commandRegistry.execute(commandId)
+
+      if (result.success) {
+        return `Command "${commandId}" executed successfully. ${result.message || ''}`
+      } else {
+        // Include available commands in error for clarity
+        const available = commandRegistry
+          .list()
+          .map(c => c.id)
+          .join(', ')
+        return (
+          `Command "${commandId}" failed: ${result.error || 'Unknown error'}. ` +
+          `Available commands: ${available}`
+        )
+      }
+    },
+  })
+}

@@ -1,5 +1,12 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import type { LLMQueryOptions, StreamEvent, StreamEventHandler } from '../shared/types'
+import type {
+  LLMQueryOptions,
+  StreamEvent,
+  StreamEventHandler,
+  ListConversationsOptions,
+  CreateConversationOptions,
+  UpdateConversationOptions,
+} from '../shared/types'
 
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
@@ -68,5 +75,22 @@ contextBridge.exposeInMainWorld('api', {
       ipcRenderer.on('settings:changed', handler)
       return () => ipcRenderer.removeListener('settings:changed', handler)
     },
+  },
+  conversations: {
+    /** List conversations with optional filtering */
+    list: (options?: ListConversationsOptions) =>
+      ipcRenderer.invoke('conversations:list', options),
+    /** Get a conversation by ID */
+    get: (id: string) => ipcRenderer.invoke('conversations:get', id),
+    /** Create a new conversation */
+    create: (options?: CreateConversationOptions) =>
+      ipcRenderer.invoke('conversations:create', options),
+    /** Update a conversation */
+    update: (id: string, updates: UpdateConversationOptions) =>
+      ipcRenderer.invoke('conversations:update', id, updates),
+    /** Delete a conversation */
+    delete: (id: string) => ipcRenderer.invoke('conversations:delete', id),
+    /** Get messages for a conversation */
+    getMessages: (id: string) => ipcRenderer.invoke('conversations:getMessages', id),
   },
 })

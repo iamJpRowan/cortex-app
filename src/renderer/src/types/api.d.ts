@@ -5,6 +5,11 @@ import type {
   StreamEvent,
   StreamEventHandler,
   StreamQueryResult,
+  ConversationMetadata,
+  ListConversationsOptions,
+  CreateConversationOptions,
+  UpdateConversationOptions,
+  ChatMessage,
 } from '../../../shared/types'
 
 export interface API {
@@ -101,6 +106,46 @@ export interface API {
       callback: (data: { key: string; value: unknown; previous: unknown }) => void
     ) => () => void
   }
+  conversations: {
+    /** List conversations with optional filtering */
+    list: (options?: ListConversationsOptions) => Promise<{
+      success: boolean
+      conversations?: ConversationMetadata[]
+      error?: string
+    }>
+    /** Get a conversation by ID */
+    get: (id: string) => Promise<{
+      success: boolean
+      conversation?: ConversationMetadata
+      error?: string
+    }>
+    /** Create a new conversation */
+    create: (options?: CreateConversationOptions) => Promise<{
+      success: boolean
+      conversation?: ConversationMetadata
+      error?: string
+    }>
+    /** Update a conversation */
+    update: (
+      id: string,
+      updates: UpdateConversationOptions
+    ) => Promise<{
+      success: boolean
+      conversation?: ConversationMetadata
+      error?: string
+    }>
+    /** Delete a conversation */
+    delete: (id: string) => Promise<{
+      success: boolean
+      error?: string
+    }>
+    /** Get messages for a conversation */
+    getMessages: (id: string) => Promise<{
+      success: boolean
+      messages?: ChatMessage[]
+      error?: string
+    }>
+  }
 }
 
 declare global {
@@ -117,4 +162,9 @@ export type {
   StreamEvent,
   StreamEventHandler,
   StreamQueryResult,
+  ConversationMetadata,
+  ListConversationsOptions,
+  CreateConversationOptions,
+  UpdateConversationOptions,
+  ChatMessage,
 }

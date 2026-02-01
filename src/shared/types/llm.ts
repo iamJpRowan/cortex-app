@@ -109,6 +109,37 @@ export interface LLMQueryResult {
 }
 
 /**
+ * Message role for chat display.
+ */
+export type ChatMessageRole = 'user' | 'assistant' | 'system'
+
+/**
+ * A chat message for UI display.
+ *
+ * Represents a single message in a conversation, extracted from
+ * the LangGraph checkpointer for display in the chat UI.
+ */
+export interface ChatMessage {
+  /** Unique message ID */
+  id: string
+
+  /** Role of the message sender */
+  role: ChatMessageRole
+
+  /** Message content (may contain markdown) */
+  content: string
+
+  /** Timestamp when the message was created */
+  timestamp: number
+
+  /** Execution trace for this message (for assistant messages) */
+  trace?: TraceEntry[]
+
+  /** Whether this message is currently streaming */
+  isStreaming?: boolean
+}
+
+/**
  * Message metadata for tracking model usage.
  *
  * Each message in a conversation can track which model generated it,
@@ -131,20 +162,20 @@ export interface MessageMetadata {
 /**
  * Conversation metadata for storage and display.
  *
- * Stored alongside conversation messages in the checkpointer.
+ * Stored in SQLite alongside message state from LangGraph checkpointer.
  */
 export interface ConversationMetadata {
   /** Unique conversation identifier */
   id: string
 
   /** User-defined or auto-generated title */
-  title?: string
+  title: string
 
   /** Current/default model for the conversation */
-  currentModel?: string
+  currentModel?: string | null
 
   /** Current agent ID for the conversation */
-  currentAgentId?: string
+  agentId?: string | null
 
   /** When the conversation was created */
   createdAt: number
@@ -153,6 +184,66 @@ export interface ConversationMetadata {
   updatedAt: number
 
   /** Number of messages in the conversation */
+  messageCount: number
+}
+
+/**
+ * Options for listing conversations.
+ */
+export interface ListConversationsOptions {
+  /** Search filter for title */
+  search?: string
+
+  /** Filter by start date (timestamp) */
+  startDate?: number
+
+  /** Filter by end date (timestamp) */
+  endDate?: number
+
+  /** Maximum number of results */
+  limit?: number
+
+  /** Offset for pagination */
+  offset?: number
+
+  /** Field to order by */
+  orderBy?: 'createdAt' | 'updatedAt'
+
+  /** Order direction */
+  orderDir?: 'asc' | 'desc'
+}
+
+/**
+ * Options for creating a conversation.
+ */
+export interface CreateConversationOptions {
+  /** Optional ID (auto-generated if not provided) */
+  id?: string
+
+  /** Optional title (auto-generated if not provided) */
+  title?: string
+
+  /** Optional agent ID */
+  agentId?: string
+
+  /** Optional model */
+  currentModel?: string
+}
+
+/**
+ * Options for updating a conversation.
+ */
+export interface UpdateConversationOptions {
+  /** New title */
+  title?: string
+
+  /** New agent ID */
+  agentId?: string
+
+  /** New model */
+  currentModel?: string
+
+  /** Update message count */
   messageCount?: number
 }
 

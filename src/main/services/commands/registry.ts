@@ -122,7 +122,7 @@ export function registerBuiltinCommands(): void {
     id: 'theme-toggle',
     name: 'Toggle Light / Dark Theme',
     description:
-      'Toggle between light and dark theme. Persists the preference to settings.',
+      'Toggle between light and dark theme. Only use when user explicitly asks.',
     category: 'Appearance',
     execute: async () => {
       const settings = getSettingsService()
