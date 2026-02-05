@@ -32,7 +32,7 @@ A **mode** is a named permission set (allow/ask/deny per tool) that acts as the 
 - **UI**: Mode selector is shown near the agent selector so the user can choose both "which agent" and "which permission cap for this chat" in one place.
 
 ### Pre-Authorization Settings
-- Settings UI to view all available tools
+- Settings UI to view **all available tools** (source: tool registry `list()`; see [Declarative Tool Definitions](./declarative-tool-definitions.md)). When new tools are registered (e.g. after plugin install), they appear in the list automatically.
 - Set default permission level per tool
 - Organize by category (filesystem, network, database, system, etc.)
 - Safe defaults: conservative permissions out of the box
@@ -55,6 +55,8 @@ A **mode** is a named permission set (allow/ask/deny per tool) that acts as the 
 - Remembered runtime decisions
 - **Modes**: Built-in mode definitions (Ask, Agent, Local); user-configured mode definitions (same schema); **default chat mode** in user settings (mode ID used for new conversations).
 - **Per-conversation mode**: Each conversation stores `modeId` (or equivalent) in conversation metadata. Set at creation from default chat mode; updated when the user changes mode during the chat. Used when loading a conversation so the chat opens in the same mode as last used.
+- **Default for tools with no stored permission**: When a tool has no explicit permission (e.g. newly installed plugin, or a tool not yet configured by the user), apply a **default policy** (e.g. deny or ask). This ensures new tools appear in the permission UI with a safe default until the user sets allow/ask/deny. The list of tools for the UI comes from the tool registry (see [Declarative Tool Definitions](./declarative-tool-definitions.md)), not from the permission store—so new tools automatically appear for configuration.
+- **Tools not listed in a mode**: For resolution, a tool that is not listed in the conversation’s mode is treated as **deny** for that mode (the mode caps which tools are available; unspecified = not allowed). Alternatively, modes could define an explicit “default for unspecified tools” (e.g. use global default). Document the chosen behavior in implementation.
 - Export/import permission profiles (and custom modes)
 
 ### Audit & History
@@ -171,7 +173,8 @@ The "ask" permission level (runtime approval) maps directly to LangChain Deep Ag
 - [Plugin Extensibility Framework](./plugin-extensibility-framework.md) - Permission system critical before community tools
 
 **Related:**
-- [Custom Agents](./custom-agents.md) - Agents can have per-agent permission overrides
+- [Declarative Tool Definitions](./declarative-tool-definitions.md) - Tool definitions supply metadata (category, risk) and canonical tool names; registry `list()` is the source for permission UI and mode builder.
+- [Custom Agents](./custom-agents.md) - Agents can have per-agent permission overrides; agent frontmatter references the same canonical tool names.
 
 ## Notes
 

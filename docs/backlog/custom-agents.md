@@ -82,6 +82,8 @@ You are a research assistant specialized in exploring knowledge graphs...
 - `ask`: Tool requires human approval before each use (human-in-the-loop)
 - `deny`: Tool is never available to the agent
 
+**Tool IDs:** Entries in `tools.allow` / `ask` / `deny` are **canonical tool names** from the tool registry (see [Declarative Tool Definitions](./declarative-tool-definitions.md))—e.g. `neo4j.count_nodes`, `web.search`, `command.invoke`. The agent editor gets the list of available tools from the registry (same source as the [Tool Permission System](./tool-permission-system.md) UI) so users assign allow/ask/deny from the current set. On save or load, validate that every referenced tool ID exists in the registry; see Notes → Validation for behavior when a tool is missing (e.g. plugin uninstalled).
+
 **Permission Inheritance:**
 - Agent tool permissions **intersect** with global permissions (principle of least privilege)
 - An agent cannot grant a tool that is globally denied
@@ -292,6 +294,7 @@ Our custom layer on top of Deep Agents provides:
 - [Deep Agents Adoption](./deep-agents-adoption.md) - Provides runtime capabilities
 
 **Related:**
+- [Declarative Tool Definitions](./declarative-tool-definitions.md) - Canonical tool names and registry as source for agent editor tool list.
 - [Tool Permission System](./tool-permission-system.md) - Per-tool permissions (agents can scope but not exceed global)
 - [Chat Quick Launcher](./chat-quick-launcher.md) - Uses agent selector
 - [Multi-Provider Model Selection](./multi-provider-model-selection.md) - Agents can have default model preference
@@ -337,7 +340,7 @@ This establishes the layered prompt architecture that custom agents will build u
 
 ### Open Questions for Implementation
 
-- **Validation**: How to handle agents that reference tools that don't exist? (Graceful degradation vs. error)
+- **Validation (missing tools)**: Validate agent tool IDs against the current tool registry (e.g. `toolRegistry.list()`) on save and load. When an agent references a tool that no longer exists (e.g. plugin uninstalled, tool renamed): **graceful** = skip missing tools, show warning in UI, load agent with remaining tools; **strict** = refuse to load or save until the user removes or fixes the reference. Decide during implementation.
 - **Versioning**: Schema versioning for future frontmatter changes?
 - **Marketplace**: Namespace for marketplace agents? Trust/sandboxing?
 - **Memory UI**: Should users be able to view/edit agent memory contents?

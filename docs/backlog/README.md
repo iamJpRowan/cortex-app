@@ -24,6 +24,7 @@ When backlog items are being implemented the file should reflect the current sta
 
 ### Configuration & Extensibility
 - **[configuration-system.md](./configuration-system.md)** - User configuration system with file loading, UI, and hot reload
+- **[declarative-tool-definitions.md](./declarative-tool-definitions.md)** - Declarative definition + factory pattern for LLM tools; single source of truth for metadata, scalable registration, and foundation for user-extensible tools
 - **[plugin-extensibility-framework.md](./plugin-extensibility-framework.md)** - Plugin system for user-contributed tools and integrations. requires: LangChain Integration, Configuration System, Tool Permission System
 
 ### Chat & AI Interface
