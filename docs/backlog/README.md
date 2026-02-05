@@ -32,6 +32,8 @@ When backlog items are being implemented the file should reflect the current sta
 - **[execution-trace-persistence.md](./execution-trace-persistence.md)** - Persist execution traces (tool calls, durations) for historical viewing. requires: Chat Interface (MVP)
 - **[tool-permission-system.md](./tool-permission-system.md)** - User-controlled tool permissions with runtime approval
 - **[multi-provider-model-selection.md](./multi-provider-model-selection.md)** - Support for multiple LLM providers (Ollama, OpenAI, Anthropic, etc.) and model selection. requires: Chat Interface (MVP)
+- **[cursor-style-chat-ui.md](./cursor-style-chat-ui.md)** - Full-width turns, multi-line input (AI Elements Prompt Input), optional markdown preview; sticky “most recent user prompt” last. requires: Chat Interface (MVP)
+- **[chat-rich-markdown-input.md](./chat-rich-markdown-input.md)** - TipTap (or equivalent) rich markdown editor for chat composer; markdown output, reusable elsewhere. requires: Cursor-Style Chat UI
 - **[chat-sidebar-integration.md](./chat-sidebar-integration.md)** - Add chat to right sidebar, implement context injection from views. requires: Chat Interface (MVP), UI Layout Framework
 - **[chat-conversation-threads.md](./chat-conversation-threads.md)** - User-initiated threads on messages for clarifying questions without overloading main conversation context. requires: Chat Interface (MVP)
 - **[chat-summaries.md](./chat-summaries.md)** - Per-conversation Markdown summary, chat/summary view toggle, and agent discovery over past summaries. requires: Chat Interface (MVP)
