@@ -86,6 +86,7 @@ You are a research assistant specialized in exploring knowledge graphs...
 - Agent tool permissions **intersect** with global permissions (principle of least privilege)
 - An agent cannot grant a tool that is globally denied
 - An agent can further restrict tools that are globally allowed
+- Effective permissions for a chat are the intersection of **global + agent + conversation's mode** (see [Tool Permission System](./tool-permission-system.md)). The chat's mode is the final cap for that conversation; switching to a more capable agent does not increase available tools beyond the mode's cap.
 
 ### Prompt Layering
 
@@ -131,9 +132,10 @@ Agent instructions are layered on top of a base system prompt that is always app
 ### Agent Usage in Chat
 
 - Agent selector in chat UI (dropdown or menu)
+- **Mode selector** shown near the agent selector (Tool Permission System): the chat's mode caps which tools are available regardless of agent
 - Switch agent mid-conversation
 - Conversation tracks which agent was used at each step (similar to model tracking)
-- Switching agent updates current instructions and permissions
+- Switching agent updates current instructions and permissions; the chat's **mode** still caps which tools the agent can use
 - Visual indication of current agent (name, color, icon)
 
 ### Smart Agent Suggestions

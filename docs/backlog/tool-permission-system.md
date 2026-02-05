@@ -20,6 +20,17 @@ Can be implemented without these, but integration is cleaner if prep work exists
 - **Ask**: LLM can request tool, user approves/denies each use at runtime
 - **Deny (No)**: Tool is never available to the LLM
 
+### Permission Modes (Chat-Level Cap)
+
+A **mode** is a named permission set (allow/ask/deny per tool) that acts as the permission cap for a conversation. The user selects a mode per chat and can change it at any time during the chat to limit or change the current agent's capabilities.
+
+- **Built-in modes**: **Ask**, **Agent**, and **Local** (app-defined permission sets; semantics TBD per mode).
+- **User-configured modes**: Custom named permission sets (same structure as built-in; create/edit in settings).
+- **Scope**: One mode per conversation. Stored on the conversation (e.g. `modeId`); set when the conversation is created (from default chat mode) and updated whenever the user changes mode in that chat. When the user loads a previous chat, the conversation opens in the same mode as when they last used it.
+- **Default chat mode**: User can configure the default mode for new chats (in settings). New conversations get this mode until the user changes it.
+- **Resolution**: Effective permissions = most restrictive of global defaults, agent permissions, and the conversation's mode. Order of application does not change the result (min is commutative); conceptually: global → agent → mode.
+- **UI**: Mode selector is shown near the agent selector so the user can choose both "which agent" and "which permission cap for this chat" in one place.
+
 ### Pre-Authorization Settings
 - Settings UI to view all available tools
 - Set default permission level per tool
@@ -42,7 +53,9 @@ Can be implemented without these, but integration is cleaner if prep work exists
 - Store permission decisions in user settings
 - Per-tool permission level (allow/ask/deny)
 - Remembered runtime decisions
-- Export/import permission profiles
+- **Modes**: Built-in mode definitions (Ask, Agent, Local); user-configured mode definitions (same schema); **default chat mode** in user settings (mode ID used for new conversations).
+- **Per-conversation mode**: Each conversation stores `modeId` (or equivalent) in conversation metadata. Set at creation from default chat mode; updated when the user changes mode during the chat. Used when loading a conversation so the chat opens in the same mode as last used.
+- Export/import permission profiles (and custom modes)
 
 ### Audit & History
 - Log all tool invocations (what, when, arguments, result)
@@ -72,14 +85,21 @@ Can be implemented without these, but integration is cleaner if prep work exists
 3. Implement CRUD for permission settings
 4. Load/save to settings system
 5. Default permission policy
+6. **Modes**: Define built-in modes (Ask, Agent, Local); support user-configured modes; store default chat mode in settings; add `modeId` to conversation metadata (set on create, update when user changes mode)
 
 ### Phase 3: Enhance `getToolsForAgent()` Function
-1. Load user permission settings
-2. Filter tools based on permission level
-3. Remove "deny" tools from list
-4. Mark "ask" tools for runtime approval
-5. Pass only allowed tools to agent
-6. **Single touch point**: Only this function changes, no other code affected
+1. Extend signature to accept conversation context (e.g. `conversationId` or conversation object) so the chat's mode can be applied.
+2. Load user permission settings (global), agent permissions (if any), and conversation's mode.
+3. Resolve effective permissions: most restrictive of global, agent, and mode per tool.
+4. Filter tools based on effective permission level; remove "deny" tools; mark "ask" tools for runtime approval.
+5. Pass only allowed tools to agent.
+6. **Single touch point**: Only this function changes for resolution logic; callers must pass conversation when resolving tools for a chat.
+
+### Phase 3b: Chat Mode Selector & Persistence
+1. Add mode selector to chat UI, placed near the agent selector.
+2. On new conversation: set conversation `modeId` from default chat mode (settings).
+3. When user changes mode in chat: update conversation's `modeId` and persist.
+4. When loading a conversation: restore and display its stored mode; use it in `getToolsForAgent()`.
 
 ### Phase 4: Runtime Approval Flow
 1. Detect when LLM requests "ask" tool
@@ -119,6 +139,11 @@ Can be implemented without these, but integration is cleaner if prep work exists
 - [ ] Permission settings persist across app restarts
 - [ ] Bulk actions work (allow/deny by category)
 - [ ] Export/import permission profiles
+- [ ] User can select mode for a chat (built-in: Ask, Agent, Local; or user-configured mode)
+- [ ] User can change mode during a chat
+- [ ] User can set default chat mode for new chats
+- [ ] Mode selector is shown near the agent selector
+- [ ] User loads previous chats in same mode as last message
 
 ## Deep Agents Integration
 
@@ -161,12 +186,11 @@ The Chat Interface (MVP) includes prep work to make permission integration non-b
 
 **Permission system implementation (this backlog item):**
 - Enhance `getToolsForAgent()` function to:
-  - Load user permission settings from settings system
-  - Filter tool registry based on allow/ask/deny per tool
-  - Handle runtime approval flow for "ask" tools
-  - Return only allowed tools for agent initialization
-- **Single touch point**: Only the `getToolsForAgent()` function needs modification
-- **Zero changes to chat code**: Chat interface, agent initialization, and all callers remain unchanged
+  - Accept conversation context so the chat's mode can be applied
+  - Load user permission settings (global), agent permissions, and conversation's mode
+  - Resolve effective permissions (most restrictive of global, agent, mode per tool)
+  - Filter tool registry, handle runtime approval for "ask" tools, return only allowed tools
+- Chat code: conversation metadata must include `modeId`; callers pass conversation when resolving tools; mode selector UI near agent selector
 
 **Result**: Minimal refactoring required when adding permissions. The abstraction layer is already in place.
 
@@ -186,9 +210,9 @@ Permissions are for **tools** (agent capabilities), not for **commands** (user-i
 
 ### Future: Agent Integration
 
-When Custom Agents is implemented, agents can have per-agent permission overrides. For example:
+When Custom Agents is implemented, agents can have per-agent permission overrides. Effective permissions for a chat are the intersection of **global defaults → agent permissions → chat mode**. The conversation's mode is the final cap: it cannot be exceeded even if the user switches to a more capable agent mid-chat. For example:
 - **General Chat** agent: minimal tools, very restricted
 - **Code Assistant** agent: filesystem and terminal access allowed
 - **Research Assistant** agent: graph queries and web search allowed
 
-This allows users to grant different capabilities to different agents while maintaining global defaults.
+Users grant different capabilities to different agents while maintaining global defaults; the chat's mode further caps what is available for that conversation.

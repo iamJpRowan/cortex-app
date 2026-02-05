@@ -27,6 +27,7 @@ LangChain services already accept config objects, making this a straightforward 
 - Per-tool and per-plugin configuration
 - Environment-based config overrides
 - Secure handling of sensitive values (API keys, credentials)
+- Default chat mode (for [Tool Permission System](./tool-permission-system.md): mode applied when starting new conversations)
 
 ## Notes
 

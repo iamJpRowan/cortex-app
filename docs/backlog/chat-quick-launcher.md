@@ -20,9 +20,9 @@ Implement dedicated hotkey that opens a rich overlay for starting a chat, with c
 
 ### Input Controls
 - **Reuse chat input component** from Chat Interface (MVP)
-- All existing chat input features available (message field, model selector, agent selector if agents exist)
+- All existing chat input features available (message field, model selector, agent selector if agents exist, mode selector if Tool Permission System exists)
 - Controls visible by default (not hidden/collapsed)
-- Sensible defaults applied (last-used model/agent)
+- Sensible defaults applied (last-used model/agent; default chat mode from settings for new conversations)
 
 ### Chat Integration
 - Submit creates new conversation
@@ -75,8 +75,8 @@ Implement dedicated hotkey that opens a rich overlay for starting a chat, with c
 ## Success Criteria
 
 - [ ] Dedicated hotkey opens chat launcher overlay
-- [ ] Overlay shows message input, model selector, agent selector
-- [ ] Defaults applied (last-used model and agent)
+- [ ] Overlay shows message input, model selector, agent selector (and mode selector when Tool Permission System exists)
+- [ ] Defaults applied (last-used model and agent; default chat mode for new conversations)
 - [ ] Submit creates new conversation with selected settings
 - [ ] Chat opens with new conversation
 - [ ] ESC closes overlay
