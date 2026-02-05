@@ -146,17 +146,6 @@ export function ChatView() {
     }
   }
 
-  const handleNewChat = () => {
-    setMessages([])
-    setConversationId(null)
-    setConversationTitle('New Chat')
-    setStreamingContent('')
-    setCurrentTrace([])
-    setIsLoading(false)
-    setIsEditingTitle(false)
-    inputRef.current?.focus()
-  }
-
   const handleSelectConversation = async (conversation: ConversationMetadata) => {
     // Don't reload if already selected
     if (conversationId === conversation.id) return
@@ -241,7 +230,6 @@ export function ChatView() {
           ref={conversationListRef}
           selectedId={conversationId || undefined}
           onSelect={handleSelectConversation}
-          onNewChat={handleNewChat}
         />
       </div>
 

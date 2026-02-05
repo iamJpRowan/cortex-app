@@ -10,8 +10,6 @@ interface ConversationListProps {
   selectedId?: string
   /** Called when a conversation is selected */
   onSelect?: (conversation: ConversationMetadata) => void
-  /** Called when new chat is requested */
-  onNewChat?: () => void
 }
 
 /** Methods exposed via ref */
@@ -29,7 +27,7 @@ export interface ConversationListRef {
 export const ConversationList = React.forwardRef<
   ConversationListRef,
   ConversationListProps
->(function ConversationList({ selectedId, onSelect, onNewChat }, ref) {
+>(function ConversationList({ selectedId, onSelect }, ref) {
   const [conversations, setConversations] = React.useState<ConversationMetadata[]>([])
   const [loading, setLoading] = React.useState(true)
   const [error, setError] = React.useState<string | null>(null)
@@ -88,10 +86,10 @@ export const ConversationList = React.forwardRef<
     try {
       const result = await window.api.conversations.create()
       if (result.success && result.conversation) {
-        // Add to list and select
+        // Add to list and select so ChatView shows this conversation.
         setConversations(prev => [result.conversation!, ...prev])
         onSelect?.(result.conversation)
-        onNewChat?.()
+        // Do not clear selection; that broke title/editing for new chats.
       }
     } catch (err) {
       console.error('Failed to create conversation:', err)
