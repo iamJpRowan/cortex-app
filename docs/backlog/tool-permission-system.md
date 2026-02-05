@@ -8,7 +8,7 @@ Implement user-controlled tool permission system that allows users to authorize 
 
 ## Prerequisites
 
-- **[Chat Interface (MVP)](./chat-interface-mvp.md)** - Should be complete. Includes `getToolsForAgent()` helper function that this system enhances.
+- **[Chat Interface (MVP)](./archive/chat-interface-mvp.md)** - Must be complete. Includes `getToolsForAgent()` helper function that this system enhances.
 - **[Configuration System](./configuration-system.md)** - Should be complete. Provides settings storage for permission preferences.
 
 Can be implemented without these, but integration is cleaner if prep work exists.
@@ -138,7 +138,7 @@ The "ask" permission level (runtime approval) maps directly to LangChain Deep Ag
 ## Related Backlog Items
 
 **Depends on (recommended):**
-- [Chat Interface (MVP)](./chat-interface-mvp.md) - Includes `getToolsForAgent()` helper function
+- [Chat Interface (MVP)](./archive/chat-interface-mvp.md) - Includes `getToolsForAgent()` helper function
 - [Configuration System](./configuration-system.md) - Settings storage for permissions
 - [Deep Agents Adoption](./deep-agents-adoption.md) - Provides `interrupt_on` for "ask" permissions
 

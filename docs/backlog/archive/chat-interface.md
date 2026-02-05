@@ -13,7 +13,7 @@ This backlog item has been **decomposed** into multiple focused backlog items th
 
 ## Decomposed Into
 
-1. **[Chat Interface (MVP)](../chat-interface-mvp.md)** - Core chat interface with streaming, traces, conversation management, and AI integration patterns
+1. **[Chat Interface (MVP)](./chat-interface-mvp.md)** - Core chat interface with streaming, traces, conversation management, and AI integration patterns
 2. **[Chat Sidebar Integration](../chat-sidebar-integration.md)** - Move chat to right sidebar, implement context injection from views
 3. **[KBar Smart Chat Detection](../kbar-smart-chat-detection.md)** - Detect long-form questions in KBar and offer to start chat
 4. **[Chat Quick Launcher](../chat-quick-launcher.md)** - Dedicated hotkey + overlay with model/agent selectors

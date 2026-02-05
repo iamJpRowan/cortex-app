@@ -8,7 +8,7 @@ This document captures potential chat features for future consideration. These a
 
 ## Prerequisites
 
-- **[Chat Interface (MVP)](./chat-interface-mvp.md)** - Core chat must be complete before considering enhancements.
+- **[Chat Interface (MVP)](./archive/chat-interface-mvp.md)** - Core chat must be complete before considering enhancements.
 - **[Deep Agents Adoption](./deep-agents-adoption.md)** - Many features leverage Deep Agents capabilities (noted inline).
 
 ---
@@ -347,7 +347,7 @@ When a feature is ready to be prioritized:
 ## Related Backlog Items
 
 **Core Chat:**
-- [Chat Interface (MVP)](./chat-interface-mvp.md)
+- [Chat Interface (MVP)](./archive/chat-interface-mvp.md)
 - [Custom Agents](./custom-agents.md)
 - [Sub-Agent Delegation](./sub-agent-delegation.md)
 - [Tool Permission System](./tool-permission-system.md)

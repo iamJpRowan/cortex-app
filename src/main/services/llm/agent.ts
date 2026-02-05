@@ -179,6 +179,46 @@ export class LLMAgentService {
   }
 
   /**
+   * Determine message type from both class instances and plain objects.
+   *
+   * Messages from the checkpointer are deserialized as plain objects, not class instances.
+   * LangChain provides `mapStoredMessagesToChatMessages()` but it expects `StoredMessage[]`
+   * format which doesn't match the checkpointer's direct output. This helper handles both
+   * fresh instances (instanceof) and deserialized objects (_getType/lc_id).
+   *
+   * @see https://v03.api.js.langchain.com/functions/_langchain_core.messages.mapStoredMessagesToChatMessages.html
+   */
+  private getMessageType(
+    msg: BaseMessage | { _getType?: () => string; lc_id?: string[] }
+  ): 'human' | 'ai' | 'system' | 'tool' | 'unknown' {
+    // Fresh messages from streaming - use instanceof
+    if (msg instanceof HumanMessage) return 'human'
+    if (msg instanceof AIMessage) return 'ai'
+    if (msg instanceof SystemMessage) return 'system'
+    if (msg instanceof ToolMessage) return 'tool'
+
+    // Deserialized messages - try _getType method first
+    if (typeof msg._getType === 'function') {
+      const type = msg._getType()
+      if (type === 'human') return 'human'
+      if (type === 'ai') return 'ai'
+      if (type === 'system') return 'system'
+      if (type === 'tool') return 'tool'
+    }
+
+    // Last resort - check lc_id serialization format
+    if (msg.lc_id && Array.isArray(msg.lc_id)) {
+      const id = msg.lc_id.join('.')
+      if (id.includes('HumanMessage')) return 'human'
+      if (id.includes('AIMessage')) return 'ai'
+      if (id.includes('SystemMessage')) return 'system'
+      if (id.includes('ToolMessage')) return 'tool'
+    }
+
+    return 'unknown'
+  }
+
+  /**
    * Extract execution trace from agent result messages
    * Identifies tool calls and their results for audit trail
    */
@@ -471,6 +511,7 @@ export class LLMAgentService {
     let accumulated = ''
     let lastMessageCount = -1 // -1 = haven't seen initial state yet
     const processedToolCalls = new Set<string>() // Track processed tool calls
+    const toolCallStartTimes = new Map<string, number>() // Track start times for duration
 
     try {
       // Use stream with both "messages" (token streaming) and "values" (step updates)
@@ -511,21 +552,28 @@ export class LLMAgentService {
           // Process new messages for tool calls and results
           for (let i = lastMessageCount; i < allMessages.length; i++) {
             const msg = allMessages[i]
+            const msgType = this.getMessageType(msg)
 
-            if (msg instanceof AIMessage) {
+            if (msgType === 'ai') {
+              const aiMsg = msg as AIMessage
               // Check for tool calls
-              if (msg.tool_calls && msg.tool_calls.length > 0) {
-                for (const toolCall of msg.tool_calls) {
-                  // Avoid duplicate tool call events
-                  const toolCallKey = `${toolCall.name}-${JSON.stringify(toolCall.args)}`
-                  if (processedToolCalls.has(toolCallKey)) continue
-                  processedToolCalls.add(toolCallKey)
+              if (aiMsg.tool_calls && aiMsg.tool_calls.length > 0) {
+                for (const toolCall of aiMsg.tool_calls) {
+                  // Use tool call ID for deduplication and correlation
+                  const toolCallId = toolCall.id || `${toolCall.name}-${Date.now()}`
+                  if (processedToolCalls.has(toolCallId)) continue
+                  processedToolCalls.add(toolCallId)
+
+                  const startTime = Date.now()
+                  // Track start time by tool call ID for duration calculation
+                  toolCallStartTimes.set(toolCallId, startTime)
 
                   const traceEntry: TraceEntry = {
                     type: 'tool_call',
+                    toolCallId,
                     toolName: toolCall.name,
                     args: toolCall.args as Record<string, unknown>,
-                    timestamp: Date.now(),
+                    timestamp: startTime,
                   }
                   trace.push(traceEntry)
                   onEvent({
@@ -534,31 +582,54 @@ export class LLMAgentService {
                     conversationId: convId,
                     trace: traceEntry,
                   })
-                  console.log(`[LLMAgent] Tool call: ${toolCall.name}`)
+                  console.log(`[LLMAgent] Tool call: ${toolCall.name} (${toolCallId})`)
                 }
               }
 
               // Capture final response content
               const content =
-                typeof msg.content === 'string'
-                  ? msg.content
-                  : JSON.stringify(msg.content)
+                typeof aiMsg.content === 'string'
+                  ? aiMsg.content
+                  : JSON.stringify(aiMsg.content)
 
-              if (content && content.trim() && !msg.tool_calls?.length) {
+              if (content && content.trim() && !aiMsg.tool_calls?.length) {
                 finalResponse = content
               }
-            } else if (msg instanceof ToolMessage) {
+            } else if (msgType === 'tool') {
+              const toolMsg = msg as ToolMessage
               // Tool result
               const content =
-                typeof msg.content === 'string'
-                  ? msg.content
-                  : JSON.stringify(msg.content)
+                typeof toolMsg.content === 'string'
+                  ? toolMsg.content
+                  : JSON.stringify(toolMsg.content)
+
+              const toolName = toolMsg.name || 'unknown'
+              const toolCallId = toolMsg.tool_call_id
+              const endTime = Date.now()
+
+              // Calculate duration from start time using tool call ID
+              const startTime = toolCallId
+                ? toolCallStartTimes.get(toolCallId)
+                : undefined
+              const duration = startTime ? endTime - startTime : undefined
+              if (toolCallId) toolCallStartTimes.delete(toolCallId)
+
+              // Detect tool errors - prefer status field, fall back to content parsing
+              const isError =
+                toolMsg.status === 'error' ||
+                (toolMsg.status === undefined &&
+                  (content.includes('Error invoking tool') ||
+                    content.includes('did not match expected schema') ||
+                    content.startsWith('Error:')))
 
               const traceEntry: TraceEntry = {
                 type: 'tool_result',
-                toolName: msg.name || 'unknown',
+                toolCallId,
+                toolName,
                 result: content,
-                timestamp: Date.now(),
+                timestamp: endTime,
+                duration,
+                error: isError ? content : undefined,
               }
               trace.push(traceEntry)
               onEvent({
@@ -567,7 +638,15 @@ export class LLMAgentService {
                 conversationId: convId,
                 trace: traceEntry,
               })
-              console.log(`[LLMAgent] Tool result from ${msg.name}`)
+              const durationStr = duration ? ` (${duration}ms)` : ''
+              if (isError) {
+                console.error(
+                  `[LLMAgent] Tool error from ${toolName}${durationStr}:`,
+                  content
+                )
+              } else {
+                console.log(`[LLMAgent] Tool result from ${toolName}${durationStr}`)
+              }
               // Reset accumulated for next LLM response after tool
               accumulated = ''
             }
@@ -690,13 +769,21 @@ export class LLMAgentService {
       const messages: ChatMessage[] = []
       let messageIndex = 0
 
+      // Track pending trace entries for current assistant turn
+      let pendingTrace: TraceEntry[] = []
+
       for (const msg of channelValues.messages) {
+        const msgType = this.getMessageType(msg)
+
         // Skip system messages (they're internal context)
-        if (msg instanceof SystemMessage) {
+        if (msgType === 'system') {
           continue
         }
 
-        if (msg instanceof HumanMessage) {
+        if (msgType === 'human') {
+          // New user message - reset pending trace
+          pendingTrace = []
+
           const content =
             typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)
 
@@ -704,16 +791,30 @@ export class LLMAgentService {
             id: `msg-${conversationId}-${messageIndex++}`,
             role: 'user',
             content,
-            timestamp: Date.now(), // Checkpointer doesn't store timestamps
+            timestamp: Date.now(),
           })
-        } else if (msg instanceof AIMessage) {
-          // Skip AI messages that are just tool calls (no content)
-          if (msg.tool_calls && msg.tool_calls.length > 0 && !msg.content) {
-            continue
+        } else if (msgType === 'ai') {
+          const aiMsg = msg as AIMessage
+          const toolCalls = aiMsg.tool_calls
+
+          // If this AI message has tool calls, add them to pending trace
+          if (toolCalls && toolCalls.length > 0) {
+            for (const toolCall of toolCalls) {
+              pendingTrace.push({
+                type: 'tool_call',
+                toolCallId: toolCall.id,
+                toolName: toolCall.name,
+                args: toolCall.args as Record<string, unknown>,
+                timestamp: Date.now(),
+              })
+            }
           }
 
+          // If this AI message has content (final response), add it with trace
           const content =
-            typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)
+            typeof aiMsg.content === 'string'
+              ? aiMsg.content
+              : JSON.stringify(aiMsg.content)
 
           if (content && content.trim()) {
             messages.push({
@@ -721,10 +822,27 @@ export class LLMAgentService {
               role: 'assistant',
               content,
               timestamp: Date.now(),
+              trace: pendingTrace.length > 0 ? [...pendingTrace] : undefined,
             })
+            // Reset trace after attaching to response
+            pendingTrace = []
           }
+        } else if (msgType === 'tool') {
+          // Tool result - add to pending trace
+          const toolMsg = msg as ToolMessage
+          const content =
+            typeof toolMsg.content === 'string'
+              ? toolMsg.content
+              : JSON.stringify(toolMsg.content)
+
+          pendingTrace.push({
+            type: 'tool_result',
+            toolCallId: toolMsg.tool_call_id,
+            toolName: toolMsg.name || 'unknown',
+            result: content,
+            timestamp: Date.now(),
+          })
         }
-        // Skip ToolMessages - they're internal to the agent
       }
 
       console.log(

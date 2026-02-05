@@ -27,7 +27,8 @@ When backlog items are being implemented the file should reflect the current sta
 - **[plugin-extensibility-framework.md](./plugin-extensibility-framework.md)** - Plugin system for user-contributed tools and integrations. requires: LangChain Integration, Configuration System, Tool Permission System
 
 ### Chat & AI Interface
-- **[chat-interface-mvp.md](./chat-interface-mvp.md)** - Production chat interface with streaming, traces, conversation management, and AI integration patterns
+- **[llm-tool-hallucination-guardrails.md](./llm-tool-hallucination-guardrails.md)** - Reduce incorrect tool usage (invoke_command, invalid args). requires: Chat Interface (MVP)
+- **[execution-trace-persistence.md](./execution-trace-persistence.md)** - Persist execution traces (tool calls, durations) for historical viewing. requires: Chat Interface (MVP)
 - **[tool-permission-system.md](./tool-permission-system.md)** - User-controlled tool permissions with runtime approval
 - **[multi-provider-model-selection.md](./multi-provider-model-selection.md)** - Support for multiple LLM providers (Ollama, OpenAI, Anthropic, etc.) and model selection. requires: Chat Interface (MVP)
 - **[chat-sidebar-integration.md](./chat-sidebar-integration.md)** - Add chat to right sidebar, implement context injection from views. requires: Chat Interface (MVP), UI Layout Framework

@@ -8,7 +8,7 @@ Enable users to choose from multiple LLM providers (Ollama local models, OpenAI,
 
 ## Prerequisites
 
-- **[Chat Interface (MVP)](./chat-interface-mvp.md)** - Should be complete. Includes `model` parameter in IPC/agent and conversation storage.
+- **[Chat Interface (MVP)](./archive/chat-interface-mvp.md)** - Must be complete. Includes `model` parameter in IPC/agent and conversation storage.
 
 ## Key Capabilities
 
@@ -170,7 +170,7 @@ Enable users to choose from multiple LLM providers (Ollama local models, OpenAI,
 ## Related Backlog Items
 
 **Depends on:**
-- [Chat Interface (MVP)](./chat-interface-mvp.md) - Model parameter and conversation storage
+- [Chat Interface (MVP)](./archive/chat-interface-mvp.md) - Model parameter and conversation storage
 
 **Related:**
 - [Custom Agents](./custom-agents.md) - Agents can have default model preference

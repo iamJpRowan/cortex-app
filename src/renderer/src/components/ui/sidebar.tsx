@@ -140,8 +140,8 @@ const SidebarProvider = React.forwardRef<
               } as React.CSSProperties
             }
             className={cn(
-              // Group and layout
-              'group/sidebar-wrapper flex min-h-svh w-full',
+              // Group and layout - use h-svh for fixed viewport height
+              'group/sidebar-wrapper flex h-svh w-full overflow-hidden',
               // Variant-specific styling
               'has-[[data-variant=inset]]:bg-sidebar',
               className

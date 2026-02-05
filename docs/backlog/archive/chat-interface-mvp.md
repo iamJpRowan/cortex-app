@@ -1,6 +1,15 @@
-[Docs](../README.md) / [Backlog](./README.md) / Chat Interface (MVP)
+---
+status: completed
+completed_date: 2025-01-31
+---
+
+[Docs](../../README.md) / [Backlog](../README.md) / Archive / Chat Interface (MVP)
 
 # Chat Interface (MVP)
+
+## Implementation Status
+
+All phases complete. See **[2025-01-31-chat-interface-mvp.md](../../devlogs/2025-01-31-chat-interface-mvp.md)** devlog for implementation details.
 
 ## Goal
 
@@ -143,21 +152,21 @@ Note: Context implementation (views implementing `getContextForAI()` and context
 
 ## Success Criteria
 
-- [ ] User can navigate to chat view via sidebar or KBar
-- [ ] User can create, rename, delete, and switch between conversations
-- [ ] User can search/filter conversations
-- [ ] Messages stream in real-time as LLM generates response
-- [ ] Execution traces display with all tool calls, reasoning, timing
-- [ ] Traces auto-expand during execution, auto-collapse when complete
-- [ ] User can manually expand collapsed traces
-- [ ] LLM can invoke app commands (theme toggle works)
-- [ ] `AppContext` type and `getContextForAI()` contract defined
-- [ ] Context collector interface defined (implementation in sidebar item)
-- [ ] Optional `context` parameter added to IPC/agent
-- [ ] Conversations persist across app restarts
-- [ ] Rich content (markdown, code blocks) renders correctly
-- [ ] UI is polished and uses shadcn AI components consistently
-- [ ] Prep work in place for future features (context, agent, permissions parameters)
+- [x] User can navigate to chat view via sidebar or KBar
+- [x] User can create, rename, delete, and switch between conversations
+- [x] User can search/filter conversations
+- [x] Messages stream in real-time as LLM generates response
+- [x] Execution traces display with all tool calls, reasoning, timing
+- [x] Traces auto-expand during execution, auto-collapse when complete
+- [x] User can manually expand collapsed traces
+- [x] LLM can invoke app commands (theme toggle works)
+- [x] `AppContext` type and `getContextForAI()` contract defined
+- [x] Context collector interface defined (implementation in sidebar item)
+- [x] Optional `context` parameter added to IPC/agent
+- [x] Conversations persist across app restarts
+- [x] Rich content (markdown, code blocks) renders correctly
+- [x] UI is polished and uses shadcn AI components consistently
+- [x] Prep work in place for future features (context, agent, permissions parameters)
 
 ## Related Backlog Items
 

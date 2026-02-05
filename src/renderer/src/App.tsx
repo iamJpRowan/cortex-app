@@ -53,17 +53,17 @@ function AppContent() {
           '--sidebar-width-icon': '3rem',
         } as React.CSSProperties
       }
-      className="bg-bg-secondary rounded-lg overflow-hidden"
+      className="bg-bg-secondary rounded-lg"
     >
       <AppSidebar />
       {/* Outer container wrapping main content - draggable for window movement */}
       <div
         className={cn(
-          // Layout
-          'flex flex-1 flex-col',
+          // Layout - flex-1 fills remaining space, min-h-0 allows shrinking
+          'flex flex-1 flex-col min-h-0',
           // Styling
           'bg-bg-secondary rounded-tr-lg rounded-br-lg',
-          // Spacing and overflow - remove left padding when sidebar is collapsed
+          // Spacing and overflow
           'p-3 overflow-hidden',
           'peer-data-[state=collapsed]:pl-0'
         )}
@@ -72,8 +72,8 @@ function AppContent() {
         {/* Main content area - inset with padding creating frame effect */}
         <SidebarInset
           className={cn(
-            // Layout
-            'flex flex-col min-h-0 flex-1',
+            // Layout - flex-1 fills space, min-h-0 critical for nested flex
+            'flex flex-col flex-1 min-h-0',
             // Styling
             'bg-bg-primary rounded-lg',
             // Border and overflow
@@ -82,11 +82,30 @@ function AppContent() {
           style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
         >
           <MainHeader title={getTitle()} />
-          <div className="flex flex-1 flex-col gap-4 p-4 overflow-auto">
+          {/* Content area - flex-1 to fill remaining space */}
+          <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
             <Routes>
-              <Route path="/" element={<HomeView />} />
+              <Route
+                path="/"
+                element={
+                  <div className="flex-1 overflow-auto p-4">
+                    <div className="flex flex-col gap-4">
+                      <HomeView />
+                    </div>
+                  </div>
+                }
+              />
               <Route path="/chat" element={<ChatView />} />
-              <Route path="/settings" element={<SettingsView />} />
+              <Route
+                path="/settings"
+                element={
+                  <div className="flex-1 overflow-auto p-4">
+                    <div className="flex flex-col gap-4">
+                      <SettingsView />
+                    </div>
+                  </div>
+                }
+              />
             </Routes>
           </div>
         </SidebarInset>

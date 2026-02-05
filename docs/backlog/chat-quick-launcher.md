@@ -8,7 +8,7 @@ Implement dedicated hotkey that opens a rich overlay for starting a chat, with c
 
 ## Prerequisites
 
-- **[Chat Interface (MVP)](./chat-interface-mvp.md)** - Must be complete. Provides chat to receive launched conversations and reusable input component.
+- **[Chat Interface (MVP)](./archive/chat-interface-mvp.md)** - Must be complete. Provides chat to receive launched conversations and reusable input component.
 
 ## Key Capabilities
 
@@ -86,7 +86,7 @@ Implement dedicated hotkey that opens a rich overlay for starting a chat, with c
 ## Related Backlog Items
 
 **Depends on:**
-- [Chat Interface (MVP)](./chat-interface-mvp.md) - Chat to receive conversations and reusable input component
+- [Chat Interface (MVP)](./archive/chat-interface-mvp.md) - Chat to receive conversations and reusable input component
 
 **Related:**
 - [Custom Agents](./custom-agents.md) - Adds agent management; agent selector in launcher automatically shows available agents

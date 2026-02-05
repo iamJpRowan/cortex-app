@@ -8,7 +8,7 @@ Enable users to create and manage custom AI agents—bespoke configurations of i
 
 ## Prerequisites
 
-- **[Chat Interface (MVP)](./chat-interface-mvp.md)** - Must be complete. Provides agent type definitions and agent parameter wiring.
+- **[Chat Interface (MVP)](./archive/chat-interface-mvp.md)** - Must be complete. Provides agent type definitions and agent parameter wiring.
 - **[Deep Agents Adoption](./deep-agents-adoption.md)** - Must be complete. Provides runtime harness for agent execution.
 - **[Tool Permission System](./tool-permission-system.md)** - Should be complete for per-agent permission sets. Can ship basic agents without if permissions are global.
 
@@ -286,7 +286,7 @@ Our custom layer on top of Deep Agents provides:
 ## Related Backlog Items
 
 **Depends on:**
-- [Chat Interface (MVP)](./chat-interface-mvp.md) - Agent type definitions and wiring
+- [Chat Interface (MVP)](./archive/chat-interface-mvp.md) - Agent type definitions and wiring
 - [Deep Agents Adoption](./deep-agents-adoption.md) - Provides runtime capabilities
 
 **Related:**

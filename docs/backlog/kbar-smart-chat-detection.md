@@ -8,7 +8,7 @@ Enhance KBar command palette to detect when user types long-form questions that 
 
 ## Prerequisites
 
-- **[Chat Interface (MVP)](./chat-interface-mvp.md)** - Must be complete. Provides chat interface to receive questions.
+- **[Chat Interface (MVP)](./archive/chat-interface-mvp.md)** - Must be complete. Provides chat interface to receive questions.
 
 ## Key Capabilities
 
@@ -70,7 +70,7 @@ Enhance KBar command palette to detect when user types long-form questions that 
 ## Related Backlog Items
 
 **Depends on:**
-- [Chat Interface (MVP)](./chat-interface-mvp.md) - Chat to receive questions
+- [Chat Interface (MVP)](./archive/chat-interface-mvp.md) - Chat to receive questions
 
 **Related:**
 - [Chat Quick Launcher](./chat-quick-launcher.md) - Dedicated chat overlay (different use case)

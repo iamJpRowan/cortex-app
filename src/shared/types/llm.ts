@@ -63,6 +63,9 @@ export interface TraceEntry {
   /** Type of trace entry */
   type: TraceEntryType
 
+  /** Tool call ID for correlating calls with results */
+  toolCallId?: string
+
   /** Tool name (for tool_call and tool_result types) */
   toolName?: string
 

@@ -8,7 +8,7 @@ Add chat to right sidebar panel as an additional way to access chat (alongside t
 
 ## Prerequisites
 
-- **[Chat Interface (MVP)](./chat-interface-mvp.md)** - Must be complete. Provides working chat with location-agnostic components.
+- **[Chat Interface (MVP)](./archive/chat-interface-mvp.md)** - Must be complete. Provides working chat with location-agnostic components.
 - **[UI Layout Framework](./ui-layout-framework.md)** - Must be complete. Provides right sidebar, panels, and layout system.
 
 ## Key Capabilities
@@ -96,7 +96,7 @@ Add chat to right sidebar panel as an additional way to access chat (alongside t
 ## Related Backlog Items
 
 **Depends on:**
-- [Chat Interface (MVP)](./chat-interface-mvp.md) - Chat implementation
+- [Chat Interface (MVP)](./archive/chat-interface-mvp.md) - Chat implementation
 - [UI Layout Framework](./ui-layout-framework.md) - Sidebar and panel system
 
 **Enables:**

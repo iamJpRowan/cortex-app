@@ -11,6 +11,7 @@ Each archived item has YAML frontmatter indicating its status and date.
 
 ## Completed
 
+- **[chat-interface-mvp.md](./chat-interface-mvp.md)** — Production chat interface with streaming, traces, conversation management, and AI integration patterns. Completed 2025-01-31.
 - **[settings-command-palette-hotkeys.md](./settings-command-palette-hotkeys.md)** — Settings system, command palette (Kbar), app-level hotkeys. Completed 2025-01-25.
 
 ## Decomposed

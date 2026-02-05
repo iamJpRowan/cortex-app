@@ -37,7 +37,9 @@ export function createInvokeCommandTool(): DynamicStructuredTool {
       `For example, only toggle the theme if the user says "toggle theme", ` +
       `"switch to dark mode", "change theme", etc.`,
     schema: z.object({
-      commandId: z.enum(validIds).describe('The exact ID of the command to invoke'),
+      commandId: z
+        .enum(validIds)
+        .describe(`Must be exactly one of: ${commandIds.join(' | ')}`),
     }),
     func: async ({ commandId }) => {
       console.log(`[InvokeCommandTool] Invoking command: ${commandId}`)

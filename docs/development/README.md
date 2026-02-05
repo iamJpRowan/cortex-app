@@ -22,6 +22,7 @@ This guide covers the development workflow for building Cortex as a native Elect
 
 How to add specific capabilities:
 
+- **[ai-elements.md](./ai-elements.md)** — Install AI Elements components into the renderer
 - **[commands-and-hotkeys.md](./commands-and-hotkeys.md)** — Register a command and hotkey
 - **[settings.md](./settings.md)** — Create a new setting
 
