@@ -33,6 +33,8 @@ When backlog items are being implemented the file should reflect the current sta
 - **[multi-provider-model-selection.md](./multi-provider-model-selection.md)** - Support for multiple LLM providers (Ollama, OpenAI, Anthropic, etc.) and model selection. requires: Chat Interface (MVP)
 - **[chat-sidebar-integration.md](./chat-sidebar-integration.md)** - Add chat to right sidebar, implement context injection from views. requires: Chat Interface (MVP), UI Layout Framework
 - **[chat-conversation-threads.md](./chat-conversation-threads.md)** - User-initiated threads on messages for clarifying questions without overloading main conversation context. requires: Chat Interface (MVP)
+- **[chat-summaries.md](./chat-summaries.md)** - Per-conversation Markdown summary, chat/summary view toggle, and agent discovery over past summaries. requires: Chat Interface (MVP)
+- **[chat-attachments-and-context.md](./chat-attachments-and-context.md)** - Attach items (e.g. past summaries) to a chat and visualize all artifacts in the conversation (graph nodes, files, uploads, view context). requires: Chat Interface (MVP), Chat Sidebar Integration
 - **[kbar-smart-chat-detection.md](./kbar-smart-chat-detection.md)** - Detect long-form questions in KBar and offer to start chat. requires: Chat Interface (MVP)
 - **[chat-quick-launcher.md](./chat-quick-launcher.md)** - Dedicated hotkey + overlay with reusable chat input. requires: Chat Interface (MVP)
 - **[deep-agents-adoption.md](./deep-agents-adoption.md)** - Migrate to Deep Agents for advanced capabilities (planning, filesystem, sub-agents, memory). requires: LangChain Integration
