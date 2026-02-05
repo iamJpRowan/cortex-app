@@ -285,6 +285,7 @@ When a parent agent calls `delegate()`:
 - [Deep Agents Adoption](./deep-agents-adoption.md) - Provides runtime sub-agent capabilities
 
 **Related:**
+- [Chat Conversation Threads](./chat-conversation-threads.md) - User-initiated context isolation (threads on messages); same goal as general-purpose delegation but user-triggered and multi-turn
 - [Chat Features (Future)](./chat-features-future.md) - Memory features may interact with sub-agent state
 
 ## Notes
@@ -333,6 +334,9 @@ When a parent agent calls `delegate()`:
 - Prevent at configuration time (validation)
 - Also enforce at runtime (depth tracking)
 - Clear error messages when detected
+
+**User Threads vs Sub-Agent Delegation:**
+- [Chat Conversation Threads](./chat-conversation-threads.md) addresses the same context-isolation goal from the user's side: clarifying questions in a thread that don't pollute the main conversation. Sub-agents are agent-initiated and stateless; threads are user-initiated and multi-turn. Implementation may share context-isolation patterns.
 
 ### Resolved Design Questions
 

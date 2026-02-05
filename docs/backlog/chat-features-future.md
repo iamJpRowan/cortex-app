@@ -192,6 +192,8 @@ Explore alternative conversation paths without losing original context.
 
 **Relevance:** Power user feature for exploration and experimentation.
 
+**Note:** For **subordinate** conversations (e.g. clarifying questions on a message that don't pollute main context), see the standalone backlog item [Chat Conversation Threads](./chat-conversation-threads.md). Branching is parallel full paths; threads are child conversations attached to a message.
+
 ---
 
 ### Context Window Management
@@ -354,6 +356,7 @@ When a feature is ready to be prioritized:
 - [Deep Agents Adoption](./deep-agents-adoption.md) - Provides foundation for Memory, Context Management, Attachments
 
 **Chat Enhancements:**
+- [Chat Conversation Threads](./chat-conversation-threads.md) - User-initiated threads for clarifications without context overload
 - [Chat Sidebar Integration](./chat-sidebar-integration.md)
 - [Chat Quick Launcher](./chat-quick-launcher.md)
 - [KBar Smart Chat Detection](./kbar-smart-chat-detection.md)

@@ -32,6 +32,7 @@ When backlog items are being implemented the file should reflect the current sta
 - **[tool-permission-system.md](./tool-permission-system.md)** - User-controlled tool permissions with runtime approval
 - **[multi-provider-model-selection.md](./multi-provider-model-selection.md)** - Support for multiple LLM providers (Ollama, OpenAI, Anthropic, etc.) and model selection. requires: Chat Interface (MVP)
 - **[chat-sidebar-integration.md](./chat-sidebar-integration.md)** - Add chat to right sidebar, implement context injection from views. requires: Chat Interface (MVP), UI Layout Framework
+- **[chat-conversation-threads.md](./chat-conversation-threads.md)** - User-initiated threads on messages for clarifying questions without overloading main conversation context. requires: Chat Interface (MVP)
 - **[kbar-smart-chat-detection.md](./kbar-smart-chat-detection.md)** - Detect long-form questions in KBar and offer to start chat. requires: Chat Interface (MVP)
 - **[chat-quick-launcher.md](./chat-quick-launcher.md)** - Dedicated hotkey + overlay with reusable chat input. requires: Chat Interface (MVP)
 - **[deep-agents-adoption.md](./deep-agents-adoption.md)** - Migrate to Deep Agents for advanced capabilities (planning, filesystem, sub-agents, memory). requires: LangChain Integration

@@ -103,6 +103,7 @@ Add chat to right sidebar panel as an additional way to access chat (alongside t
 - Future features with "AI aware of context" patterns
 - Graph exploration with chat sidebar
 - Notes editing with chat assistance
+- [Chat Conversation Threads](./chat-conversation-threads.md) - Thread panel can live in sidebar when chat is sidebar-integrated
 
 ## Notes
 
