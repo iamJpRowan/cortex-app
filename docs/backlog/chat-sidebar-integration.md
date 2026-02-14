@@ -41,16 +41,14 @@ Add chat to right sidebar panel as an additional way to access chat (alongside t
 - Trace displays work in narrow layout
 - Mobile-responsive considerations
 
-## Implementation Approach
-
-### Phase 1: Context Collector Enhancement
+## Phase 1: Context Collector Enhancement
 1. Enhance context collector from Chat MVP (currently has one view)
 2. Implement `getContextForAI()` for all existing views
 3. Wire context collector to active route/view
 4. Add context visibility UI ("Context from: X")
 5. Test context injection with different views active
 
-### Phase 2: Sidebar Panel Setup
+## Phase 2: Sidebar Panel Setup
 1. Create chat panel definition (id, title, collapsible)
 2. Register chat panel with right sidebar
 3. Render chat component in panel container (reuse existing component from dedicated view)
@@ -58,21 +56,21 @@ Add chat to right sidebar panel as an additional way to access chat (alongside t
 5. Implement resizable panel
 6. Ensure conversation state is shared between dedicated view and sidebar panel
 
-### Phase 3: Layout & Styling Adjustments
+## Phase 3: Layout & Styling Adjustments
 1. Adapt chat UI for narrow sidebar width
 2. Optimize conversation list for compact view
 3. Adjust trace display for narrow layout
 4. Test responsive behavior
 5. Handle edge cases (very narrow widths)
 
-### Phase 4: Interaction Enhancements
+## Phase 4: Interaction Enhancements
 1. Add "Open Chat" command that shows right sidebar
 2. Add hotkey to toggle sidebar visibility
 3. Implement "Ask about this" pattern (views can open chat with context)
 4. Add "focus chat input" hotkey
 5. Test interaction flows
 
-### Phase 5: Polish & Refinement
+## Phase 5: Polish & Refinement
 1. Smooth transitions when opening/closing sidebar
 2. Persist sidebar state (open/closed, width)
 3. Context opt-out settings (per-view)

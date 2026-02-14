@@ -5,12 +5,13 @@ import type {
   StreamEvent,
   StreamEventHandler,
   StreamQueryResult,
+  ListModelsResult,
   ConversationMetadata,
   ListConversationsOptions,
   CreateConversationOptions,
   UpdateConversationOptions,
   ChatMessage,
-} from '../../../shared/types'
+} from '@shared/types'
 
 export interface API {
   test: {
@@ -76,6 +77,35 @@ export interface API {
       message?: string
       error?: string
     }>
+    /**
+     * List all models with metadata, grouped by provider (tool-capable only).
+     */
+    listModels: () => Promise<ListModelsResult>
+    /** List discoverable models for a provider (full list from API), for the enable-models UI. */
+    listDiscoverableModels: (
+      providerId: string
+    ) => Promise<import('@shared/types').ModelMetadata[]>
+    /**
+     * Test connection to a provider.
+     * Returns { success, modelCount? } or { success: false, error }.
+     */
+    testProvider: (
+      providerId: string
+    ) => Promise<
+      { success: true; modelCount?: number } | { success: false; error: string }
+    >
+    /**
+     * Encrypt and optionally save a provider API key (e.g. Anthropic).
+     * @param writeToSettings If true, merge into llm.providers and save.
+     */
+    encryptProviderKey: (
+      providerId: string,
+      plainKey: string,
+      writeToSettings?: boolean
+    ) => Promise<
+      | { success: true; fragment?: Record<string, unknown>; written?: boolean }
+      | { success: false; error: string }
+    >
   }
   window: {
     close: () => Promise<void>
@@ -154,6 +184,14 @@ export interface API {
       messages?: ChatMessage[]
       error?: string
     }>
+    /** Subscribe to title updates (e.g. from auto-generated titles). */
+    onTitleUpdated: (
+      callback: (data: { conversationId: string; title: string }) => void
+    ) => () => void
+    /** Subscribe when title generation starts (for "Generating title..." indicator). */
+    onTitleGenerating: (
+      callback: (data: { conversationId: string }) => void
+    ) => () => void
   }
 }
 
@@ -171,6 +209,7 @@ export type {
   StreamEvent,
   StreamEventHandler,
   StreamQueryResult,
+  ListModelsResult,
   ConversationMetadata,
   ListConversationsOptions,
   CreateConversationOptions,

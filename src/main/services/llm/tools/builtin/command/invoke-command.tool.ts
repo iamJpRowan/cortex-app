@@ -1,6 +1,6 @@
 import { DynamicStructuredTool } from '@langchain/core/tools'
 import { z } from 'zod'
-import { commandRegistry } from '../../../../commands'
+import { commandRegistry } from '@main/services/commands'
 
 /**
  * Invoke Command Tool Factory

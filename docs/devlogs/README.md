@@ -19,6 +19,8 @@ Use the [TEMPLATE.md](./TEMPLATE.md) to create new entries with format: `YYYY-MM
 
 ## Historical Logs
 
+- [2025-02-07-multi-provider-settings-test-refresh-ux.md](./2025-02-07-multi-provider-settings-test-refresh-ux.md) - Multi-provider settings: when provider tests run; per-provider refresh icons (Phase 4 refinement)
+- [2025-02-07-multi-provider-phase-3-model-discovery.md](./2025-02-07-multi-provider-phase-3-model-discovery.md) - Multi-Provider Phase 3 — Model discovery & metadata
 - [2025-01-25-settings-command-palette-hotkeys.md](./2025-01-25-settings-command-palette-hotkeys.md) - Settings system, command palette (Kbar), app-level hotkeys, and developer documentation
 - [2025-01-25-sidebar-layout-implementation.md](./2025-01-25-sidebar-layout-implementation.md) - Sidebar layout with collapsible icon mode and mobile support
 - [2025-01-24-react-shadcn-migration.md](./2025-01-24-react-shadcn-migration.md) - Migrate from Vanilla TS and JSX to React and shadcn/ui

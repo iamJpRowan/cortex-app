@@ -101,7 +101,7 @@ Created `chat-features-future.md` as a holding document for future consideration
 - `docs/backlog/chat-interface-mvp.md`
 - `docs/backlog/tool-permission-system.md`
 - `docs/backlog/chat-quick-launcher.md`
-- `docs/backlog/multi-provider-model-selection.md`
+- `docs/backlog/archive/multi-provider-model-selection.md`
 - `docs/backlog/kbar-smart-chat-detection.md`
 - `docs/backlog/archive/README.md`
 - `docs/backlog/archive/chat-interface.md`

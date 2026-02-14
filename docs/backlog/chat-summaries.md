@@ -33,9 +33,7 @@ Make past chats more useful to both users and AIs by maintaining a **summary doc
 - Agent has a **tool or pipeline step** to find "past summaries about X" when the user asks about prior discussions (e.g. "we talked about this before", "like in my last chat on project Y").
 - Relevant summary snippets can be injected into context so the agent can leverage prior conversation outcomes without re-reading full transcripts.
 
-## Implementation Approach
-
-### Phase 1: Summary Document & Updates
+## Phase 1: Summary Document & Updates
 
 1. Define storage for one summary per conversation (e.g. MD file in conversation directory or linked from conversation metadata).
 2. Define summary schema/structure (e.g. sections: overview, key points, decisions, open questions, references/attachments—TBD).
@@ -43,21 +41,21 @@ Make past chats more useful to both users and AIs by maintaining a **summary doc
 4. Include **list of all attachments** for the conversation in the summary (from conversation metadata when Chat Attachments is implemented); optionally show "in context" vs "excluded from context" per item.
 5. Persist summary and associate with conversation; ensure portable path so users can move/copy MD files.
 
-### Phase 2: Summary vs Thread Toggle UI
+## Phase 2: Summary vs Thread Toggle UI
 
 1. Add toggle in chat UI to switch between "Chat" (full thread) and "Summary" views.
 2. Render summary as Markdown in summary view; keep input available so user can ask questions in either mode.
 3. Optional: show summary-derived snippet in conversation list.
 4. Ensure layout works in both dedicated chat view and sidebar (if Chat Sidebar Integration is present).
 
-### Phase 3: Index and Agent Discovery
+## Phase 3: Index and Agent Discovery
 
 1. Build index over summary content (full-text and/or embeddings); update index when summaries are created or updated.
 2. Expose search over summaries to the agent (tool or context step): e.g. "search_past_summaries(query)" returning relevant summary excerpts and conversation IDs.
 3. Integrate with context builder so agent can inject relevant past-summary context when the user's message implies prior discussion.
 4. Document when and how much summary context is injected to avoid context bloat.
 
-### Phase 4: Polish
+## Phase 4: Polish
 
 1. Handle empty or very short conversations (no summary or placeholder).
 2. Settings or heuristics for update frequency (every turn vs threshold vs on-demand).

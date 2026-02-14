@@ -13,10 +13,8 @@ This guide covers the development workflow for building Cortex as a native Elect
 
 ### Development patterns
 
-- **[patterns.md](./patterns.md)** — Adding features, JSX, state, IPC, and services
-- **[use-case-workflow.md](./use-case-workflow.md)** — Four-phase feature implementation workflow
-- **[feature-development.md](./feature-development.md)** — Feature workflow summary
-- **[component-lifecycle.md](./component-lifecycle.md)** — Component initialization and cleanup patterns
+- **[feature-development.md](./feature-development.md)** — Adding features: sequence, example, IPC and UI checklists, React lifecycle and IPC cleanup
+- **[electron-guidance.md](./electron-guidance.md)** — Process boundaries, IPC, state, embedded services, AI (main process)
 
 ### Feature guides
 
@@ -25,6 +23,7 @@ How to add specific capabilities:
 - **[ai-elements.md](./ai-elements.md)** — Install AI Elements components into the renderer
 - **[commands-and-hotkeys.md](./commands-and-hotkeys.md)** — Register a command and hotkey
 - **[settings.md](./settings.md)** — Create a new setting
+- **[ui-state-persistence.md](./ui-state-persistence.md)** — Persist UI state across restarts
 
 ### Quality and release
 
@@ -32,6 +31,7 @@ How to add specific capabilities:
 - **[build.md](./build.md)** — Production builds and distribution
 - **[code-style.md](./code-style.md)** — Naming conventions and style guide
 - **[guardrails.md](./guardrails.md)** — Technical constraints, decision shortcuts, and red flags
+- **[performance.md](./performance.md)** — Lazy loading, DB and IPC optimization
 
 ## Design Documentation
 

@@ -9,7 +9,7 @@ related_files:
   - docs/development/design-tokens.md
   - docs/development/ui-guide.md
   - docs/development/accessibility.md
-  - docs/development/component-lifecycle.md
+  - docs/development/feature-development.md
   - src/renderer/src/main.css
   - src/renderer/src/lib/theme.ts
   - tailwind.config.js
@@ -23,6 +23,8 @@ session_duration: ~8 hours (across multiple sessions)
 iterations: 12 staged steps with incremental testing
 outcome: Complete UI/CSS guardrails system with design tokens, theme system, component patterns, accessibility compliance, comprehensive documentation, and automated pre-commit validation
 ---
+
+*Note: The Component Lifecycle doc referenced below was later merged into [Feature Development](../development/feature-development.md).*
 
 [Docs](../README.md) / [Devlogs](./README.md) / UI and CSS Guardrails Implementation
 

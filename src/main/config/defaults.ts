@@ -1,5 +1,5 @@
 import { app } from 'electron'
-import { getDefaultModel } from '../services/ollama'
+import { getDefaultModel } from '@main/services/ollama'
 import { getFullSystemPrompt } from './prompts'
 
 /**

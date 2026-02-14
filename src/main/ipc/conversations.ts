@@ -1,11 +1,11 @@
 import { ipcMain } from 'electron'
-import { getConversationService } from '../services/llm/conversations'
-import { getLLMAgentService } from '../services/llm/agent'
+import { getConversationService } from '@main/services/llm/conversations'
+import { getLLMAgentService } from '@main/services/llm/agent'
 import type {
   ListConversationsOptions,
   CreateConversationOptions,
   UpdateConversationOptions,
-} from '../../shared/types'
+} from '@shared/types'
 
 /**
  * Register IPC handlers for conversation management.
@@ -159,10 +159,12 @@ export function registerConversationHandlers() {
 
   /**
    * Get messages for a conversation from the LangGraph checkpointer.
+   * Merges per-message model attribution from conversation metadata (Phase 5a).
    */
   ipcMain.handle('conversations:getMessages', async (_event, id: string) => {
     try {
       const agentService = getLLMAgentService()
+      const conversationService = getConversationService()
 
       // Ensure agent is initialized (needed for checkpointer)
       if (!agentService.isInitialized()) {
@@ -170,7 +172,10 @@ export function registerConversationHandlers() {
         await agentService.initialize()
       }
 
-      const messages = await agentService.getConversationMessages(id)
+      // Load conversation first so we can pass messageModels for per-message attribution
+      const conv = conversationService.get(id)
+      const messageModels = conv?.messageModels?.length ? conv.messageModels : undefined
+      const messages = await agentService.getConversationMessages(id, messageModels)
 
       return {
         success: true,

@@ -1,5 +1,5 @@
 import { StructuredTool } from '@langchain/core/tools'
-import type { Agent } from '../../../../shared/types'
+import type { Agent } from '@shared/types'
 
 /**
  * Metadata for a tool

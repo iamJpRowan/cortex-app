@@ -3,6 +3,16 @@ import path from 'path'
 import fs from 'fs'
 import { app } from 'electron'
 
+function parseMessageModels(json: string | null | undefined): string[] {
+  if (json == null || json === '') return []
+  try {
+    const arr = JSON.parse(json) as unknown
+    return Array.isArray(arr) ? arr.filter((m): m is string => typeof m === 'string') : []
+  } catch {
+    return []
+  }
+}
+
 /**
  * Conversation metadata stored in SQLite.
  * Messages are stored by LangGraph checkpointer; this tracks metadata.
@@ -12,6 +22,8 @@ export interface ConversationRecord {
   title: string
   agentId: string | null
   currentModel: string | null
+  /** Model id per assistant message (by order); used for per-message attribution. */
+  messageModels: string[]
   createdAt: number
   updatedAt: number
   messageCount: number
@@ -47,6 +59,8 @@ export interface UpdateConversationOptions {
   title?: string
   agentId?: string
   currentModel?: string
+  /** Full list of model ids per assistant message (by order). */
+  messageModels?: string[]
   messageCount?: number
 }
 
@@ -103,6 +117,13 @@ export class ConversationService {
       ON conversations(created_at DESC)
     `)
 
+    // Migration: add message_models for per-message model attribution (Phase 5a)
+    try {
+      this.db.exec(`ALTER TABLE conversations ADD COLUMN message_models TEXT`)
+    } catch {
+      // Column already exists
+    }
+
     console.log('[ConversationService] Initialized with database:', this.dbPath)
   }
 
@@ -114,17 +135,6 @@ export class ConversationService {
       throw new Error('ConversationService not initialized. Call initialize() first.')
     }
     return this.db
-  }
-
-  /**
-   * Generate a default title based on timestamp.
-   */
-  private generateDefaultTitle(): string {
-    const now = new Date()
-    return `Chat - ${now.toLocaleDateString()} ${now.toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
-    })}`
   }
 
   /**
@@ -167,7 +177,7 @@ export class ConversationService {
     const orderDirection = orderDir.toUpperCase()
 
     const query = `
-      SELECT id, title, agent_id, current_model, created_at, updated_at, message_count
+      SELECT id, title, agent_id, current_model, message_models, created_at, updated_at, message_count
       FROM conversations
       ${whereClause}
       ORDER BY ${orderColumn} ${orderDirection}
@@ -181,6 +191,7 @@ export class ConversationService {
       title: string
       agent_id: string | null
       current_model: string | null
+      message_models: string | null
       created_at: number
       updated_at: number
       message_count: number
@@ -191,6 +202,7 @@ export class ConversationService {
       title: row.title,
       agentId: row.agent_id,
       currentModel: row.current_model,
+      messageModels: parseMessageModels(row.message_models),
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       messageCount: row.message_count,
@@ -205,7 +217,7 @@ export class ConversationService {
 
     const row = db
       .prepare(
-        `SELECT id, title, agent_id, current_model, created_at, updated_at, message_count
+        `SELECT id, title, agent_id, current_model, message_models, created_at, updated_at, message_count
          FROM conversations WHERE id = ?`
       )
       .get(id) as
@@ -214,6 +226,7 @@ export class ConversationService {
           title: string
           agent_id: string | null
           current_model: string | null
+          message_models: string | null
           created_at: number
           updated_at: number
           message_count: number
@@ -227,6 +240,7 @@ export class ConversationService {
       title: row.title,
       agentId: row.agent_id,
       currentModel: row.current_model,
+      messageModels: parseMessageModels(row.message_models),
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       messageCount: row.message_count,
@@ -241,7 +255,7 @@ export class ConversationService {
 
     const now = Date.now()
     const id = options?.id || `conv-${now}`
-    const title = options?.title || this.generateDefaultTitle()
+    const title = options?.title || 'New Chat'
 
     db.prepare(
       `INSERT INTO conversations (id, title, agent_id, current_model, created_at, updated_at, message_count)
@@ -255,6 +269,7 @@ export class ConversationService {
       title,
       agentId: options?.agentId || null,
       currentModel: options?.currentModel || null,
+      messageModels: [],
       createdAt: now,
       updatedAt: now,
       messageCount: 0,
@@ -283,6 +298,11 @@ export class ConversationService {
     if (updates.currentModel !== undefined) {
       setClauses.push('current_model = ?')
       params.push(updates.currentModel)
+    }
+
+    if (updates.messageModels !== undefined) {
+      setClauses.push('message_models = ?')
+      params.push(JSON.stringify(updates.messageModels))
     }
 
     if (updates.messageCount !== undefined) {

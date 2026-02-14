@@ -5,22 +5,34 @@ import { resolve } from 'path'
 export default defineConfig({
   main: {
     plugins: [externalizeDepsPlugin()],
+    resolve: {
+      alias: {
+        '@main': resolve(__dirname, 'src/main'),
+        '@shared': resolve(__dirname, 'src/shared'),
+      },
+    },
     build: {
-      outDir: 'dist-electron/main'
-    }
+      outDir: 'dist-electron/main',
+    },
   },
   preload: {
     plugins: [externalizeDepsPlugin()],
+    resolve: {
+      alias: {
+        '@shared': resolve(__dirname, 'src/shared'),
+      },
+    },
     build: {
-      outDir: 'dist-electron/preload'
-    }
+      outDir: 'dist-electron/preload',
+    },
   },
   renderer: {
     plugins: [react()],
     resolve: {
       alias: {
-        '@': resolve(__dirname, './src/renderer/src')
-      }
-    }
-  }
+        '@': resolve(__dirname, './src/renderer/src'),
+        '@shared': resolve(__dirname, 'src/shared'),
+      },
+    },
+  },
 })

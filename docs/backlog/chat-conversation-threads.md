@@ -38,29 +38,27 @@ Allow users to start **threads** attached to a specific message in a conversatio
 - One primary conversation can have multiple threads (each attached to a different message).
 - No requirement for threads to support sub-threads in MVP (flat model is enough).
 
-## Implementation Approach
-
-### Phase 1: Data Model & API
+## Phase 1: Data Model & API
 
 1. Extend conversation/message model to support thread ownership (e.g. `threadParentMessageId`, or separate `Thread` entity linking to conversation + message).
 2. Store thread messages separately or with clear association so primary context builder can exclude them.
 3. IPC/API: e.g. `llm:query` with `conversationId`, `threadParentMessageId?`, and context that omits other threads when building primary context.
 4. When building context for the **primary** conversation, exclude messages that belong to any thread (or include only a configurable summary).
 
-### Phase 2: Context Builder
+## Phase 2: Context Builder
 
 1. Context builder for primary conversation filters out thread messages (or replaces with optional summary).
 2. Context builder for a **thread** includes: (a) main conversation history up to the parent message, and (b) this thread's messages. Optionally restrict to parent message only for minimal token use.
 3. Ensure trace/telemetry distinguishes thread vs primary turns if needed.
 
-### Phase 3: UI
+## Phase 3: UI
 
 1. Add "Open thread" (or equivalent) action on messages.
 2. Implement thread view/panel (inline, sidebar, or modal) and navigation (open/close, "back to main").
 3. Show thread indicator on messages that have threads (e.g. icon, count).
 4. Optional: "Add to main conversation" (summary or selected text) from thread.
 
-### Phase 4: Polish
+## Phase 4: Polish
 
 1. Persist thread state and restore when reopening conversation.
 2. List threads in conversation metadata or message detail.

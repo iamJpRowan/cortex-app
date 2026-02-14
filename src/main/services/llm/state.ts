@@ -2,7 +2,7 @@ import { SqliteSaver } from '@langchain/langgraph-checkpoint-sqlite'
 import Database from 'better-sqlite3'
 import path from 'path'
 import fs from 'fs'
-import { LLMServiceConfig } from '../../config/defaults'
+import { LLMServiceConfig } from '@main/config/defaults'
 
 /**
  * Initialize SQLite database for conversation state

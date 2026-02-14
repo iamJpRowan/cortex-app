@@ -33,9 +33,7 @@ Provide a **rich markdown editing experience** in the chat composer (and optiona
 - **State:** Editor state clears or resets after send; no requirement to persist draft in the editor across sessions (can be a follow-on).
 - **Placement:** Editor replaces the current chat composer textarea (from Cursor-Style Chat UI); layout and sticky/composer placement remain unchanged.
 
-## Implementation Approach
-
-### Phase 1: Editor Component and Markdown Pipeline
+## Phase 1: Editor Component and Markdown Pipeline
 
 1. Add TipTap (and chosen extensions: StarterKit, markdown or similar, code block, list, etc.); ensure markdown serialization/deserialization is consistent and that output is suitable for LLM context.
 2. Build a **MarkdownEditor** (or equivalent) component that:
@@ -45,14 +43,14 @@ Provide a **rich markdown editing experience** in the chat composer (and optiona
 3. Style toolbar and editor to match shadcn/ui and existing chat UI (borders, focus, disabled state).
 4. Add tests or manual checks for: markdown round-trip, paste from HTML/markdown, and accessibility basics.
 
-### Phase 2: Chat Composer Integration
+## Phase 2: Chat Composer Integration
 
 1. Replace the Prompt Input textarea (or current composer) in the chat view with the new **MarkdownEditor**.
 2. Wire submit: get markdown from the editor, call existing send-message handler, clear editor on success.
 3. Preserve Enter to submit and Shift+Enter for newline (or chosen convention) if the editor supports it; otherwise document and implement the chosen shortcut.
 4. Verify streaming and trace display still work; no change to message rendering (MessageResponse already handles markdown).
 
-### Phase 3: Reuse and Documentation
+## Phase 3: Reuse and Documentation
 
 1. Document the component: props (value, onChange, placeholder, min/max height, disabled), and where it is used (chat now; other surfaces later).
 2. If other consumers (e.g. notes, agent instructions) are planned, add a short “Using MarkdownEditor elsewhere” note in the component or in docs.

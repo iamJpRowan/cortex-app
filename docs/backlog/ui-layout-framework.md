@@ -117,40 +117,38 @@ interface LayoutState {
 - Widget registry structure ready for plugin integration
 - Clear separation: `builtin/` vs future `user/` or `plugins/` directories
 
-## Implementation Approach
-
 **Note:** Phase 1 (Core Layout Structure) is implemented in [Basic Layout Structure](./basic-layout-structure.md). This framework builds on that foundation.
 
-### Phase 2: Tab System
+## Phase 2: Tab System
 1. Create tab container component
 2. Implement tab operations (close, reorder, pin, duplicate)
 3. Add tab state persistence
 4. Integrate tab bar extending over right sidebar
 5. Update center area to render tabs instead of single view
 
-### Phase 3: Right Sidebar Functionality
+## Phase 3: Right Sidebar Functionality
 1. Implement right sidebar collapse/resize functionality (mirror left sidebar)
 2. Add state management for right sidebar width and collapsed state
 3. Integrate with layout container
 
-### Phase 4: Panel System
+## Phase 4: Panel System
 1. Create panel component interface and base implementation
 2. Implement panel rendering in sidebars
 3. Add panel reordering within sidebars
 4. Support global panels in right sidebar
 
-### Phase 5: Resize Functionality
+## Phase 5: Resize Functionality
 1. Add resize handles to both sidebars
 2. Implement drag-to-resize interaction
 3. Add persistent width state management
 4. Update layout state structure to include widths
 
-### Phase 6: State Persistence
+## Phase 6: State Persistence
 1. Implement localStorage persistence for layout state
 2. Load persisted state on app startup
 3. Handle migration of state structure if needed
 
-### Phase 7: Registry Foundation
+## Phase 7: Registry Foundation
 1. Create widget registry structure (mirroring ToolRegistry)
 2. Define widget interface
 3. Set up directory structure for future widgets
@@ -190,9 +188,8 @@ interface LayoutState {
 - State structure is extensible (can add new locations/structures without breaking existing panels)
 
 ### Component Pattern
-- Continue using vanilla JSX with `createElement`
-- Components return `HTMLElement` (no React)
-- Follow existing component lifecycle patterns
+- Use React (current stack: React + shadcn/ui)
+- Follow [Feature Development](../development/feature-development.md) and [UI guide](../design/ui-guide.md) patterns
 
 ### Registry Pattern
 - Mirror `ToolRegistry` structure for consistency

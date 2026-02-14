@@ -10,7 +10,7 @@ Enable users to create and manage custom AI agents—bespoke configurations of i
 
 - **[Chat Interface (MVP)](./archive/chat-interface-mvp.md)** - Must be complete. Provides agent type definitions and agent parameter wiring.
 - **[Deep Agents Adoption](./deep-agents-adoption.md)** - Must be complete. Provides runtime harness for agent execution.
-- **[Tool Permission System](./tool-permission-system.md)** - Should be complete for per-agent permission sets. Can ship basic agents without if permissions are global.
+- **[Tool Permission System](./tool-permission-system.md)** - Should be complete so that modes exist for agents to reference (mode OR custom permissions). Defines the permission hierarchy and mode format; this backlog defines how agents use a mode or supply a custom set.
 
 ## Key Capabilities
 
@@ -82,13 +82,21 @@ You are a research assistant specialized in exploring knowledge graphs...
 - `ask`: Tool requires human approval before each use (human-in-the-loop)
 - `deny`: Tool is never available to the agent
 
-**Tool IDs:** Entries in `tools.allow` / `ask` / `deny` are **canonical tool names** from the tool registry (see [Declarative Tool Definitions](./declarative-tool-definitions.md))—e.g. `neo4j.count_nodes`, `web.search`, `command.invoke`. The agent editor gets the list of available tools from the registry (same source as the [Tool Permission System](./tool-permission-system.md) UI) so users assign allow/ask/deny from the current set. On save or load, validate that every referenced tool ID exists in the registry; see Notes → Validation for behavior when a tool is missing (e.g. plugin uninstalled).
+**Tool IDs:** Entries in `tools.allow` / `ask` / `deny` are **canonical tool names** from the tool registry (see [Tool Permission System](./tool-permission-system.md) Part I: Tool Definitions)—e.g. `neo4j.count_nodes`, `web.search`, `command.invoke`. The agent editor gets the list of available tools from the registry (same source as the permission UI) so users assign allow/ask/deny from the current set. On save or load, validate that every referenced tool ID exists in the registry; see Notes → Validation for behavior when a tool is missing (e.g. plugin uninstalled).
 
-**Permission Inheritance:**
-- Agent tool permissions **intersect** with global permissions (principle of least privilege)
-- An agent cannot grant a tool that is globally denied
-- An agent can further restrict tools that are globally allowed
-- Effective permissions for a chat are the intersection of **global + agent + conversation's mode** (see [Tool Permission System](./tool-permission-system.md)). The chat's mode is the final cap for that conversation; switching to a more capable agent does not increase available tools beyond the mode's cap.
+**Agent permission model: mode OR custom**
+
+Each agent uses **mode** OR **custom** permissions—not both. This keeps the model explicit for users.
+
+- **Mode**: The agent references a named permission mode from the [Tool Permission System](./tool-permission-system.md) (e.g. Local Read Only, Read Only, or a user-defined mode). The agent's effective tool set is that mode's definition (category → connection type → connection → tool hierarchy).
+- **Custom**: The agent has its own permission definition with the **same structure as a mode**: category-level defaults (six categories: read local, write local, read external, write external, read app, write app) plus optional overrides at connection type, connection, and tool level. Stored in the agent's frontmatter or a linked definition; same resolution hierarchy as a mode file.
+
+Effective permissions for a chat = most restrictive of **conversation's mode** and **agent's mode or custom set**. The conversation's mode caps what is available in that chat; the agent's mode or custom set defines what that agent can use (and may further restrict). The [Tool Permission System](./tool-permission-system.md) defines modes and the resolution hierarchy; this backlog defines how agents reference a mode or supply a custom permission set.
+
+**Permission Inheritance (when Tool Permission System exists):**
+- Agent tool permissions **intersect** with the conversation's mode (principle of least privilege)
+- An agent cannot grant a tool that the conversation's mode denies
+- Effective permissions for a chat are the intersection of **conversation's mode** and **agent's mode or custom set**. The chat's mode is the cap for that conversation; the agent's mode/custom further scopes what that agent can use.
 
 ### Prompt Layering
 
@@ -163,9 +171,7 @@ Agent instructions are layered on top of a base system prompt that is always app
 - Agent changes mid-conversation are tracked in history
 - Audit trail shows: user-initiated switch, smart suggestion accepted, etc.
 
-## Implementation Approach
-
-### Phase 1: Agent Data Model & Storage
+## Phase 1: Agent Data Model & Storage
 
 1. Define `AgentMetadata` and `AgentConfig` TypeScript interfaces
 2. Create `AgentDefinition` type (metadata + config combined)
@@ -174,7 +180,7 @@ Agent instructions are layered on top of a base system prompt that is always app
 5. Implement MD file parser (YAML frontmatter + markdown body)
 6. Test parsing and validation
 
-### Phase 2: Agent Registry Service
+## Phase 2: Agent Registry Service
 
 1. Create `AgentRegistry` service (singleton pattern, like `ToolRegistry`)
 2. Load all agent MD files on startup
@@ -183,7 +189,7 @@ Agent instructions are layered on top of a base system prompt that is always app
 5. Emit events when agents change
 6. Implement `getAgent(id)`, `listAgents()`, `getDefaultAgent()`
 
-### Phase 3: Agent Editor UI
+## Phase 3: Agent Editor UI
 
 1. Create agent editor component
 2. Form for frontmatter fields (name, description, icon, color, model, temperature)
@@ -193,7 +199,7 @@ Agent instructions are layered on top of a base system prompt that is always app
 6. Save/cancel/delete actions
 7. Validation (required fields, valid tool references)
 
-### Phase 4: Agent Library View
+## Phase 4: Agent Library View
 
 1. Create agent list/library UI
 2. Display all agents with name, description, icon, color
@@ -202,7 +208,7 @@ Agent instructions are layered on top of a base system prompt that is always app
 5. Search/filter agents (optional)
 6. Show which agent is default
 
-### Phase 5: Agent Selector in Chat
+## Phase 5: Agent Selector in Chat
 
 1. Add agent selector to chat UI (dropdown with icons/colors)
 2. Wire selector to active conversation
@@ -212,7 +218,7 @@ Agent instructions are layered on top of a base system prompt that is always app
 6. Handle agent switch mid-conversation
 7. Track agent in conversation history (each step records agent ID)
 
-### Phase 6: Smart Agent Suggestions
+## Phase 6: Smart Agent Suggestions
 
 1. Implement detection logic (keywords, patterns)
 2. Show suggestion UI when match detected
@@ -220,7 +226,7 @@ Agent instructions are layered on top of a base system prompt that is always app
 4. Handle dismissal
 5. Tune heuristics for good UX
 
-### Phase 7: Import/Export
+## Phase 7: Import/Export
 
 1. Export agent to MD file (save dialog)
 2. Import agent from MD file
@@ -294,10 +300,10 @@ Our custom layer on top of Deep Agents provides:
 - [Deep Agents Adoption](./deep-agents-adoption.md) - Provides runtime capabilities
 
 **Related:**
-- [Declarative Tool Definitions](./declarative-tool-definitions.md) - Canonical tool names and registry as source for agent editor tool list.
-- [Tool Permission System](./tool-permission-system.md) - Per-tool permissions (agents can scope but not exceed global)
+- [Tool Permission System](./tool-permission-system.md) - Tool definitions (Part I) and registry as source for canonical tool names and agent editor tool list; permission modes and resolution.
+- [Tool Permission System](./tool-permission-system.md) - Defines modes and resolution hierarchy; agents use a mode or a custom permission set (mode OR custom), and effective permissions intersect with the conversation's mode
 - [Chat Quick Launcher](./chat-quick-launcher.md) - Uses agent selector
-- [Multi-Provider Model Selection](./multi-provider-model-selection.md) - Agents can have default model preference
+- [Multi-Provider Model Selection](./archive/multi-provider-model-selection.md) - Agents can have default model preference
 - [Sub-Agent Delegation](./sub-agent-delegation.md) - Agents can delegate to other agents
 
 ## Notes
@@ -330,13 +336,14 @@ This establishes the layered prompt architecture that custom agents will build u
 ### Design Decisions
 
 1. **MD file format**: Enables version control, external editing, and marketplace distribution
-2. **Intersection permissions**: Agent cannot grant more than global allows (principle of least privilege)
-3. **Default agent setting**: Stored in user settings (`settings.defaultAgentId`) rather than flag on agent
-4. **File watcher**: Allows external editing of agent files with automatic registry updates
-5. **Deep Agents as runtime**: Use LangChain Deep Agents harness for execution; our layer provides user-facing management
-6. **Three-tier permissions**: `allow`/`ask`/`deny` aligns with Tool Permission System and Deep Agents' `interrupt_on`
-7. **Memory via filesystem**: Leverage Deep Agents' `StoreBackend` for persistent memory, not a separate system
-8. **Layered prompts**: Base system prompt (hardcoded) + agent instructions (editable). Prevents users from accidentally breaking core behaviors like tool result handling or markdown formatting. Agent authors focus on persona and expertise rather than boilerplate.
+2. **Agent permissions: mode OR custom (not both)**: Each agent either references a named **mode** from the Tool Permission System or defines **custom** permissions (same structure as a mode: category → connection type → connection → tool). Keeps the model explicit; effective permissions = conversation's mode ∩ agent's mode or custom set. See Key Capabilities → Agent permission model.
+3. **Intersection permissions**: Agent cannot grant more than the conversation's mode allows (principle of least privilege)
+4. **Default agent setting**: Stored in user settings (`settings.defaultAgentId`) rather than flag on agent
+5. **File watcher**: Allows external editing of agent files with automatic registry updates
+6. **Deep Agents as runtime**: Use LangChain Deep Agents harness for execution; our layer provides user-facing management
+7. **Three-tier permissions**: `allow`/`ask`/`deny` aligns with Tool Permission System and Deep Agents' `interrupt_on`
+8. **Memory via filesystem**: Leverage Deep Agents' `StoreBackend` for persistent memory, not a separate system
+9. **Layered prompts**: Base system prompt (hardcoded) + agent instructions (editable). Prevents users from accidentally breaking core behaviors like tool result handling or markdown formatting. Agent authors focus on persona and expertise rather than boilerplate.
 
 ### Open Questions for Implementation
 

@@ -50,8 +50,13 @@ export interface LLMQueryOptions {
 
 /**
  * Trace entry types for execution audit trail.
+ * reasoning = provider extended thinking (e.g. Anthropic); emitted to UI only, not persisted.
  */
-export type TraceEntryType = 'tool_call' | 'tool_result' | 'assistant_message'
+export type TraceEntryType =
+  | 'tool_call'
+  | 'tool_result'
+  | 'assistant_message'
+  | 'reasoning'
 
 /**
  * A single entry in the execution trace.
@@ -140,6 +145,9 @@ export interface ChatMessage {
 
   /** Whether this message is currently streaming */
   isStreaming?: boolean
+
+  /** Model that generated this message (assistant messages only) */
+  model?: string
 }
 
 /**
@@ -188,6 +196,51 @@ export interface ConversationMetadata {
 
   /** Number of messages in the conversation */
   messageCount: number
+}
+
+// ============================================================================
+// Model discovery (Phase 3: Model Discovery & Metadata)
+// ============================================================================
+
+/**
+ * Capabilities supported by a model (for display and filtering).
+ */
+export interface ModelCapabilities {
+  /** Model supports tool/function calling */
+  tools?: boolean
+  /** Model supports vision/image inputs */
+  vision?: boolean
+}
+
+/**
+ * Metadata for a single model (discovery list and selector).
+ * All fields except id are optional; unknown models get defaults from discovery.
+ */
+export interface ModelMetadata {
+  /** Prefixed model id (e.g. ollama:llama3.2:3b, anthropic:claude-3-5-sonnet-20241022) */
+  id: string
+  /** Human-readable label for UI */
+  label?: string
+  /** Context window size in tokens, if known */
+  contextWindow?: number
+  /** Cost per input token (USD), if known */
+  costPerTokenInput?: number
+  /** Cost per output token (USD), if known */
+  costPerTokenOutput?: number
+  /** Capabilities (tools, vision) */
+  capabilities?: ModelCapabilities
+  /** Short privacy/data note for UI (e.g. "Local only", "Data sent to provider") */
+  privacyNote?: string
+}
+
+/**
+ * Result of listing models: grouped by provider for the model selector.
+ */
+export interface ListModelsResult {
+  /** Provider id -> list of models with metadata (tool-capable only) */
+  byProvider: Record<string, ModelMetadata[]>
+  /** Flat list of all models (convenience) */
+  all: ModelMetadata[]
 }
 
 /**
@@ -314,6 +367,9 @@ export interface StreamCompleteEvent extends StreamEventBase {
 
   /** Complete execution trace */
   trace: TraceEntry[]
+
+  /** Model that was used for this response (for conversation/message tracking) */
+  model?: string
 }
 
 /**

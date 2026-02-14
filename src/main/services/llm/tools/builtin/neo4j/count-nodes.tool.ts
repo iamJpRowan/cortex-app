@@ -1,6 +1,6 @@
 import { DynamicStructuredTool } from '@langchain/core/tools'
 import { z } from 'zod'
-import { getDriver } from '../../../../neo4j'
+import { getDriver } from '@main/services/neo4j'
 
 /**
  * Neo4j count-nodes tool

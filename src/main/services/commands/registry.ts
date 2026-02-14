@@ -11,8 +11,8 @@
  * @see src/renderer/src/lib/commands.ts - Renderer command registry
  */
 
-import { getSettingsService } from '../settings'
-import { resetAgentService } from '../llm/agent'
+import { getSettingsService } from '@main/services/settings'
+import { resetAgentService } from '@main/services/llm/agent'
 
 /**
  * Command definition for LLM-invokable commands

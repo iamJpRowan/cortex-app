@@ -2,9 +2,10 @@ import './main.css'
 import { createRoot } from 'react-dom/client'
 import { App } from './App'
 import { initTheme } from './lib/theme'
+import { migrateChatStorage } from './lib/chat-storage'
 
 async function init() {
-  // Initialize theme system first
+  migrateChatStorage()
   await initTheme()
 
   const rootElement = document.getElementById('root')

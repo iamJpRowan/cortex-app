@@ -1,21 +1,59 @@
 import * as React from 'react'
-import { MessageSquare, MessageSquarePlus, Trash2, Pencil, Search } from 'lucide-react'
+import {
+  MessageSquarePlus,
+  Trash2,
+  Pencil,
+  Search,
+  Loader2,
+  FileEdit,
+  MessageSquareDot,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
+import { ProviderIcon, getProviderIdFromModelId } from '@/components/ProviderIcon'
+import { cn } from '@/lib/utils'
 import type { ConversationMetadata } from '@/types/api'
+import type { ListModelsResult } from '@shared/types'
+import { CHAT_DRAFT_KEY_PREFIX, CHAT_LAST_VIEWED_KEY_PREFIX } from '@/lib/chat-storage'
 
 interface ConversationListProps {
+  /** List of conversations (controlled by parent for single source of truth with header). */
+  conversations: ConversationMetadata[]
+  /** Update conversations (called by list and by ref methods). */
+  setConversations: React.Dispatch<React.SetStateAction<ConversationMetadata[]>>
+  /** Whether the list is loading (e.g. initial fetch). */
+  listLoading?: boolean
+  /** Error message if list failed to load. */
+  listError?: string | null
+  /** Load/reload conversations (e.g. for retry). */
+  loadConversations: () => void | Promise<void>
   /** Currently selected conversation ID */
   selectedId?: string
   /** Called when a conversation is selected */
   onSelect?: (conversation: ConversationMetadata) => void
+  /** Called when a conversation title is updated (e.g. rename in sidebar). */
+  onTitleUpdate?: (conversationId: string, newTitle: string) => void
+  /** Model list to resolve currentModel id to label (show below chat name). */
+  modelList?: ListModelsResult | null
+  /** Conversation currently receiving a stream (shows spinner). */
+  streamingConversationId?: string
+  /** Conversation ID currently generating title (shows "Generating title..." in list). */
+  generatingTitleConversationId?: string
+  /** Whether the selected conversation has an unsaved draft. */
+  selectedConversationHasDraft?: boolean
+  /** Per-conversation last message timestamp (for unread indicator). */
+  lastMessageAt?: Record<string, number>
 }
 
 /** Methods exposed via ref */
 export interface ConversationListRef {
-  /** Update the title of a conversation in the list */
-  updateTitle: (conversationId: string, newTitle: string) => void
+  /** Update the title of a conversation in the list (may fetch and add if missing). */
+  updateTitle: (conversationId: string, newTitle: string) => void | Promise<void>
+  /** Update the current model shown for a conversation (e.g. after stream complete). */
+  updateCurrentModel: (conversationId: string, currentModel: string) => void
+  /** Add a placeholder conversation (e.g. while generating title for first message). */
+  addPlaceholderConversation: (conversationId: string) => void
 }
 
 /**
@@ -27,10 +65,24 @@ export interface ConversationListRef {
 export const ConversationList = React.forwardRef<
   ConversationListRef,
   ConversationListProps
->(function ConversationList({ selectedId, onSelect }, ref) {
-  const [conversations, setConversations] = React.useState<ConversationMetadata[]>([])
-  const [loading, setLoading] = React.useState(true)
-  const [error, setError] = React.useState<string | null>(null)
+>(function ConversationList(
+  {
+    conversations,
+    setConversations,
+    listLoading = false,
+    listError = null,
+    loadConversations,
+    selectedId,
+    onSelect,
+    onTitleUpdate,
+    modelList,
+    streamingConversationId,
+    generatingTitleConversationId,
+    selectedConversationHasDraft = false,
+    lastMessageAt = {},
+  },
+  ref
+) {
   const [editingId, setEditingId] = React.useState<string | null>(null)
   const [editingTitle, setEditingTitle] = React.useState('')
   const [searchQuery, setSearchQuery] = React.useState('')
@@ -43,19 +95,60 @@ export const ConversationList = React.forwardRef<
     return conversations.filter(c => c.title.toLowerCase().includes(query))
   }, [conversations, searchQuery])
 
-  // Expose methods via ref for parent component
-  React.useImperativeHandle(ref, () => ({
-    updateTitle: (conversationId: string, newTitle: string) => {
-      setConversations(prev =>
-        prev.map(c => (c.id === conversationId ? { ...c, title: newTitle } : c))
-      )
-    },
-  }))
-
-  // Load conversations on mount
-  React.useEffect(() => {
-    loadConversations()
-  }, [])
+  // Expose methods via ref for parent component (use parent's setConversations for single source of truth)
+  React.useImperativeHandle(
+    ref,
+    () => ({
+      updateTitle: async (conversationId: string, newTitle: string) => {
+        setConversations(prev => {
+          const found = prev.find(c => c.id === conversationId)
+          if (found) {
+            return prev.map(c =>
+              c.id === conversationId ? { ...c, title: newTitle } : c
+            )
+          }
+          return prev
+        })
+        // If conversation not in list (e.g. created from first message), fetch and add
+        try {
+          const result = await window.api.conversations.get(conversationId)
+          if (result.success && result.conversation) {
+            setConversations(prev => {
+              const found = prev.find(c => c.id === conversationId)
+              if (found) return prev // Already updated by sync path above
+              return [{ ...result.conversation!, title: newTitle }, ...prev]
+            })
+          }
+        } catch {
+          // Ignore; conversation may not exist yet
+        }
+      },
+      updateCurrentModel: (conversationId: string, currentModel: string) => {
+        setConversations(prev =>
+          prev.map(c => (c.id === conversationId ? { ...c, currentModel } : c))
+        )
+      },
+      addPlaceholderConversation: (conversationId: string) => {
+        setConversations(prev => {
+          if (prev.some(c => c.id === conversationId)) return prev
+          const now = Date.now()
+          return [
+            {
+              id: conversationId,
+              title: 'New Chat',
+              currentModel: null,
+              agentId: null,
+              createdAt: now,
+              updatedAt: now,
+              messageCount: 0,
+            },
+            ...prev,
+          ]
+        })
+      },
+    }),
+    [setConversations]
+  )
 
   // Focus input when editing starts
   React.useEffect(() => {
@@ -64,23 +157,6 @@ export const ConversationList = React.forwardRef<
       editInputRef.current.select()
     }
   }, [editingId])
-
-  const loadConversations = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-      const result = await window.api.conversations.list({ limit: 50 })
-      if (result.success && result.conversations) {
-        setConversations(result.conversations)
-      } else {
-        setError(result.error || 'Failed to load conversations')
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load conversations')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleNewChat = async () => {
     try {
@@ -101,7 +177,19 @@ export const ConversationList = React.forwardRef<
     try {
       const result = await window.api.conversations.delete(id)
       if (result.success) {
-        setConversations(prev => prev.filter(c => c.id !== id))
+        const deleteIndex = conversations.findIndex(c => c.id === id)
+        const newList = conversations.filter(c => c.id !== id)
+        setConversations(newList)
+        if (selectedId === id && newList.length > 0) {
+          const nextIndex = Math.min(deleteIndex, newList.length - 1)
+          onSelect?.(newList[nextIndex])
+        } else if (selectedId === id && newList.length === 0) {
+          const createResult = await window.api.conversations.create()
+          if (createResult.success && createResult.conversation) {
+            setConversations(prev => [createResult.conversation!, ...prev])
+            onSelect?.(createResult.conversation)
+          }
+        }
       }
     } catch (err) {
       console.error('Failed to delete conversation:', err)
@@ -128,10 +216,11 @@ export const ConversationList = React.forwardRef<
     try {
       const newTitle = editingTitle.trim()
       const result = await window.api.conversations.update(id, { title: newTitle })
-      if (result.success && result.conversation) {
+      if (result.success) {
         setConversations(prev =>
-          prev.map(c => (c.id === id ? { ...c, title: editingTitle.trim() } : c))
+          prev.map(c => (c.id === id ? { ...c, title: newTitle } : c))
         )
+        onTitleUpdate?.(id, newTitle)
       }
     } catch (err) {
       console.error('Failed to rename conversation:', err)
@@ -147,6 +236,20 @@ export const ConversationList = React.forwardRef<
     } else if (e.key === 'Escape') {
       handleCancelRename()
     }
+  }
+
+  const hasDraft = (id: string) =>
+    id === selectedId
+      ? selectedConversationHasDraft
+      : (localStorage.getItem(CHAT_DRAFT_KEY_PREFIX + id) ?? '').trim().length > 0
+
+  const isUnread = (conv: ConversationMetadata) => {
+    const lastMsg = lastMessageAt[conv.id] ?? conv.updatedAt
+    const lastViewed = parseInt(
+      localStorage.getItem(CHAT_LAST_VIEWED_KEY_PREFIX + conv.id) ?? '0',
+      10
+    )
+    return lastMsg > lastViewed && conv.id !== selectedId
   }
 
   const formatDate = (timestamp: number) => {
@@ -165,7 +268,7 @@ export const ConversationList = React.forwardRef<
     }
   }
 
-  if (loading) {
+  if (listLoading) {
     return (
       <div className="flex flex-col gap-2 p-2">
         <Skeleton className="h-8 w-full" />
@@ -176,11 +279,11 @@ export const ConversationList = React.forwardRef<
     )
   }
 
-  if (error) {
+  if (listError) {
     return (
       <div className="p-4 text-sm text-destructive">
-        <p>Error: {error}</p>
-        <Button variant="link" size="sm" onClick={loadConversations}>
+        <p>Error: {listError}</p>
+        <Button variant="link" size="sm" onClick={() => loadConversations()}>
           Retry
         </Button>
       </div>
@@ -231,19 +334,34 @@ export const ConversationList = React.forwardRef<
           </div>
         ) : (
           <div className="flex flex-col gap-1 p-2">
-            {filteredConversations.map(conversation => (
-              <div
-                key={conversation.id}
-                className={`
-                  group flex items-start gap-2 p-2 rounded-md text-left text-sm
-                  hover:bg-accent hover:text-accent-foreground
-                  transition-colors cursor-pointer
-                  ${selectedId === conversation.id ? 'bg-accent' : ''}
-                `}
-                onClick={() => editingId !== conversation.id && onSelect?.(conversation)}
-              >
-                <MessageSquare className="h-4 w-4 mt-0.5 shrink-0" />
-                <div className="flex-1 min-w-0">
+            {filteredConversations.map(conversation => {
+              const isStreaming = streamingConversationId === conversation.id
+              const isGeneratingTitle = generatingTitleConversationId === conversation.id
+              const hasDraftIcon = hasDraft(conversation.id)
+              const unread = isUnread(conversation)
+              // Single source of truth: derive display title (generating vs stored)
+              const displayTitle = isGeneratingTitle
+                ? 'Generating title...'
+                : (conversation.title ?? 'New Chat')
+
+              return (
+                <div
+                  key={conversation.id}
+                  className={cn(
+                    `
+                      group flex flex-col p-2 rounded-md text-left text-sm
+                      transition-colors
+                    `,
+                    'cursor-pointer w-full',
+                    'hover:bg-accent hover:text-accent-foreground',
+                    selectedId === conversation.id
+                      ? 'selected-item'
+                      : 'border border-transparent'
+                  )}
+                  onClick={() =>
+                    editingId !== conversation.id && onSelect?.(conversation)
+                  }
+                >
                   {editingId === conversation.id ? (
                     <div className="flex items-center gap-1">
                       <Input
@@ -252,57 +370,123 @@ export const ConversationList = React.forwardRef<
                         onChange={e => setEditingTitle(e.target.value)}
                         onKeyDown={e => handleRenameKeyDown(e, conversation.id)}
                         onBlur={() => handleSaveRename(conversation.id)}
-                        className="h-6 text-sm px-1"
+                        className="h-6 text-sm px-1 flex-1 min-w-0"
                         onClick={e => e.stopPropagation()}
                       />
                     </div>
                   ) : (
                     <>
-                      <div className="truncate font-medium">{conversation.title}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {formatDate(conversation.updatedAt)}
-                        {conversation.messageCount > 0 && (
-                          <span className="ml-2">
-                            {conversation.messageCount} message
-                            {conversation.messageCount !== 1 ? 's' : ''}
-                          </span>
+                      {/* Row 1: title; status icons (draft, streaming); actions on hover */}
+                      <div className="flex items-center gap-2 min-w-0 w-full">
+                        <div
+                          className={cn(
+                            'truncate flex-1 min-w-0',
+                            unread ? 'font-bold' : 'font-medium'
+                          )}
+                        >
+                          {isGeneratingTitle ? (
+                            <span className="animate-title-shimmer">{displayTitle}</span>
+                          ) : (
+                            displayTitle
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          {hasDraftIcon && (
+                            <span title="Draft">
+                              <FileEdit className="h-3 w-3 text-muted-foreground" />
+                            </span>
+                          )}
+                          {isStreaming && (
+                            <span title="AI responding">
+                              <Loader2
+                                className="h-3 w-3 animate-spin text-muted-foreground"
+                              />
+                            </span>
+                          )}
+                          {unread && (
+                            <span title="Unread response">
+                              <MessageSquareDot className="h-3 w-3 text-muted-foreground" />
+                            </span>
+                          )}
+                        </div>
+                        <div
+                          className={cn(
+                            'flex gap-1 flex-nowrap shrink-0 overflow-hidden',
+                            `
+                              max-w-0 opacity-0 transition-[max-width,opacity]
+                              duration-150
+                            `,
+                            'group-hover:max-w-[5rem] group-hover:opacity-100'
+                          )}
+                        >
+                          <button
+                            className={cn('p-1 rounded', 'hover:bg-muted')}
+                            onClick={e => handleStartRename(conversation, e)}
+                            title="Rename conversation"
+                          >
+                            <Pencil className="h-3 w-3" />
+                          </button>
+                          <button
+                            className={cn(
+                              'p-1 rounded',
+                              'hover:bg-destructive hover:text-destructive-foreground'
+                            )}
+                            onClick={e => handleDelete(conversation.id, e)}
+                            title="Delete conversation"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </div>
+                      </div>
+                      {/* Row 2: details full width, timestamp right-aligned */}
+                      <div
+                        className={cn(
+                          'flex items-center justify-between gap-2 w-full text-xs',
+                          'text-muted-foreground min-w-0'
                         )}
+                      >
+                        <div className="flex items-center gap-2 min-w-0 truncate">
+                          {conversation.currentModel && (
+                            <>
+                              <span className="flex items-center gap-1.5 min-w-0">
+                                <ProviderIcon
+                                  providerId={getProviderIdFromModelId(
+                                    conversation.currentModel
+                                  )}
+                                  size={12}
+                                  className="shrink-0"
+                                />
+                                <span className="truncate">
+                                  {modelList?.all?.find(
+                                    m => m.id === conversation.currentModel
+                                  )?.label ??
+                                    (conversation.currentModel.includes(':')
+                                      ? conversation.currentModel
+                                          .split(':')
+                                          .slice(1)
+                                          .join(':')
+                                      : conversation.currentModel)}
+                                </span>
+                              </span>
+                              <span className="shrink-0">·</span>
+                            </>
+                          )}
+                          {conversation.messageCount > 0 && (
+                            <span className="shrink-0">
+                              {conversation.messageCount} message
+                              {conversation.messageCount !== 1 ? 's' : ''}
+                            </span>
+                          )}
+                        </div>
+                        <span className="shrink-0">
+                          {formatDate(conversation.updatedAt)}
+                        </span>
                       </div>
                     </>
                   )}
                 </div>
-                {editingId !== conversation.id && (
-                  <div
-                    className="
-                      flex gap-1 opacity-0
-                      group-hover:opacity-100
-                      transition-opacity
-                    "
-                  >
-                    <button
-                      className="
-                        p-1 rounded
-                        hover:bg-muted
-                      "
-                      onClick={e => handleStartRename(conversation, e)}
-                      title="Rename conversation"
-                    >
-                      <Pencil className="h-3 w-3" />
-                    </button>
-                    <button
-                      className="
-                        p-1 rounded
-                        hover:bg-destructive hover:text-destructive-foreground
-                      "
-                      onClick={e => handleDelete(conversation.id, e)}
-                      title="Delete conversation"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>

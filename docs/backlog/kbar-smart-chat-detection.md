@@ -32,27 +32,25 @@ Enhance KBar command palette to detect when user types long-form questions that 
 - No model/agent selection—uses defaults
 - Seamless transition from KBar to chat
 
-## Implementation Approach
-
-### Phase 1: Detection Logic
+## Phase 1: Detection Logic
 1. Add detection function to KBar logic
 2. Implement heuristics (length, question words, no command match)
 3. Test detection with various inputs
 4. Tune thresholds for good UX
 
-### Phase 2: Action Display
+## Phase 2: Action Display
 1. Create "Start chat" action dynamically when detected
 2. Add chat icon and styling
 3. Position prominently in results
 4. Handle action selection
 
-### Phase 3: Chat Integration
+## Phase 3: Chat Integration
 1. Wire action to navigate to chat
 2. Pass detected text as initial message
 3. Create new conversation with that message
 4. Test full flow
 
-### Phase 4: Polish
+## Phase 4: Polish
 1. Smooth transition from KBar to chat
 2. Clear visual feedback
 3. Handle edge cases (very long text, special characters)

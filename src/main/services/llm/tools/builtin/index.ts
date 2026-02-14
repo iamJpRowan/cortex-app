@@ -1,8 +1,8 @@
-import { toolRegistry } from '../registry'
+import { toolRegistry } from '@main/services/llm/tools/registry'
 import { echoTool } from './echo/echo.tool'
 import { countNodesTool } from './neo4j/count-nodes.tool'
 import { createInvokeCommandTool } from './command/invoke-command.tool'
-import { registerBuiltinCommands } from '../../../commands'
+import { registerBuiltinCommands } from '@main/services/commands'
 
 /**
  * Auto-register all built-in tools

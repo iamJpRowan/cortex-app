@@ -1,9 +1,19 @@
-import { ipcMain, BrowserWindow } from 'electron'
-import { toolRegistry } from '../services/llm/tools/registry'
-import { getLLMAgentService, resetAgentService } from '../services/llm/agent'
-import type { LLMQueryOptions, StreamQueryResult } from '../../shared/types'
+import { ipcMain, BrowserWindow, safeStorage } from 'electron'
+import { toolRegistry } from '@main/services/llm/tools/registry'
+import { getLLMAgentService, resetAgentService } from '@main/services/llm/agent'
+import { getConversationService } from '@main/services/llm/conversations'
+import { generateChatTitle } from '@main/services/llm/title-generator'
+import {
+  getModelsWithMetadata,
+  getDiscoverableModels,
+} from '@main/services/llm/providers/model-list-service'
+import { providerRegistry } from '@main/services/llm/providers/registry'
+import { getProviderConfigWithDecryptedKeys } from '@main/services/llm/providers/secure-config'
+import { getSettingsService } from '@main/services/settings'
+import type { LLMProvidersConfig } from '@main/services/settings'
+import type { LLMQueryOptions, StreamQueryResult, ListModelsResult } from '@shared/types'
 // Import builtin tools to trigger auto-registration
-import '../services/llm/tools/builtin'
+import '@main/services/llm/tools/builtin'
 
 /**
  * Register IPC handlers for LLM agent functionality
@@ -148,11 +158,61 @@ export function registerLLMHandlers() {
         const streamId = `stream-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
         const conversationId = options?.conversationId ?? `conv-${Date.now()}`
 
+        // For first message (messageCount === 0), start title generation immediately (before stream)
+        // Handles both: sending into empty state (no convId) and "New Chat" button (has convId)
+        try {
+          const convService = getConversationService()
+          convService.ensureExists(conversationId)
+          const conv = convService.get(conversationId)
+          if (conv && conv.messageCount === 0) {
+            if (!window.isDestroyed()) {
+              window.webContents.send('conversations:titleGenerating', {
+                conversationId,
+              })
+            }
+            generateChatTitle(message)
+              .then(title => {
+                if (title && !window.isDestroyed()) {
+                  convService.update(conversationId, { title })
+                  window.webContents.send('conversations:titleUpdated', {
+                    conversationId,
+                    title,
+                  })
+                }
+              })
+              .catch(err => console.warn('[LLM IPC] Title generation failed:', err))
+          }
+        } catch (err) {
+          console.error('[LLM IPC] Failed to start title generation:', err)
+        }
+
         // Start streaming in background (don't await)
         // Events will be sent via webContents.send
         // Pass streamId to agent service so all events use the same ID
         agentService
           .queryStream(message, streamId, { ...options, conversationId }, streamEvent => {
+            // On stream complete, persist model to conversation for Phase 5a
+            if (
+              streamEvent.type === 'complete' &&
+              'model' in streamEvent &&
+              streamEvent.model
+            ) {
+              try {
+                const convService = getConversationService()
+                convService.ensureExists(streamEvent.conversationId)
+                const conv = convService.get(streamEvent.conversationId)
+                if (conv) {
+                  const nextModels = [...conv.messageModels, streamEvent.model!]
+                  convService.update(streamEvent.conversationId, {
+                    currentModel: streamEvent.model,
+                    messageModels: nextModels,
+                    messageCount: nextModels.length,
+                  })
+                }
+              } catch (err) {
+                console.error('[LLM IPC] Failed to update conversation model:', err)
+              }
+            }
             // Send event to renderer
             if (!window.isDestroyed()) {
               window.webContents.send('llm:stream', streamEvent)
@@ -274,4 +334,114 @@ export function registerLLMHandlers() {
       }
     }
   })
+
+  /**
+   * Dev/testing: encrypt a provider API key and optionally write to settings.
+   * Same path the future Provider Configuration UI will use.
+   * From renderer DevTools: await api.llm.encryptProviderKey('anthropic', 'sk-ant-...', true)
+   */
+  /**
+   * List all models with metadata, grouped by provider (tool-capable only).
+   * Cache invalidated when llm.providers or llm.defaultModel changes.
+   */
+  ipcMain.handle('llm:listModels', async () => {
+    try {
+      return await getModelsWithMetadata()
+    } catch (error) {
+      console.error('[LLM IPC] listModels failed:', error)
+      const empty: ListModelsResult = { byProvider: {}, all: [] }
+      return empty
+    }
+  })
+
+  /**
+   * List all discoverable models for a provider (full list from API), for the "enable models" UI.
+   * Not filtered by enabledModelIds.
+   */
+  ipcMain.handle('llm:listDiscoverableModels', async (_event, providerId: string) => {
+    if (!providerId || typeof providerId !== 'string') {
+      return []
+    }
+    try {
+      return await getDiscoverableModels(providerId)
+    } catch (error) {
+      console.error('[LLM IPC] listDiscoverableModels failed:', error)
+      return []
+    }
+  })
+
+  /**
+   * Test connection to a single provider. Returns success and model count or error.
+   * Used by Provider Configuration UI.
+   */
+  ipcMain.handle('llm:testProvider', async (_event, providerId: string) => {
+    if (!providerId || typeof providerId !== 'string') {
+      return { success: false, error: 'providerId is required' }
+    }
+    try {
+      const settings = getSettingsService()
+      const getProviderConfig = (id: string) => {
+        const p = (settings.get('llm.providers') ?? {}) as LLMProvidersConfig
+        const r =
+          typeof p[id] === 'object' && p[id] !== null
+            ? (p[id] as Record<string, unknown>)
+            : undefined
+        return getProviderConfigWithDecryptedKeys(r)
+      }
+      const modelIds = await providerRegistry.listModels(providerId, getProviderConfig)
+      return { success: true, modelCount: modelIds.length }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unknown error'
+      console.warn(`[LLM IPC] testProvider(${providerId}) failed:`, message)
+      return { success: false, error: message }
+    }
+  })
+
+  ipcMain.handle(
+    'llm:encrypt-provider-key',
+    async (
+      _event,
+      providerId: string,
+      plainKey: string,
+      writeToSettings: boolean = false
+    ) => {
+      if (!providerId || typeof plainKey !== 'string' || !plainKey.trim()) {
+        return {
+          success: false,
+          error: 'providerId and plainKey (non-empty string) are required',
+        }
+      }
+      if (!safeStorage.isEncryptionAvailable()) {
+        return {
+          success: false,
+          error: 'Encryption is not available on this system',
+        }
+      }
+      try {
+        const encrypted = safeStorage.encryptString(plainKey.trim()).toString('base64')
+        const fragment = { [providerId]: { apiKeyEncrypted: encrypted } }
+        if (writeToSettings) {
+          const settings = getSettingsService()
+          const current = (settings.get('llm.providers') ?? {}) as LLMProvidersConfig
+          const merged: LLMProvidersConfig = { ...current, ...fragment }
+          settings.set('llm.providers', merged)
+          console.log(
+            `[LLM IPC] Encrypted provider key for: ${providerId} (written to settings)`
+          )
+        } else {
+          console.log(`[LLM IPC] Encrypted provider key for: ${providerId}`)
+        }
+        return {
+          success: true,
+          fragment,
+          written: writeToSettings,
+        }
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        }
+      }
+    }
+  )
 }

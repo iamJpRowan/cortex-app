@@ -1,12 +1,33 @@
 import * as React from 'react'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
-import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
-import { Send, Loader2, User, Bot, Pencil, Check, X, Copy } from 'lucide-react'
+import {
+  Send,
+  Loader2,
+  User,
+  Bot,
+  Pencil,
+  Check,
+  X,
+  Copy,
+  ChevronDown,
+  Brain,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PromptInput } from '@/components/ui/prompt-input'
 import { ConversationList, type ConversationListRef } from './ConversationList'
+import {
+  Conversation,
+  ConversationContent,
+  ConversationScrollButton,
+  ConversationEmptyState,
+} from '@/components/ai-elements/conversation'
+import {
+  Message,
+  MessageContent,
+  MessageResponse,
+  MessageActions,
+  MessageAction,
+} from '@/components/ai-elements/message'
 import {
   ChainOfThought,
   ChainOfThoughtHeader,
@@ -16,12 +37,27 @@ import {
   ToolInvocation,
   type ToolInvocationStatus,
 } from '@/components/ai-elements/tool-invocation'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
+import { ModelSelector } from './ModelSelector'
+import { ProviderIcon, getProviderIdFromModelId } from './ProviderIcon'
 import type {
   ChatMessage,
   StreamEvent,
   TraceEntry,
   ConversationMetadata,
 } from '@/types/api'
+import { cn } from '@/lib/utils'
+import {
+  CHAT_LAST_ACTIVE_KEY,
+  CHAT_DRAFT_KEY_PREFIX,
+  CHAT_LAST_VIEWED_KEY_PREFIX,
+  CHAT_SIDEBAR_WIDTH_KEY,
+} from '@/lib/chat-storage'
+import type { ListModelsResult } from '@shared/types'
 
 /**
  * ChatView Component
@@ -35,21 +71,131 @@ export function ChatView() {
   const [input, setInput] = React.useState('')
   const [isLoading, setIsLoading] = React.useState(false)
   const [conversationId, setConversationId] = React.useState<string | null>(null)
-  const [conversationTitle, setConversationTitle] = React.useState('New Chat')
+  /** Single source of truth for conversation list (and thus header title). */
+  const [conversations, setConversations] = React.useState<ConversationMetadata[]>([])
+  const [listLoading, setListLoading] = React.useState(true)
+  const [listError, setListError] = React.useState<string | null>(null)
   const [currentTrace, setCurrentTrace] = React.useState<TraceEntry[]>([])
   const [streamingContent, setStreamingContent] = React.useState('')
   const [isEditingTitle, setIsEditingTitle] = React.useState(false)
   const [editingTitleValue, setEditingTitleValue] = React.useState('')
+  const [modelList, setModelList] = React.useState<ListModelsResult | null>(null)
+  const [defaultModel, setDefaultModel] = React.useState<string>('')
+  /** Model to use for the next request (conversation's current or default). */
+  const [selectedModelId, setSelectedModelId] = React.useState<string>('')
+  /** Per-conversation last message time (for unread indicator when stream completes). */
+  const [lastMessageAt, setLastMessageAt] = React.useState<Record<string, number>>({})
+  /** Conversation currently receiving a stream (for sidebar indicator, persists when switching away). */
+  const [streamingConversationId, setStreamingConversationId] = React.useState<
+    string | undefined
+  >(undefined)
+  /** Conversation ID currently generating title (shows "Generating title..." indicator). */
+  const [generatingTitleConversationId, setGeneratingTitleConversationId] =
+    React.useState<string | null>(null)
+  /** Chat sidebar width in px (resizable, persisted). */
+  const [sidebarWidth, setSidebarWidth] = React.useState(() => {
+    const stored = localStorage.getItem(CHAT_SIDEBAR_WIDTH_KEY)
+    if (stored) {
+      const w = parseInt(stored, 10)
+      if (w >= 180 && w <= 480) return w
+    }
+    return 256
+  })
 
-  const messagesEndRef = React.useRef<HTMLDivElement>(null)
-  const inputRef = React.useRef<HTMLInputElement>(null)
+  const inputRef = React.useRef<HTMLTextAreaElement>(null)
   const titleInputRef = React.useRef<HTMLInputElement>(null)
   const conversationListRef = React.useRef<ConversationListRef>(null)
+  /** Ref mirroring trace during stream for merging reasoning on complete. */
+  const currentTraceRef = React.useRef<TraceEntry[]>([])
+  /** Ref for conversationId so stream handler can filter events without stale closure. */
+  const conversationIdRef = React.useRef<string | null>(null)
+  conversationIdRef.current = conversationId
 
-  // Scroll to bottom when messages change
+  // Load conversation list (single source of truth for list and header title)
+  const loadConversations = React.useCallback(async () => {
+    setListLoading(true)
+    setListError(null)
+    try {
+      const result = await window.api.conversations.list({ limit: 50 })
+      if (result.success && result.conversations) {
+        setConversations(result.conversations)
+      } else {
+        setListError(result.error || 'Failed to load conversations')
+      }
+    } catch (err) {
+      setListError(err instanceof Error ? err.message : 'Failed to load conversations')
+    } finally {
+      setListLoading(false)
+    }
+  }, [])
+
   React.useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, streamingContent])
+    loadConversations()
+  }, [loadConversations])
+
+  // Restore last active conversation when returning to chat view
+  React.useEffect(() => {
+    let cancelled = false
+    const lastId = localStorage.getItem(CHAT_LAST_ACTIVE_KEY)
+    if (!lastId) return
+
+    window.api.conversations
+      .get(lastId)
+      .then(result => {
+        if (cancelled || !result.success || !result.conversation) return
+        const conv = result.conversation
+        setConversationId(conv.id)
+        setSelectedModelId(conv.currentModel ?? '')
+        localStorage.setItem(CHAT_LAST_VIEWED_KEY_PREFIX + conv.id, String(Date.now()))
+        return window.api.conversations.getMessages(conv.id)
+      })
+      .then(messagesResult => {
+        if (cancelled || !messagesResult?.success) return
+        setMessages(messagesResult.messages ?? [])
+        // Restore draft for the restored conversation
+        const draft = localStorage.getItem(CHAT_DRAFT_KEY_PREFIX + lastId) ?? ''
+        if (!cancelled) setInput(draft)
+      })
+      .catch(() => {})
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  // Load model list and default model for selector
+  React.useEffect(() => {
+    let cancelled = false
+    Promise.all([
+      window.api.llm.listModels(),
+      window.api.settings
+        .get()
+        .then(r =>
+          r.success && r.data
+            ? (r.data as { 'llm.defaultModel'?: string })['llm.defaultModel']
+            : ''
+        ),
+    ]).then(([list, defaultVal]) => {
+      if (!cancelled) {
+        setModelList(list ?? null)
+        setDefaultModel(typeof defaultVal === 'string' ? defaultVal : '')
+      }
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  // For new chat (no conversation), set selected model from default or first in list
+  React.useEffect(() => {
+    if (conversationId) return
+    const list = modelList?.all ?? []
+    const fallback =
+      defaultModel && list.some(m => m.id === defaultModel)
+        ? defaultModel
+        : (list[0]?.id ?? '')
+    setSelectedModelId(prev => (prev && list.some(m => m.id === prev) ? prev : fallback))
+  }, [conversationId, modelList, defaultModel])
 
   // Subscribe to stream events
   React.useEffect(() => {
@@ -59,11 +205,80 @@ export function ChatView() {
     }
   }, [])
 
+  // Subscribe to title generation start (add placeholder, show indicator)
+  React.useEffect(() => {
+    const unsubscribe = window.api.conversations.onTitleGenerating(
+      ({ conversationId: id }) => {
+        setGeneratingTitleConversationId(id)
+        conversationListRef.current?.addPlaceholderConversation?.(id)
+      }
+    )
+    return () => unsubscribe()
+  }, [])
+
+  // Subscribe to title updates (e.g. auto-generated after first message)
+  // Ref's updateTitle updates the shared conversations state so header and list stay in sync
+  React.useEffect(() => {
+    const unsubscribe = window.api.conversations.onTitleUpdated(
+      ({ conversationId: id, title }) => {
+        setGeneratingTitleConversationId(prev => (prev === id ? null : prev))
+        conversationListRef.current?.updateTitle(id, title)
+      }
+    )
+    return () => unsubscribe()
+  }, [])
+
+  const handleResizeStart = React.useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault()
+      const startX = e.clientX
+      const startWidth = sidebarWidth
+      const MIN = 180
+      const MAX = 480
+
+      const onMove = (ev: MouseEvent) => {
+        const delta = ev.clientX - startX
+        const next = Math.min(MAX, Math.max(MIN, startWidth + delta))
+        setSidebarWidth(next)
+      }
+      const onUp = (ev: MouseEvent) => {
+        const delta = ev.clientX - startX
+        const final = Math.min(MAX, Math.max(MIN, startWidth + delta))
+        localStorage.setItem(CHAT_SIDEBAR_WIDTH_KEY, String(final))
+        window.removeEventListener('mousemove', onMove)
+        window.removeEventListener('mouseup', onUp)
+      }
+
+      window.addEventListener('mousemove', onMove)
+      window.addEventListener('mouseup', onUp)
+    },
+    [sidebarWidth]
+  )
+
   const handleStreamEvent = (event: StreamEvent) => {
+    // Always track streaming and unread state (for sidebar indicators when switched away)
+    if (event.type === 'start') {
+      setStreamingConversationId(event.conversationId)
+    } else if (event.type === 'complete' || event.type === 'error') {
+      setStreamingConversationId(prev =>
+        prev === event.conversationId ? undefined : prev
+      )
+    }
+    if (event.type === 'complete') {
+      setLastMessageAt(prev => ({
+        ...prev,
+        [event.conversationId]: Date.now(),
+      }))
+    }
+
+    // Only apply UI updates for the currently viewed conversation
+    if (event.conversationId !== conversationIdRef.current) return
+
     switch (event.type) {
       case 'start':
         setStreamingContent('')
         setCurrentTrace([])
+        currentTraceRef.current = []
         break
 
       case 'token':
@@ -71,22 +286,40 @@ export function ChatView() {
         break
 
       case 'trace':
+        currentTraceRef.current = [...currentTraceRef.current, event.trace]
         setCurrentTrace(prev => [...prev, event.trace])
         break
 
       case 'complete': {
-        // Add the completed message
+        // Clear generating indicator when stream completes (title may have arrived or failed)
+        setGeneratingTitleConversationId(prev =>
+          prev === event.conversationId ? null : prev
+        )
+        // Merge reasoning (UI-only, from stream) with persisted trace for final message
+        const reasoningEntries = currentTraceRef.current.filter(
+          e => e.type === 'reasoning'
+        )
+        const mergedTrace = [...reasoningEntries, ...event.trace]
         const newMessage: ChatMessage = {
           id: `msg-${Date.now()}`,
           role: 'assistant',
           content: event.response,
           timestamp: Date.now(),
-          trace: event.trace,
+          trace: mergedTrace,
+          ...(event.model != null && event.model !== '' ? { model: event.model } : {}),
         }
         setMessages(prev => [...prev, newMessage])
         setStreamingContent('')
+        currentTraceRef.current = []
         setCurrentTrace([])
         setIsLoading(false)
+        // Update sidebar so this conversation shows the model used
+        if (event.conversationId && event.model != null && event.model !== '') {
+          conversationListRef.current?.updateCurrentModel?.(
+            event.conversationId,
+            event.model
+          )
+        }
         break
       }
 
@@ -94,6 +327,9 @@ export function ChatView() {
         console.error('Stream error:', event.error)
         setStreamingContent('')
         setIsLoading(false)
+        setGeneratingTitleConversationId(prev =>
+          prev === event.conversationId ? null : prev
+        )
         // Add error as a message
         setMessages(prev => [
           ...prev,
@@ -125,14 +361,18 @@ export function ChatView() {
     }
     setMessages(prev => [...prev, userMsg])
 
-    // Start streaming query
+    // Start streaming query (pass selected model so backend uses it)
     const result = await window.api.llm.queryStream(userMessage, {
       conversationId: conversationId || undefined,
+      model: selectedModelId || undefined,
     })
 
     if (result.success && result.conversationId) {
       setConversationId(result.conversationId)
+      setStreamingConversationId(result.conversationId)
+      localStorage.setItem(CHAT_LAST_ACTIVE_KEY, result.conversationId)
     } else if (!result.success) {
+      setStreamingConversationId(undefined)
       setIsLoading(false)
       setMessages(prev => [
         ...prev,
@@ -150,12 +390,33 @@ export function ChatView() {
     // Don't reload if already selected
     if (conversationId === conversation.id) return
 
-    setConversationId(conversation.id)
-    setConversationTitle(conversation.title)
+    // Save draft for the conversation we're leaving (persists across restarts)
+    const leavingKey = conversationId
+      ? CHAT_DRAFT_KEY_PREFIX + conversationId
+      : CHAT_DRAFT_KEY_PREFIX + '_new'
+    localStorage.setItem(leavingKey, input)
+
+    // Clear optimistic state immediately so we don't show previous conversation's content
+    setMessages([])
     setStreamingContent('')
+    currentTraceRef.current = []
     setCurrentTrace([])
+    setConversationId(conversation.id)
     setIsLoading(true)
     setIsEditingTitle(false)
+
+    const list = modelList?.all ?? []
+    const fallback =
+      defaultModel && list.some(m => m.id === defaultModel)
+        ? defaultModel
+        : (list[0]?.id ?? '')
+    // Prefer this conversation's last-used model; only use default/first when none set
+    setSelectedModelId(conversation.currentModel ?? fallback)
+    localStorage.setItem(CHAT_LAST_ACTIVE_KEY, conversation.id)
+    localStorage.setItem(
+      CHAT_LAST_VIEWED_KEY_PREFIX + conversation.id,
+      String(Date.now())
+    )
 
     try {
       const result = await window.api.conversations.getMessages(conversation.id)
@@ -170,12 +431,23 @@ export function ChatView() {
       setMessages([])
     } finally {
       setIsLoading(false)
+      // Restore draft for this conversation (or migrate from _new when switching
+      // from no-conversation)
+      const draftKey = CHAT_DRAFT_KEY_PREFIX + conversation.id
+      const fromNew =
+        conversationId === null
+          ? localStorage.getItem(CHAT_DRAFT_KEY_PREFIX + '_new')
+          : null
+      const draft = localStorage.getItem(draftKey) ?? fromNew ?? ''
+      if (fromNew) localStorage.removeItem(CHAT_DRAFT_KEY_PREFIX + '_new')
+      setInput(draft)
       inputRef.current?.focus()
     }
   }
 
   const handleStartEditTitle = () => {
-    setEditingTitleValue(conversationTitle)
+    const currentTitle = conversations.find(c => c.id === conversationId)?.title ?? ''
+    setEditingTitleValue(currentTitle)
     setIsEditingTitle(true)
     // Focus the input after render
     setTimeout(() => titleInputRef.current?.focus(), 0)
@@ -198,9 +470,10 @@ export function ChatView() {
         title: newTitle,
       })
       if (result.success) {
-        setConversationTitle(newTitle)
-        // Update the title in the conversation list
-        conversationListRef.current?.updateTitle(conversationId, newTitle)
+        // Update shared list state so header and sidebar stay in sync
+        setConversations(prev =>
+          prev.map(c => (c.id === conversationId ? { ...c, title: newTitle } : c))
+        )
       }
     } catch (err) {
       console.error('Failed to update title:', err)
@@ -218,318 +491,358 @@ export function ChatView() {
     }
   }
 
-  return (
-    <div className="flex flex-1 min-h-0 overflow-hidden">
-      {/* Conversation Sidebar */}
-      <div
-        className="
-          w-64 flex-shrink-0 flex flex-col min-h-0 border-r border-border-primary
-        "
-      >
-        <ConversationList
-          ref={conversationListRef}
-          selectedId={conversationId || undefined}
-          onSelect={handleSelectConversation}
-        />
-      </div>
-
-      {/* Main Chat Area */}
-      <div className="flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden">
-        {/* Header - fixed at top */}
-        <div
-          className="
-            flex-shrink-0 flex items-center gap-2 p-4 border-b border-border-primary
-          "
-        >
-          {isEditingTitle ? (
-            <div className="flex items-center gap-2 flex-1">
-              <Input
-                ref={titleInputRef}
-                value={editingTitleValue}
-                onChange={e => setEditingTitleValue(e.target.value)}
-                onKeyDown={handleTitleKeyDown}
-                onBlur={handleSaveTitle}
-                className="h-8 text-lg font-semibold max-w-xs"
-              />
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7"
-                onClick={handleSaveTitle}
-              >
-                <Check className="h-4 w-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7"
-                onClick={handleCancelEditTitle}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 group">
-              <h2 className="text-lg font-semibold">{conversationTitle}</h2>
-              {conversationId && (
-                <button
-                  onClick={handleStartEditTitle}
-                  className="
-                    p-1 rounded opacity-0
-                    group-hover:opacity-100
-                    hover:bg-muted
-                    transition-opacity
-                  "
-                  title="Edit conversation name"
-                >
-                  <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Messages Area - scrollable */}
-        <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
-          {messages.length === 0 && !streamingContent && (
-            <div className="flex items-center justify-center h-full text-muted-foreground">
-              <p>Start a conversation...</p>
-            </div>
-          )}
-
-          {messages.map(message => (
-            <MessageBubble key={message.id} message={message} />
-          ))}
-
-          {/* Streaming message or loading with trace */}
-          {(streamingContent || (isLoading && currentTrace.length > 0)) && (
-            <MessageBubble
-              message={{
-                id: 'streaming',
-                role: 'assistant',
-                content: streamingContent || '',
-                timestamp: Date.now(),
-                trace: currentTrace,
-                isStreaming: true,
-              }}
-            />
-          )}
-
-          {/* Loading indicator (only when no trace yet) */}
-          {isLoading && !streamingContent && currentTrace.length === 0 && (
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Thinking...</span>
-            </div>
-          )}
-
-          <div ref={messagesEndRef} />
-        </div>
-
-        {/* Input Area - fixed at bottom */}
-        <form
-          onSubmit={handleSubmit}
-          className="flex-shrink-0 p-4 border-t border-border-primary flex gap-2"
-        >
-          <Input
-            ref={inputRef}
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            placeholder="Type a message..."
-            disabled={isLoading}
-            className="flex-1"
-          />
-          <Button type="submit" disabled={isLoading || !input.trim()}>
-            {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-          </Button>
-        </form>
-      </div>
-    </div>
-  )
-}
-
-/**
- * MessageBubble Component
- *
- * Displays a single chat message with role-based styling,
- * markdown rendering, and collapsible trace display.
- */
-function MessageBubble({ message }: { message: ChatMessage }) {
-  const [copied, setCopied] = React.useState(false)
-
-  const isUser = message.role === 'user'
-  const hasTrace = message.trace && message.trace.length > 0
-
-  // Memoize grouped trace entries to avoid recomputing on each render
-  const groupedTrace = React.useMemo(
-    () => (message.trace ? groupTraceEntries(message.trace) : []),
-    [message.trace]
-  )
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(message.content)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch (err) {
-      console.error('Failed to copy:', err)
+  const handleModelChange = async (modelId: string) => {
+    setSelectedModelId(modelId)
+    if (conversationId) {
+      try {
+        await window.api.conversations.update(conversationId, {
+          currentModel: modelId,
+        })
+        conversationListRef.current?.updateCurrentModel?.(conversationId, modelId)
+      } catch (err) {
+        console.error('Failed to update conversation model:', err)
+      }
     }
   }
 
-  const formatTime = (timestamp: number) => {
-    return new Date(timestamp).toLocaleTimeString([], {
-      hour: '2-digit',
-      minute: '2-digit',
-    })
-  }
-
   return (
-    <div
-      className={`
-        group flex gap-3
-        ${isUser ? 'flex-row-reverse' : ''}
-      `}
-    >
-      {/* Avatar */}
+    <div className="flex flex-1 min-h-0 overflow-hidden">
+      {/* Conversation Sidebar - resizable */}
       <div
-        className={`
-          flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center
-          ${isUser ? 'bg-primary text-primary-foreground' : 'bg-muted'}
-        `}
+        className="
+          relative flex-shrink-0 flex flex-col min-h-0 border-r border-border-primary
+        "
+        style={{ width: sidebarWidth }}
       >
-        {isUser ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+        <ConversationList
+          ref={conversationListRef}
+          conversations={conversations}
+          setConversations={setConversations}
+          listLoading={listLoading}
+          listError={listError}
+          loadConversations={loadConversations}
+          selectedId={conversationId || undefined}
+          onSelect={handleSelectConversation}
+          onTitleUpdate={() => {}}
+          modelList={modelList}
+          streamingConversationId={streamingConversationId}
+          generatingTitleConversationId={generatingTitleConversationId ?? undefined}
+          selectedConversationHasDraft={input.trim().length > 0}
+          lastMessageAt={lastMessageAt}
+        />
+        <div
+          role="separator"
+          aria-orientation="vertical"
+          aria-valuenow={sidebarWidth}
+          aria-valuemin={180}
+          aria-valuemax={480}
+          tabIndex={0}
+          className="
+            absolute top-0 right-0 w-1 h-full cursor-col-resize
+            hover:bg-border-primary
+            active:bg-border-primary
+            -mr-0.5
+          "
+          onMouseDown={handleResizeStart}
+        />
       </div>
 
-      {/* Content */}
-      <div
-        className={`
-          flex-1 max-w-[80%]
-          ${isUser ? 'text-right' : ''}
-        `}
-      >
-        {/* Trace display - ChainOfThought handles its own collapse */}
-        {hasTrace && groupedTrace.length > 0 && (
-          <TraceDisplay groupedTrace={groupedTrace} isStreaming={message.isStreaming} />
-        )}
+      {/* Main Chat Area - capped width for readability, centered when narrower than pane */}
+      <div className="flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden items-center">
+        <div className="flex flex-col flex-1 min-w-0 w-full max-w-4xl min-h-0">
+          {/* Header - fixed at top */}
+          <div
+            className="
+              flex-shrink-0 flex items-center gap-2 p-4 border-b border-border-primary
+            "
+          >
+            {isEditingTitle ? (
+              <div className="flex items-center gap-2 flex-1">
+                <Input
+                  ref={titleInputRef}
+                  value={editingTitleValue}
+                  onChange={e => setEditingTitleValue(e.target.value)}
+                  onKeyDown={handleTitleKeyDown}
+                  onBlur={handleSaveTitle}
+                  className="h-8 text-lg font-semibold max-w-xs"
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={handleSaveTitle}
+                >
+                  <Check className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={handleCancelEditTitle}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 group">
+                <h2 className="text-lg font-semibold">
+                  {generatingTitleConversationId === conversationId ? (
+                    <span className="animate-title-shimmer">Generating title...</span>
+                  ) : (
+                    (conversations.find(c => c.id === conversationId)?.title ??
+                    'New Chat')
+                  )}
+                </h2>
+                {conversationId && (
+                  <button
+                    onClick={handleStartEditTitle}
+                    className="
+                      p-1 rounded opacity-0
+                      group-hover:opacity-100
+                      hover:bg-muted
+                      transition-opacity
+                    "
+                    title="Edit conversation name"
+                  >
+                    <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
 
-        {/* Message bubble */}
-        <div
-          className={`
-            relative inline-block rounded-lg px-4 py-2 max-w-full
-            ${isUser ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground'}
-          `}
-        >
-          {isUser ? (
-            <p className="whitespace-pre-wrap">{message.content}</p>
-          ) : (
-            <MarkdownContent content={message.content} />
-          )}
-
-          {/* Copy button - appears on hover */}
-          {!message.isStreaming && message.content && (
-            <button
-              onClick={handleCopy}
-              className={`
-                absolute -top-2 -right-2 p-1 rounded bg-background border border-border
-                opacity-0
-                group-hover:opacity-100
-                transition-opacity
-                hover:bg-muted
-              `}
-              title={copied ? 'Copied!' : 'Copy message'}
-            >
-              {copied ? (
-                <Check className="h-3 w-3 text-green-500" />
-              ) : (
-                <Copy className="h-3 w-3 text-muted-foreground" />
+          {/* Messages Area - Conversation with scroll-to-bottom */}
+          <Conversation className="flex-1 min-h-0 overflow-hidden">
+            <ConversationContent className="gap-0">
+              {messages.length === 0 && !streamingContent && (
+                <ConversationEmptyState
+                  icon={<Bot className="h-12 w-12 text-muted-foreground" />}
+                  title="Start a conversation"
+                  description="Type a message below to begin."
+                />
               )}
-            </button>
-          )}
-        </div>
+              {messages.map(message => (
+                <ChatTurn key={message.id} message={message} modelList={modelList} />
+              ))}
+              {(streamingContent || (isLoading && currentTrace.length > 0)) && (
+                <ChatTurn
+                  message={{
+                    id: 'streaming',
+                    role: 'assistant',
+                    content: streamingContent || '',
+                    timestamp: Date.now(),
+                    trace: currentTrace,
+                    isStreaming: true,
+                    ...(selectedModelId ? { model: selectedModelId } : {}),
+                  }}
+                  modelList={modelList}
+                />
+              )}
+              {isLoading && !streamingContent && currentTrace.length === 0 && (
+                <div className="flex items-center gap-2 py-4 text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span>Thinking...</span>
+                </div>
+              )}
+            </ConversationContent>
+            <ConversationScrollButton />
+          </Conversation>
 
-        {/* Timestamp */}
-        <div
-          className={`
-            text-xs text-muted-foreground mt-1
-            ${isUser ? 'text-right' : 'text-left'}
-          `}
-        >
-          {formatTime(message.timestamp)}
+          {/* Input Area - fixed at bottom */}
+          <form
+            onSubmit={e => {
+              e.preventDefault()
+              if (input.trim() && !isLoading) handleSubmit(e)
+            }}
+            className="
+              flex-shrink-0 p-4 border-t border-border-primary flex flex-col gap-2
+            "
+          >
+            <div className="flex gap-2 items-end">
+              <PromptInput
+                ref={inputRef}
+                value={input}
+                onChange={setInput}
+                onSubmit={() => {
+                  if (input.trim() && !isLoading)
+                    handleSubmit({ preventDefault: () => {} } as React.FormEvent)
+                }}
+                placeholder="Type a message..."
+                disabled={isLoading}
+                className="flex-1 min-h-[60px]"
+              />
+              <Button type="submit" disabled={isLoading || !input.trim()}>
+                {isLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Send className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+            <div className="flex items-center gap-2">
+              <ModelSelector
+                value={selectedModelId}
+                onValueChange={handleModelChange}
+                modelList={modelList}
+                disabled={isLoading}
+                placeholder="Select model"
+                className="w-full max-w-xs"
+              />
+            </div>
+          </form>
         </div>
       </div>
     </div>
   )
 }
 
+/** Resolve model id to display label using model list or shortened id. */
+function getModelLabel(modelId: string, modelList: ListModelsResult | null): string {
+  const label = modelList?.all?.find(m => m.id === modelId)?.label
+  if (label) return label
+  if (modelId.includes(':')) return modelId.split(':').slice(1).join(':')
+  return modelId
+}
+
 /**
- * MarkdownContent Component
- *
- * Renders markdown content with syntax highlighting for code blocks.
+ * Copy action with right alignment and feedback on copy.
+ * Hover color varies by turn: user turns use base-200 for contrast on secondary bg.
  */
-function MarkdownContent({ content }: { content: string }) {
+function CopyAction({
+  messageId,
+  content,
+  isUser,
+}: {
+  messageId: string
+  content: string
+  isUser: boolean
+}) {
+  const [copiedId, setCopiedId] = React.useState<string | null>(null)
+  const isCopied = copiedId === messageId
+
+  const handleCopy = React.useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(content)
+      setCopiedId(messageId)
+    } catch (err) {
+      console.error('Failed to copy:', err)
+    }
+  }, [content, messageId])
+
+  React.useEffect(() => {
+    if (!isCopied) return
+    const t = setTimeout(() => setCopiedId(null), 2000)
+    return () => clearTimeout(t)
+  }, [isCopied])
+
+  return (
+    <MessageActions className="mt-2 w-full justify-end">
+      <MessageAction
+        label={isCopied ? 'Copied!' : 'Copy'}
+        tooltip={isCopied ? 'Copied!' : 'Copy message'}
+        onClick={handleCopy}
+        className={cn('rounded-md', isUser ? 'hover:bg-base-200' : 'hover:bg-muted')}
+      >
+        {isCopied ? (
+          <Check className="h-3 w-3 text-success-500" />
+        ) : (
+          <Copy className="h-3 w-3" />
+        )}
+      </MessageAction>
+    </MessageActions>
+  )
+}
+
+/**
+ * ChatTurn: full-width turn with top border, avatar on the line (agent left, user right), lighter background.
+ * Uses AI Elements Message / MessageContent / MessageResponse; keeps TraceDisplay and copy/timestamp/model.
+ */
+function ChatTurn({
+  message,
+  modelList = null,
+}: {
+  message: ChatMessage
+  modelList?: ListModelsResult | null
+}) {
+  const isUser = message.role === 'user'
+  const orderedTraceItems = React.useMemo(
+    () => (message.trace ? buildOrderedTraceItems(message.trace) : []),
+    [message.trace]
+  )
+  const hasTrace = orderedTraceItems.length > 0
+
+  const formatTime = (timestamp: number) =>
+    new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+
   return (
     <div
-      className="
-        prose prose-sm
-        dark:prose-invert
-        max-w-none
-      "
+      className={cn(
+        `
+          relative border-t px-4 pb-12
+          last:pb-4
+        `,
+        isUser ? 'border-bg-secondary bg-bg-secondary' : 'border-border bg-background'
+      )}
     >
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
-        components={{
-          code({ className, children, ...props }) {
-            const match = /language-(\w+)/.exec(className || '')
-            const isInline = !match
+      {/* Avatar on the divider (left) */}
+      <div className="absolute top-0 left-0 flex -translate-y-1/2 px-4">
+        <div
+          className={cn(
+            `
+              flex h-8 w-8 shrink-0 items-center justify-center rounded-full border
+              border-border bg-background
+            `,
+            isUser ? 'text-primary' : 'text-muted-foreground'
+          )}
+        >
+          {isUser ? (
+            <User className="h-4 w-4" />
+          ) : message.model ? (
+            <ProviderIcon
+              providerId={getProviderIdFromModelId(message.model)}
+              size={16}
+              className="shrink-0"
+            />
+          ) : (
+            <Bot className="h-4 w-4" />
+          )}
+        </div>
+      </div>
 
-            if (isInline) {
-              return (
-                <code
-                  className="bg-muted-foreground/20 px-1 py-0.5 rounded text-sm"
-                  {...props}
-                >
-                  {children}
-                </code>
-              )
-            }
+      {/* Metadata row: top-aligned below the line, right side */}
+      <div className="flex items-start justify-between pt-2">
+        <div className="h-8 w-8 shrink-0" aria-hidden />
+        <div
+          className="
+            flex flex-wrap items-center justify-end gap-2 text-xs text-muted-foreground
+          "
+        >
+          {!isUser && message.model && (
+            <span>{getModelLabel(message.model, modelList)}</span>
+          )}
+          <span>{formatTime(message.timestamp)}</span>
+        </div>
+      </div>
 
-            return (
-              <SyntaxHighlighter
-                style={oneDark}
-                language={match[1]}
-                PreTag="div"
-                className="rounded-md text-sm"
-              >
-                {String(children).replace(/\n$/, '')}
-              </SyntaxHighlighter>
-            )
-          },
-          p({ children }) {
-            return (
-              <p
-                className="
-                  mb-2
-                  last:mb-0
-                "
-              >
-                {children}
-              </p>
-            )
-          },
-          ul({ children }) {
-            return <ul className="list-disc list-inside mb-2">{children}</ul>
-          },
-          ol({ children }) {
-            return <ol className="list-decimal list-inside mb-2">{children}</ol>
-          },
-        }}
-      >
-        {content}
-      </ReactMarkdown>
+      <Message from={message.role} className="mt-2 max-w-full">
+        {hasTrace && (
+          <TraceDisplay
+            orderedItems={orderedTraceItems}
+            isStreaming={message.isStreaming}
+          />
+        )}
+        <MessageContent
+          className="
+            group-[.is-assistant]:bg-transparent group-[.is-assistant]:p-0
+            group-[.is-user]:bg-transparent group-[.is-user]:p-0
+          "
+        >
+          <MessageResponse>{message.content}</MessageResponse>
+        </MessageContent>
+        {!message.isStreaming && message.content && (
+          <CopyAction messageId={message.id} content={message.content} isUser={isUser} />
+        )}
+      </Message>
     </div>
   )
 }
@@ -547,26 +860,30 @@ interface GroupedToolExecution {
   isComplete: boolean
 }
 
+/** Ordered trace item: either reasoning (thinking) or a grouped tool execution. */
+type OrderedTraceItem =
+  | { kind: 'reasoning'; content: string }
+  | { kind: 'tool'; execution: GroupedToolExecution }
+
 /**
- * Groups trace entries by pairing tool_call with their corresponding tool_result.
- * Uses toolCallId for robust matching; falls back to sequential matching by toolName.
+ * Build an ordered list of trace items (reasoning + tool steps) for display.
  */
-function groupTraceEntries(trace: TraceEntry[]): GroupedToolExecution[] {
-  const groups: GroupedToolExecution[] = []
+function buildOrderedTraceItems(trace: TraceEntry[]): OrderedTraceItem[] {
+  const ordered: OrderedTraceItem[] = []
   const pendingById = new Map<string, GroupedToolExecution>()
   const pendingByName = new Map<string, GroupedToolExecution[]>()
 
   for (const entry of trace) {
-    if (entry.type === 'tool_call' && entry.toolName) {
+    if (entry.type === 'reasoning' && entry.content?.trim()) {
+      ordered.push({ kind: 'reasoning', content: entry.content.trim() })
+    } else if (entry.type === 'tool_call' && entry.toolName) {
       const group: GroupedToolExecution = {
         toolName: entry.toolName,
         toolCallId: entry.toolCallId,
         args: entry.args,
         isComplete: false,
       }
-      groups.push(group)
-
-      // Track by ID if available, otherwise by name for fallback matching
+      ordered.push({ kind: 'tool', execution: group })
       if (entry.toolCallId) {
         pendingById.set(entry.toolCallId, group)
       } else {
@@ -577,39 +894,35 @@ function groupTraceEntries(trace: TraceEntry[]): GroupedToolExecution[] {
       }
     } else if (entry.type === 'tool_result') {
       let group: GroupedToolExecution | undefined
-
-      // Try to match by toolCallId first (most reliable)
       if (entry.toolCallId && pendingById.has(entry.toolCallId)) {
         group = pendingById.get(entry.toolCallId)!
         pendingById.delete(entry.toolCallId)
       } else if (entry.toolName) {
-        // Fall back to matching by tool name
         const pending = pendingByName.get(entry.toolName)
-        if (pending && pending.length > 0) {
-          group = pending.shift()!
-        }
+        if (pending?.length) group = pending.shift()!
       }
-
       if (group) {
         group.result = entry.result
         group.duration = entry.duration
         group.error = entry.error
         group.isComplete = true
       } else {
-        // Result without a matching call (shouldn't happen, but handle gracefully)
-        groups.push({
-          toolName: entry.toolName || 'unknown',
-          toolCallId: entry.toolCallId,
-          result: entry.result,
-          duration: entry.duration,
-          error: entry.error,
-          isComplete: true,
+        ordered.push({
+          kind: 'tool',
+          execution: {
+            toolName: entry.toolName || 'unknown',
+            toolCallId: entry.toolCallId,
+            result: entry.result,
+            duration: entry.duration,
+            error: entry.error,
+            isComplete: true,
+          },
         })
       }
     }
   }
 
-  return groups
+  return ordered
 }
 
 /**
@@ -628,35 +941,63 @@ function getToolStatus(
 /**
  * TraceDisplay Component
  *
- * Displays grouped tool executions using ChainOfThought and ToolInvocation components.
- * Shows steps expanded by default for visibility.
+ * Displays reasoning (thinking) and tool executions in order using ChainOfThought.
+ * Reasoning blocks are collapsible; tool steps use ToolInvocation.
  */
 function TraceDisplay({
-  groupedTrace,
+  orderedItems,
   isStreaming,
 }: {
-  groupedTrace: GroupedToolExecution[]
+  orderedItems: OrderedTraceItem[]
   isStreaming?: boolean
 }) {
   return (
     <ChainOfThought defaultOpen={true} className="mb-2">
       <ChainOfThoughtHeader>
-        {groupedTrace.length} step{groupedTrace.length !== 1 ? 's' : ''}
+        {orderedItems.length} step{orderedItems.length !== 1 ? 's' : ''}
       </ChainOfThoughtHeader>
       <ChainOfThoughtContent>
         <div className="space-y-2">
-          {groupedTrace.map((execution, index) => (
-            <ToolInvocation
-              key={execution.toolCallId || index}
-              name={execution.toolName}
-              args={execution.args}
-              result={execution.result}
-              duration={execution.duration}
-              error={execution.error}
-              status={getToolStatus(execution, isStreaming)}
-              defaultOpen={true}
-            />
-          ))}
+          {orderedItems.map((item, index) =>
+            item.kind === 'reasoning' ? (
+              <Collapsible key={`reasoning-${index}`} defaultOpen={false}>
+                <div className="rounded-lg border border-border bg-muted/30 text-sm">
+                  <CollapsibleTrigger
+                    className="
+                      flex w-full items-center gap-2 px-3 py-2
+                      hover:bg-muted/50
+                      transition-colors
+                    "
+                  >
+                    <Brain className="h-4 w-4 text-muted-foreground" />
+                    <span className="flex-1 text-left font-medium">Thinking</span>
+                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <div
+                      className="
+                        border-t border-border px-3 py-2 text-muted-foreground
+                        whitespace-pre-wrap text-xs font-mono max-h-48 overflow-y-auto
+                      "
+                    >
+                      {item.content}
+                    </div>
+                  </CollapsibleContent>
+                </div>
+              </Collapsible>
+            ) : (
+              <ToolInvocation
+                key={item.execution.toolCallId || index}
+                name={item.execution.toolName}
+                args={item.execution.args}
+                result={item.execution.result}
+                duration={item.execution.duration}
+                error={item.execution.error}
+                status={getToolStatus(item.execution, isStreaming)}
+                defaultOpen={true}
+              />
+            )
+          )}
         </div>
       </ChainOfThoughtContent>
     </ChainOfThought>

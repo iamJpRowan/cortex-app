@@ -1,3 +1,6 @@
+/* Streamdown (MessageResponse / AI Elements message) markdown styles */
+@import 'streamdown/styles.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -119,6 +122,7 @@ html:not([data-theme]) {
   /* Base Colors - Pure grayscale for black & white aesthetic */
   --color-base-50: #fafafa;
   --color-base-100: #f5f5f5;
+  --color-base-100-hsl: 0 0% 96%;
   --color-base-200: #e5e5e5;
   --color-base-300: #d4d4d4;
   --color-base-400: #a3a3a3;
@@ -142,6 +146,14 @@ html:not([data-theme]) {
   --color-accent-900: #1e3a8a;
   --color-accent-950: #172554;
 
+  /* Success Colors (Green) */
+  --color-green-50: #f0fdf4;
+  --color-green-100: #dcfce7;
+  --color-green-200: #bbf7d0;
+  --color-green-500: #22c55e;
+  --color-green-600: #16a34a;
+  --color-green-700: #15803d;
+
   /* Semantic Colors - Text (pure black/white) */
   --color-text-primary: var(--color-base-950);
   --color-text-secondary: var(--color-base-600);
@@ -151,26 +163,27 @@ html:not([data-theme]) {
 
   /* Semantic Colors - Background (pure white/light gray) */
   --color-bg-primary: #ffffff;
-  --color-bg-secondary: var(--color-base-50);
+  --color-bg-secondary: var(--color-base-100);
   --color-bg-tertiary: var(--color-base-100);
   --color-bg-focus: var(--color-base-300);
   --color-bg-inverse: var(--color-base-950);
   --color-bg-disabled: var(--color-base-200);
 
   /* Semantic Colors - Border (subtle gray, monochromatic) */
-  --color-border-primary: var(--color-base-200);
+  --color-border-primary: var(--color-base-300);
   --color-border-secondary: var(--color-base-300);
   --color-border-focus: var(--color-base-700);
   --color-border-error: var(--color-base-700);
-  --color-border-success: var(--color-base-700);
+  --color-border-success: var(--color-green-600);
   --color-border-warning: var(--color-base-700);
 
   /* Semantic Colors - Status (grayscale with subtle hints, color only when needed) */
-  --color-success-50: var(--color-base-50);
-  --color-success-100: var(--color-base-100);
-  --color-success-500: var(--color-base-700);
-  --color-success-600: var(--color-base-800);
-  --color-success-700: var(--color-base-900);
+  --color-success-50: var(--color-green-50);
+  --color-success-100: var(--color-green-100);
+  --color-success-200: var(--color-green-200);
+  --color-success-500: var(--color-green-500);
+  --color-success-600: var(--color-green-600);
+  --color-success-700: var(--color-green-700);
 
   --color-error-50: var(--color-base-50);
   --color-error-100: var(--color-base-100);
@@ -217,6 +230,7 @@ html[data-theme='dark'] {
   /* Base Colors - Pure grayscale for black & white aesthetic */
   --color-base-50: #0a0a0a;
   --color-base-100: #171717;
+  --color-base-100-hsl: 0 0% 9%;
   --color-base-200: #262626;
   --color-base-300: #404040;
   --color-base-400: #525252;
@@ -240,6 +254,14 @@ html[data-theme='dark'] {
   --color-accent-900: #dbeafe;
   --color-accent-950: #eff6ff;
 
+  /* Success Colors (Green - adjusted for dark) */
+  --color-green-50: #052e16;
+  --color-green-100: #14532d;
+  --color-green-200: #166534;
+  --color-green-500: #4ade80;
+  --color-green-600: #22c55e;
+  --color-green-700: #86efac;
+
   /* Semantic Colors - Text (pure white/black) */
   --color-text-primary: var(--color-base-950);
   --color-text-secondary: var(--color-base-600);
@@ -260,15 +282,16 @@ html[data-theme='dark'] {
   --color-border-secondary: var(--color-base-400);
   --color-border-focus: var(--color-base-600);
   --color-border-error: var(--color-base-600);
-  --color-border-success: var(--color-base-600);
+  --color-border-success: var(--color-green-500);
   --color-border-warning: var(--color-base-600);
 
   /* Semantic Colors - Status (grayscale, color only when needed) */
-  --color-success-50: var(--color-base-100);
-  --color-success-100: var(--color-base-200);
-  --color-success-500: var(--color-base-600);
-  --color-success-600: var(--color-base-700);
-  --color-success-700: var(--color-base-800);
+  --color-success-50: var(--color-green-50);
+  --color-success-100: var(--color-green-100);
+  --color-success-200: var(--color-green-200);
+  --color-success-500: var(--color-green-500);
+  --color-success-600: var(--color-green-600);
+  --color-success-700: var(--color-green-700);
 
   --color-error-50: var(--color-base-100);
   --color-error-100: var(--color-base-200);
@@ -317,6 +340,7 @@ html[data-theme='dark'] {
     /* Apply dark theme if no explicit theme is set - Pure grayscale */
     --color-base-50: #0a0a0a;
     --color-base-100: #171717;
+    --color-base-100-hsl: 0 0% 9%;
     --color-base-200: #262626;
     --color-base-300: #404040;
     --color-base-400: #525252;
@@ -339,6 +363,14 @@ html[data-theme='dark'] {
     --color-accent-900: #dbeafe;
     --color-accent-950: #eff6ff;
 
+    /* Success Colors (Green - adjusted for dark) */
+    --color-green-50: #052e16;
+    --color-green-100: #14532d;
+    --color-green-200: #166534;
+    --color-green-500: #4ade80;
+    --color-green-600: #22c55e;
+    --color-green-700: #86efac;
+
     --color-text-primary: var(--color-base-950);
     --color-text-secondary: var(--color-base-600);
     --color-text-tertiary: var(--color-base-500);
@@ -355,14 +387,15 @@ html[data-theme='dark'] {
     --color-border-secondary: var(--color-base-400);
     --color-border-focus: var(--color-base-600);
     --color-border-error: var(--color-base-600);
-    --color-border-success: var(--color-base-600);
+    --color-border-success: var(--color-green-500);
     --color-border-warning: var(--color-base-600);
 
-    --color-success-50: var(--color-base-100);
-    --color-success-100: var(--color-base-200);
-    --color-success-500: var(--color-base-600);
-    --color-success-600: var(--color-base-700);
-    --color-success-700: var(--color-base-800);
+    --color-success-50: var(--color-green-50);
+    --color-success-100: var(--color-green-100);
+    --color-success-200: var(--color-green-200);
+    --color-success-500: var(--color-green-500);
+    --color-success-600: var(--color-green-600);
+    --color-success-700: var(--color-green-700);
 
     --color-error-50: var(--color-base-100);
     --color-error-100: var(--color-base-200);
@@ -503,6 +536,16 @@ textarea:focus-visible,
     stroke-width: var(--icon-stroke-width);
   }
 
+  /**
+   * Selected item appearance (e.g. selected tab, selected list row).
+   * Use for consistent selected state across Settings tabs, conversation list, etc.
+   */
+  .selected-item {
+    @apply border border-border bg-bg-secondary text-text-primary;
+  }
+}
+
+@layer components {
   /* Button Variants */
   .btn {
     @apply px-4 py-2 rounded-md font-medium transition-colors;
@@ -741,44 +784,46 @@ textarea:focus-visible,
   }
 }
 
+/*
+ * Sidebar component tokens: derive from primitives (standard hierarchy).
+ * --sidebar-background uses --color-base-100-hsl so sidebar matches
+ * --color-bg-secondary (which uses --color-base-100). Single source: base-100.
+ */
 @layer base {
-  /* Light Theme - Sidebar uses bg-secondary for distinction */
   :root,
   html[data-theme='light'],
   html:not([data-theme]) {
-    --sidebar-background: 0 0% 98%; /* bg-secondary (#fafafa) */
-    --sidebar-foreground: 0 0% 4%; /* text-primary */
-    --sidebar-primary: 0 0% 10%; /* base-900 */
-    --sidebar-primary-foreground: 0 0% 98%; /* bg-primary */
-    --sidebar-accent: 0 0% 96%; /* bg-tertiary (#f5f5f5) */
-    --sidebar-accent-foreground: 0 0% 4%; /* text-primary */
-    --sidebar-border: 0 0% 90%; /* border-primary (#e5e5e5) */
-    --sidebar-ring: 0 0% 75%; /* border-focus */
+    --sidebar-background: var(--color-base-100-hsl);
+    --sidebar-foreground: 0 0% 4%;
+    --sidebar-primary: 0 0% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: var(--color-base-100-hsl);
+    --sidebar-accent-foreground: 0 0% 4%;
+    --sidebar-border: 0 0% 90%;
+    --sidebar-ring: 0 0% 75%;
   }
 
-  /* Dark Theme - Sidebar uses bg-secondary for distinction */
   html[data-theme='dark'] {
-    --sidebar-background: 0 0% 9%; /* bg-secondary (#171717) */
-    --sidebar-foreground: 0 0% 98%; /* text-primary */
-    --sidebar-primary: 0 0% 96%; /* base-900 */
-    --sidebar-primary-foreground: 0 0% 4%; /* bg-primary */
-    --sidebar-accent: 0 0% 15%; /* bg-tertiary (#262626) */
-    --sidebar-accent-foreground: 0 0% 98%; /* text-primary */
-    --sidebar-border: 0 0% 25%; /* border-primary (#404040) */
-    --sidebar-ring: 0 0% 64%; /* border-focus */
+    --sidebar-background: var(--color-base-100-hsl);
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 0 0% 96%;
+    --sidebar-primary-foreground: 0 0% 4%;
+    --sidebar-accent: 0 0% 15%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 0 0% 25%;
+    --sidebar-ring: 0 0% 64%;
   }
 
-  /* System Preference (Dark) */
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme]) {
-      --sidebar-background: 0 0% 9%; /* bg-secondary (#171717) */
-      --sidebar-foreground: 0 0% 98%; /* text-primary */
-      --sidebar-primary: 0 0% 96%; /* base-900 */
-      --sidebar-primary-foreground: 0 0% 4%; /* bg-primary */
-      --sidebar-accent: 0 0% 15%; /* bg-tertiary (#262626) */
-      --sidebar-accent-foreground: 0 0% 98%; /* text-primary */
-      --sidebar-border: 0 0% 25%; /* border-primary (#404040) */
-      --sidebar-ring: 0 0% 64%; /* border-focus */
+      --sidebar-background: var(--color-base-100-hsl);
+      --sidebar-foreground: 0 0% 98%;
+      --sidebar-primary: 0 0% 96%;
+      --sidebar-primary-foreground: 0 0% 4%;
+      --sidebar-accent: 0 0% 15%;
+      --sidebar-accent-foreground: 0 0% 98%;
+      --sidebar-border: 0 0% 25%;
+      --sidebar-ring: 0 0% 64%;
     }
   }
 }
@@ -787,4 +832,29 @@ textarea:focus-visible,
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Shimmer effect for "Generating title..." text */
+@keyframes title-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.animate-title-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--foreground) 0%,
+    var(--foreground) 40%,
+    var(--muted-foreground) 50%,
+    var(--foreground) 60%,
+    var(--foreground) 100%
+  );
+  background-size: 200% 100%;
+  background-clip: text;
+  color: transparent;
+  animation: title-shimmer 3.2s ease-in-out infinite;
 }

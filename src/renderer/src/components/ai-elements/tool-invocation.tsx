@@ -49,7 +49,7 @@ export const ToolInvocation = React.memo(function ToolInvocation({
 
   const statusIcon = {
     calling: <Loader2 className="h-3 w-3 animate-spin" />,
-    complete: <CheckCircle2 className="h-3 w-3 text-green-500" />,
+    complete: <CheckCircle2 className="h-3 w-3 text-success-500" />,
     error: <XCircle className="h-3 w-3 text-destructive" />,
   }
 

@@ -92,22 +92,27 @@ Blue accent colors used only for explicit accent purposes:
 --color-border-secondary  /* Secondary border */
 --color-border-focus      /* Focus state border (grayscale) */
 --color-border-error      /* Error border (grayscale) */
---color-border-success    /* Success border (grayscale) */
+--color-border-success    /* Success border (green when used for success emphasis) */
 --color-border-warning    /* Warning border (grayscale) */
 ```
 
-**Note:** All borders use grayscale values to maintain monochromatic aesthetic. Focus states are grayscale, not accent colored.
+**Note:** Most borders use grayscale values to maintain monochromatic aesthetic. Success borders use green for explicit success feedback (e.g. copy confirmation). Focus states are grayscale, not accent colored.
 
 ### Semantic Colors - Status
 
-Status colors use grayscale values (monochromatic approach):
+Status colors: **success** uses green for explicit feedback (e.g. copy confirmation icon); **error**, **warning**, and **info** use grayscale (monochromatic approach):
 
 ```css
---color-success-50, --color-success-100, --color-success-500, --color-success-600, --color-success-700
+/* Success: green palette for emphasis (copy feedback, completion states) */
+--color-success-50, --color-success-100, --color-success-200, --color-success-500, --color-success-600, --color-success-700
+
+/* Error, warning, info: grayscale */
 --color-error-50, --color-error-100, --color-error-500, --color-error-600, --color-error-700
 --color-warning-50, --color-warning-100, --color-warning-500, --color-warning-600, --color-warning-700
 --color-info-50, --color-info-100, --color-info-500, --color-info-600, --color-info-700
 ```
+
+**Success color usage:** Green is used for success states that benefit from explicit visual feedback (e.g. "Copied!" icon). The `--color-green-*` palette is defined in `main.css` for light and dark themes.
 
 ## Spacing, Typography, Transitions, and More
 

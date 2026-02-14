@@ -6,7 +6,7 @@ import type {
   ListConversationsOptions,
   CreateConversationOptions,
   UpdateConversationOptions,
-} from '../shared/types'
+} from '@shared/types'
 
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
@@ -46,6 +46,38 @@ contextBridge.exposeInMainWorld('api', {
      * Resets the agent so next query uses fresh prompts from disk.
      */
     reloadAgent: () => ipcRenderer.invoke('llm:reloadAgent'),
+    /**
+     * List all models with metadata, grouped by provider (tool-capable only).
+     */
+    listModels: () => ipcRenderer.invoke('llm:listModels'),
+    /**
+     * List discoverable models for a provider (full list from API), for the enable-models UI.
+     */
+    listDiscoverableModels: (providerId: string) =>
+      ipcRenderer.invoke('llm:listDiscoverableModels', providerId),
+    /**
+     * Test connection to a provider. Returns { success, modelCount? } or { success: false, error }.
+     */
+    testProvider: (providerId: string) =>
+      ipcRenderer.invoke('llm:testProvider', providerId),
+    /**
+     * Dev/testing: encrypt a provider API key (same path future Settings UI will use).
+     * @param providerId e.g. 'anthropic'
+     * @param plainKey Plain API key (e.g. sk-ant-...)
+     * @param writeToSettings If true, merge into llm.providers and save (default false)
+     * @returns { success, fragment?, written? } or { success: false, error }
+     */
+    encryptProviderKey: (
+      providerId: string,
+      plainKey: string,
+      writeToSettings?: boolean
+    ) =>
+      ipcRenderer.invoke(
+        'llm:encrypt-provider-key',
+        providerId,
+        plainKey,
+        writeToSettings ?? false
+      ),
   },
   window: {
     close: () => ipcRenderer.invoke('window:close'),
@@ -97,5 +129,25 @@ contextBridge.exposeInMainWorld('api', {
     delete: (id: string) => ipcRenderer.invoke('conversations:delete', id),
     /** Get messages for a conversation */
     getMessages: (id: string) => ipcRenderer.invoke('conversations:getMessages', id),
+    /** Subscribe to title updates (e.g. from auto-generated titles). */
+    onTitleUpdated: (
+      callback: (data: { conversationId: string; title: string }) => void
+    ) => {
+      const handler = (
+        _event: Electron.IpcRendererEvent,
+        data: { conversationId: string; title: string }
+      ) => callback(data)
+      ipcRenderer.on('conversations:titleUpdated', handler)
+      return () => ipcRenderer.removeListener('conversations:titleUpdated', handler)
+    },
+    /** Subscribe when title generation starts (for "Generating title..." indicator). */
+    onTitleGenerating: (callback: (data: { conversationId: string }) => void) => {
+      const handler = (
+        _event: Electron.IpcRendererEvent,
+        data: { conversationId: string }
+      ) => callback(data)
+      ipcRenderer.on('conversations:titleGenerating', handler)
+      return () => ipcRenderer.removeListener('conversations:titleGenerating', handler)
+    },
   },
 })

@@ -41,9 +41,7 @@ Let users **attach** items to a conversation—including past chat summaries—a
 - Visibility is available in both full chat view and summary view (when Chat Summaries is implemented); design can be a collapsible section, sidebar panel, or header summary. The chat summary document also includes this list (see Chat Summaries).
 - This list gives transparency: users can see what the agent receives and correct misunderstandings; they can exclude items to reduce tokens and focus context.
 
-## Implementation Approach
-
-### Phase 1: Artifacts and Context Visibility
+## Phase 1: Artifacts and Context Visibility
 
 1. Extend or reuse context visibility from Chat Sidebar Integration ("Context from: X").
 2. Define a unified model for "artifacts in this conversation": view context, graph nodes, files, uploads, attached summaries; add per-attachment **excludedFromContext** (or equivalent) so an item can remain in the reference list but be omitted from the prompt.
@@ -51,7 +49,7 @@ Let users **attach** items to a conversation—including past chat summaries—a
 4. Add UI to display the full list with "in context" vs "excluded from context" indicator and a control to toggle (e.g. "Exclude from context" / "Include in context again"). Expand/collapse or drill-down as needed.
 5. Ensure this list is visible in both dedicated chat view and sidebar chat panel.
 
-### Phase 2: Attaching Past Summaries
+## Phase 2: Attaching Past Summaries
 
 1. Allow user to **attach a past conversation's summary** to the current conversation (e.g. from conversation list or search: "Add summary to this chat").
 2. Add **right-click context menu** option "Add to chat" (or equivalent) on conversation list items (and summary view when available) so the user can add that conversation's summary to the active chat from the list.
@@ -59,14 +57,14 @@ Let users **attach** items to a conversation—including past chat summaries—a
 4. Show attached summaries in the artifacts list; allow user to remove an attached summary.
 5. When building agent context, inject attached summary content (or relevant excerpts) so the agent can use it.
 
-### Phase 3: Other Attachment Types (Scope TBD)
+## Phase 3: Other Attachment Types (Scope TBD)
 
 1. Define support for **graph nodes** as attachments: user adds "this node" or "this subgraph" to the conversation; store references; include in context and in artifacts list. Add **right-click "Add to chat"** on graph nodes (and optionally subgraphs) in Graph view.
 2. Define support for **local files** and **uploads**: user attaches files or uploads (e.g. via right-click "Add to chat" in file tree or file UI); store references and optionally content/metadata; include in context and in artifacts list.
 3. Implement add/remove for each type and display in the same artifacts visibility UI.
 4. May be split into a follow-on backlog item if MVP is "visibility + attach past summaries" only.
 
-### Phase 4: Polish
+## Phase 4: Polish
 
 1. Clear labels and tooltips for each artifact type and for "in context" vs "excluded from context."
 2. Optional: indicate which artifacts were auto-injected (e.g. view context) vs user-attached.

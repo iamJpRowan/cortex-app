@@ -12,15 +12,13 @@ If you're an AI agent (Cursor, Claude, GitHub Copilot, etc.), see the [agents gu
 
 ## Feature Development
 
-When implementing new features, follow the workflow defined in [use-case-workflow.md](docs/development/use-case-workflow.md).
+When implementing new features, follow the workflow defined in [feature-development.md](docs/development/feature-development.md).
 
 **Quick summary:**
 1. Pick ONE specific example from a use case document
 2. Implement through phases: Chat → UI → Integration → Automation docs
 3. Pause at decision points for human guidance
 4. Create working increments, not perfection
-
-See [use-case-workflow.md](docs/development/use-case-workflow.md) for complete details on each phase, success criteria, and common patterns.
 
 ## Development Guardrails
 
@@ -51,6 +49,17 @@ Follow the conventions defined in [code-style.md](docs/development/code-style.md
 - **Component organization**: Colocated tests and GraphQL queries
 - **GraphQL**: TypeScript files with gql tagged templates
 
+## Commit Messages
+
+Use [Conventional Commits](https://www.conventionalcommits.org/): **type** (optional **scope**), then a short description.
+
+- **Format:** `type(scope): description` or `type: description`
+- **Types:** `feat`, `fix`, `docs`, `chore`, `refactor`, `test`, `style`, etc.
+- **Scope (optional):** area of the codebase, e.g. `feat(llm): add provider adapter`
+- **Description:** imperative, lowercase start; no period at the end.
+
+Examples: `feat: implement command palette`, `fix: keep new conversation selected`, `docs: restructure agents and development docs`. A commit-msg hook runs on every commit to enforce this format.
+
 ## Pull Request Process
 
 [TODO: Define PR process once repository workflow is established]
@@ -59,7 +68,7 @@ Follow the conventions defined in [code-style.md](docs/development/code-style.md
 
 When in doubt:
 - Reference [architecture documentation](docs/architecture/README.md) for principles and decisions
-- Check [use-case-workflow.md](docs/development/use-case-workflow.md) for feature development patterns
+- Check [feature-development.md](docs/development/feature-development.md) for feature development patterns
 - Pause and ask clarifying questions rather than making assumptions
 - Default to simpler approaches when multiple valid options exist
 

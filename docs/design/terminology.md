@@ -88,7 +88,7 @@ A **reusable UI building block** that combines structure, styling, and behavior.
 - Composable (can be combined with other components)
 - Reusable (used in multiple places)
 - Encapsulated (has its own state and behavior)
-- Follows component lifecycle patterns
+- Follows React and feature development patterns (see [Feature Development](../development/feature-development.md))
 
 **Examples:**
 - `Button` - Interactive button element

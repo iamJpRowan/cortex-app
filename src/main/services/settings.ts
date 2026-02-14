@@ -4,6 +4,12 @@ import path from 'path'
 import { EventEmitter } from 'events'
 
 /**
+ * Provider config stored under llm.providers[providerId].
+ * API keys are stored encrypted (apiKeyEncrypted); decryption only in main process.
+ */
+export type LLMProvidersConfig = Record<string, Record<string, unknown>>
+
+/**
  * Settings schema with default values
  * All possible settings must be defined here with their defaults
  */
@@ -11,6 +17,10 @@ export interface SettingsDefaults {
   'appearance.theme': 'light' | 'dark' | 'system'
   'hotkeys.commandPalette': string
   'hotkeys.settings': string
+  /** Prefixed model id (e.g. ollama:llama3.2:3b). Empty string = use fallback. */
+  'llm.defaultModel': string
+  /** Per-provider config (baseUrl, apiKeyEncrypted, etc.). */
+  'llm.providers': LLMProvidersConfig
 }
 
 /**
@@ -20,6 +30,8 @@ const DEFAULTS: SettingsDefaults = {
   'appearance.theme': 'system',
   'hotkeys.commandPalette': process.platform === 'darwin' ? 'Cmd+K' : 'Ctrl+K',
   'hotkeys.settings': process.platform === 'darwin' ? 'Cmd+,' : 'Ctrl+,',
+  'llm.defaultModel': '',
+  'llm.providers': {},
 }
 
 /**

@@ -360,4 +360,4 @@ When a feature is ready to be prioritized:
 - [Chat Sidebar Integration](./chat-sidebar-integration.md)
 - [Chat Quick Launcher](./chat-quick-launcher.md)
 - [KBar Smart Chat Detection](./kbar-smart-chat-detection.md)
-- [Multi-Provider Model Selection](./multi-provider-model-selection.md)
+- [Multi-Provider Model Selection](./archive/multi-provider-model-selection.md)

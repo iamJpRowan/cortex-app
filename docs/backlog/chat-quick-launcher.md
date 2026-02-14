@@ -36,36 +36,34 @@ Implement dedicated hotkey that opens a rich overlay for starting a chat, with c
 - Remember last-used agent
 - Restore these as defaults next time overlay opens
 
-## Implementation Approach
-
-### Phase 1: Overlay Component
+## Phase 1: Overlay Component
 1. Create overlay component (modal/sheet)
 2. Add hotkey registration (separate from KBar)
 3. Implement show/hide with keyboard shortcut
 4. Handle ESC to close
 5. Test overlay appearance and focus
 
-### Phase 2: Reuse Chat Input Component
+## Phase 2: Reuse Chat Input Component
 1. Extract/import chat input component from Chat Interface (MVP)
 2. Render input component in overlay
 3. All existing controls work automatically (message, model, agent if exists)
 4. Apply default values (last-used model/agent)
 5. Wire to overlay state
 
-### Phase 3: Chat Integration
+## Phase 3: Chat Integration
 1. Wire submit to create new conversation
 2. Pass message, model, and agent to chat
 3. Navigate to chat view or open sidebar
 4. Create conversation with selected settings
 5. Test full flow
 
-### Phase 4: State Persistence
+## Phase 4: State Persistence
 1. Store last-used model in settings or local storage
 2. Store last-used agent
 3. Restore defaults when overlay opens
 4. Handle edge cases (model/agent no longer exists)
 
-### Phase 5: Polish
+## Phase 5: Polish
 1. Smooth animations for overlay
 2. Keyboard navigation within overlay (tab between fields)
 3. Enter to submit (with shift+enter for newlines if multi-line)

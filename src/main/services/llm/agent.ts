@@ -1,4 +1,3 @@
-import { ChatOllama } from '@langchain/ollama'
 import {
   HumanMessage,
   AIMessage,
@@ -6,37 +5,106 @@ import {
   BaseMessage,
   SystemMessage,
 } from '@langchain/core/messages'
-import { LLMServiceConfig, getDefaultLLMConfig } from '../../config/defaults'
+import { LLMServiceConfig, getDefaultLLMConfig } from '@main/config/defaults'
 import { toolRegistry } from './tools/registry'
 import { initializeStatePersistence } from './state'
 import { SqliteSaver } from '@langchain/langgraph-checkpoint-sqlite'
-import { getDefaultModel } from '../ollama'
 import { createAgent, type ReactAgent } from 'langchain'
 import type {
   LLMQueryOptions,
   TraceEntry,
   StreamEventHandler,
   ChatMessage,
-} from '../../../shared/types'
+} from '@shared/types'
+import type { PrefixedModelId } from './providers/types'
+import { parseModelId } from './providers/types'
+import { providerRegistry, getModelsWithMetadata } from './providers'
+import { isModelBlocked } from './providers/tool-support-blocklist'
+import { getProviderConfigWithDecryptedKeys } from './providers/secure-config'
+import { getSettingsService } from '@main/services/settings'
+
+/**
+ * Normalize message content to a plain string for display.
+ * Handles string content (e.g. Ollama) and content-block arrays (e.g. Anthropic: [{ type: 'text', text: '...' }]).
+ */
+function messageContentToString(content: unknown): string {
+  if (content == null) return ''
+  if (typeof content === 'string') return content
+  if (Array.isArray(content)) {
+    const parts: string[] = []
+    for (const block of content) {
+      if (
+        block &&
+        typeof block === 'object' &&
+        'text' in block &&
+        typeof (block as { text: unknown }).text === 'string'
+      ) {
+        parts.push((block as { text: string }).text)
+      }
+    }
+    return parts.join('')
+  }
+  return JSON.stringify(content)
+}
+
+/** Result of parsing AI message content: text for response, thinking blocks for reasoning trace. */
+interface ParsedAIContent {
+  textContent: string
+  thinkingBlocks: string[]
+}
+
+/**
+ * Parse AI message content that may be block-based (e.g. Anthropic extended thinking).
+ * Extracts text blocks for the final response and thinking blocks for reasoning trace.
+ * Handles both final API shape and LangChain streaming merge (blocks with index, thinking_delta).
+ */
+function parseAIContent(content: unknown): ParsedAIContent {
+  const result: ParsedAIContent = { textContent: '', thinkingBlocks: [] }
+  if (content == null) return result
+  if (typeof content === 'string') {
+    result.textContent = content
+    return result
+  }
+  if (!Array.isArray(content)) return result
+  // Merge thinking by index (streaming sends multiple chunks per block)
+  const thinkingByIndex = new Map<number, string>()
+  for (const block of content) {
+    if (!block || typeof block !== 'object') continue
+    const b = block as Record<string, unknown>
+    const idx = typeof b.index === 'number' ? b.index : 0
+    if (
+      (b.type === 'thinking' || b.type === 'thinking_delta') &&
+      typeof b.thinking === 'string'
+    ) {
+      const prev = thinkingByIndex.get(idx) ?? ''
+      thinkingByIndex.set(idx, prev + b.thinking)
+    } else if (b.type === 'text' && typeof b.text === 'string') {
+      result.textContent += b.text
+    }
+  }
+  const indices = Array.from(thinkingByIndex.keys()).sort((a, b) => a - b)
+  for (const i of indices) {
+    const text = thinkingByIndex.get(i)?.trim()
+    if (text) result.thinkingBlocks.push(text)
+  }
+  return result
+}
 
 /**
  * LLM Agent Service
- * Manages LangGraph agent with tool support and conversation state
+ * Manages LangGraph agent with tool support and conversation state.
+ * Uses provider registry for multi-model support; caches executor per model.
  */
-// The agent executor type from langchain createAgent
 type AgentExecutor = ReactAgent
 
 export class LLMAgentService {
-  private llm: ChatOllama | null = null
   private checkpointer: SqliteSaver | null = null
-  private executor: AgentExecutor | null = null
+  private executorCache = new Map<PrefixedModelId, AgentExecutor>()
   private config: LLMServiceConfig
+  private settingsUnsubscribe: (() => void) | null = null
 
   constructor(config?: Partial<LLMServiceConfig>) {
-    // Get fresh defaults (reads prompt files each time)
     const defaults = getDefaultLLMConfig()
-
-    // Merge with defaults
     this.config = {
       ...defaults,
       ...config,
@@ -53,138 +121,110 @@ export class LLMAgentService {
         ...config?.tools,
       },
     }
+    console.log('[LLMAgent] Service created (model per query via provider registry)')
+  }
 
-    // Normalize baseUrl to use IPv4 (127.0.0.1) instead of localhost to avoid IPv6 issues
-    if (this.config.llm.baseUrl && this.config.llm.baseUrl.includes('localhost')) {
-      this.config.llm.baseUrl = this.config.llm.baseUrl.replace('localhost', '127.0.0.1')
-    } else if (!this.config.llm.baseUrl) {
-      this.config.llm.baseUrl = 'http://127.0.0.1:11434'
+  private getProviderConfig(providerId: string): unknown {
+    const providers = getSettingsService().get('llm.providers') ?? {}
+    const raw = providers[providerId]
+    const rawObj =
+      typeof raw === 'object' && raw !== null
+        ? (raw as Record<string, unknown>)
+        : undefined
+    return getProviderConfigWithDecryptedKeys(rawObj)
+  }
+
+  /**
+   * Resolve prefixed model id: options.model, settings default, or Ollama fallback.
+   * Rejects blocklisted models (no tool support) with a clear error.
+   */
+  private async resolveModelId(options?: LLMQueryOptions): Promise<PrefixedModelId> {
+    let modelId: PrefixedModelId | null = null
+    if (options?.model && String(options.model).trim()) {
+      modelId = options.model.trim() as PrefixedModelId
+    } else {
+      const defaultModel = getSettingsService().get('llm.defaultModel')
+      if (defaultModel && String(defaultModel).trim()) {
+        const candidate = defaultModel.trim() as PrefixedModelId
+        const { all } = await getModelsWithMetadata()
+        if (all.some(m => m.id === candidate)) {
+          modelId = candidate
+        }
+      }
     }
-
-    console.log(
-      '[LLMAgent] Service created (model will be discovered during initialization)'
+    if (modelId) {
+      const parsed = parseModelId(modelId)
+      if (parsed && isModelBlocked(parsed.providerId, parsed.modelId)) {
+        throw new Error(
+          `Model "${modelId}" does not support tool calling.\n` +
+            'Please choose a model that supports tools (e.g. ollama:llama3.2:3b, ollama:qwen3).'
+        )
+      }
+      return modelId
+    }
+    const { all } = await getModelsWithMetadata()
+    if (all.length > 0) {
+      return all[0].id
+    }
+    throw new Error(
+      'No enabled models. Enable at least one model per provider in Settings (LLM Providers).'
     )
   }
 
   /**
-   * Select the best matching model from installed Ollama models
-   * Prefers models matching the configured name, falls back to first available
+   * Get or create executor for the given prefixed model id. Caches by model id.
    */
-  private selectModel(installedModels: string[], preferredName?: string): string {
-    if (installedModels.length === 0) {
-      throw new Error(
-        'No models installed in Ollama. Please pull a model:\n  ollama pull llama3.2:3b'
-      )
-    }
+  private async getExecutorForModel(
+    prefixedModelId: PrefixedModelId
+  ): Promise<AgentExecutor> {
+    let executor = this.executorCache.get(prefixedModelId)
+    if (executor) return executor
 
-    // If preferred name is provided, try to find exact or partial match
-    if (preferredName) {
-      // Try exact match first
-      const exactMatch = installedModels.find(m => m === preferredName)
-      if (exactMatch) {
-        return exactMatch
-      }
-
-      // Try partial match (e.g., "llama3.2" matches "llama3.2:3b")
-      const baseName = preferredName.split(':')[0]
-      const partialMatch = installedModels.find(
-        m => m === baseName || m.startsWith(baseName + ':') || m.includes(baseName)
-      )
-      if (partialMatch) {
-        return partialMatch
-      }
-    }
-
-    // Fall back to first available model
-    return installedModels[0]
-  }
-
-  /**
-   * Initialize the agent with tools and state persistence
-   * Proactively queries Ollama for installed models to ensure we use an exact match
-   */
-  async initialize(): Promise<void> {
-    // Initialize state persistence
-    this.checkpointer = await initializeStatePersistence(this.config.state)
-
-    // Query Ollama for installed models BEFORE creating ChatOllama
-    // This ensures we use the exact model name (including tags like :3b)
-    let selectedModel: string
-    try {
-      const { Ollama } = await import('ollama')
-      const ollamaClient = new Ollama({
-        host: this.config.llm.baseUrl || 'http://127.0.0.1:11434',
-      })
-      const modelsResponse = await ollamaClient.list()
-
-      if (!modelsResponse.models || modelsResponse.models.length === 0) {
-        throw new Error(
-          'No models installed in Ollama.\n' +
-            'Please pull a model:\n' +
-            '  ollama pull llama3.2:3b'
-        )
-      }
-
-      const installedModels = modelsResponse.models.map(m => m.name)
-      const preferredModel = this.config.llm.model || getDefaultModel() || undefined
-
-      selectedModel = this.selectModel(installedModels, preferredModel)
-      console.log(
-        `[LLMAgent] Selected model: ${selectedModel} (from ${installedModels.length} available)`
-      )
-
-      // Update config with the actual model name
-      this.config.llm.model = selectedModel
-    } catch (error) {
-      if (error instanceof Error && error.message.includes('No models installed')) {
-        throw error
-      }
-      // If Ollama query fails, provide helpful error
-      throw new Error(
-        `Failed to query Ollama for installed models: ${error instanceof Error ? error.message : 'Unknown error'}\n` +
-          'Please ensure Ollama is running:\n' +
-          '  ollama serve'
-      )
-    }
-
-    // Now create ChatOllama with the verified model name
-    this.llm = new ChatOllama({
-      model: selectedModel,
-      baseUrl: this.config.llm.baseUrl || 'http://127.0.0.1:11434',
-      temperature: this.config.llm.temperature,
-    })
-
-    // Get tools from registry using getToolsForAgent()
-    // This provides a single touch point for future tool permission filtering
+    const getConfig = (id: string) => this.getProviderConfig(id)
+    const llm = await providerRegistry.getLLM(prefixedModelId, getConfig)
     const tools = toolRegistry.getToolsForAgent()
-
     if (tools.length === 0) {
       console.warn(
         '[LLMAgent] No tools registered. Agent will work but cannot use tools.'
       )
-    } else {
-      console.log(`[LLMAgent] Initialized with ${tools.length} tool(s)`)
     }
-
-    // Create agent using langchain's createAgent (modern API)
-    // This creates a proper ReAct loop that continues after tool execution
-    this.executor = createAgent({
-      model: this.llm,
-      tools: tools,
+    executor = createAgent({
+      model: llm,
+      tools,
       systemPrompt: this.config.llm.systemPrompt,
-      checkpointer: this.checkpointer,
+      checkpointer: this.checkpointer!,
     })
+    this.executorCache.set(prefixedModelId, executor)
+    console.log(`[LLMAgent] Cached executor for model: ${prefixedModelId}`)
+    return executor
+  }
 
-    console.log('[LLMAgent] Agent executor initialized')
+  private clearCaches(): void {
+    this.executorCache.clear()
+    providerRegistry.clearCache()
   }
 
   /**
-   * Determine message type from both class instances and plain objects.
-   *
-   * Messages from the checkpointer are deserialized as plain objects, not class instances.
-   * LangChain provides `mapStoredMessagesToChatMessages()` but it expects `StoredMessage[]`
-   * format which doesn't match the checkpointer's direct output. This helper handles both
-   * fresh instances (instanceof) and deserialized objects (_getType/lc_id).
+   * Initialize state persistence and subscribe to settings changes.
+   * No single LLM/executor; those are created per model on first query.
+   */
+  async initialize(): Promise<void> {
+    this.checkpointer = await initializeStatePersistence(this.config.state)
+    const settings = getSettingsService()
+    this.settingsUnsubscribe = () => {
+      settings.removeAllListeners('change')
+    }
+    settings.on('change', (data: { key: string }) => {
+      if (data.key === 'llm.providers' || data.key === 'llm.defaultModel') {
+        this.clearCaches()
+      }
+    })
+    console.log('[LLMAgent] Initialized (checkpointer + registry; executor per model)')
+  }
+
+  /**
+   * Determine message type from class instances or plain objects.
+   * Checkpointer deserializes to plain objects; this helper handles both.
    *
    * @see https://v03.api.js.langchain.com/functions/_langchain_core.messages.mapStoredMessagesToChatMessages.html
    */
@@ -248,10 +288,7 @@ export class LLMAgentService {
         trace.push({
           type: 'tool_result',
           toolName: message.name,
-          result:
-            typeof message.content === 'string'
-              ? message.content
-              : JSON.stringify(message.content),
+          result: messageContentToString(message.content),
           timestamp: Date.now(),
         })
         console.log(`[LLMAgent] Tool result from ${message.name}:`, message.content)
@@ -262,10 +299,7 @@ export class LLMAgentService {
         message instanceof AIMessage &&
         (!message.tool_calls || message.tool_calls.length === 0)
       ) {
-        const content =
-          typeof message.content === 'string'
-            ? message.content
-            : JSON.stringify(message.content)
+        const content = messageContentToString(message.content)
         if (content && content.trim()) {
           trace.push({
             type: 'assistant_message',
@@ -324,30 +358,27 @@ export class LLMAgentService {
     conversationId: string
     trace: TraceEntry[]
   }> {
-    if (!this.executor || !this.llm) {
+    if (!this.checkpointer) {
       throw new Error('Agent not initialized. Call initialize() first.')
     }
 
     const { conversationId, context, agent, model } = options ?? {}
+    const modelId = await this.resolveModelId(options)
+    const executor = await this.getExecutorForModel(modelId)
 
     const config = conversationId
       ? { configurable: { thread_id: conversationId } }
       : { configurable: { thread_id: `conv-${Date.now()}` } }
 
-    console.log(`[LLMAgent] Query: ${message}`)
+    console.log(`[LLMAgent] Query: ${message} (model: ${modelId})`)
 
-    // Log context and agent info for debugging
     if (context?.viewId) {
       console.log(`[LLMAgent] Context from: ${context.viewId}`)
     }
     if (agent?.id) {
       console.log(`[LLMAgent] Agent: ${agent.name} (${agent.id})`)
     }
-    if (model) {
-      console.log(`[LLMAgent] Model override: ${model}`)
-    }
 
-    // Build messages with context/instructions if provided
     const systemPrompt = this.buildSystemPrompt({ context, agent, model })
     const messages: BaseMessage[] = []
 
@@ -356,13 +387,8 @@ export class LLMAgentService {
     }
     messages.push(new HumanMessage(message))
 
-    // TODO: When Multi-Provider Model Selection is implemented:
-    // - If model is provided, create a temporary LLM instance with that model
-    // - Route to appropriate provider based on model prefix (ollama:, openai:, etc.)
-    void model // Acknowledge for future use
-
     try {
-      const result = await this.executor.invoke(
+      const result = await executor.invoke(
         {
           messages,
         },
@@ -377,9 +403,9 @@ export class LLMAgentService {
           msg instanceof AIMessage &&
           (!msg.tool_calls || msg.tool_calls.length === 0)
         ) {
-          const content = msg.content
-          if (content) {
-            response = typeof content === 'string' ? content : JSON.stringify(content)
+          const content = messageContentToString(msg.content)
+          if (content && content.trim()) {
+            response = content
             break
           }
         }
@@ -425,7 +451,6 @@ export class LLMAgentService {
         }
 
         // Check for model not found errors (from Ollama ResponseError or error message)
-        const modelName = this.config.llm.model || 'llama3.2'
         const errorWithStatus = errorWithCause as Error & { status_code?: number }
         if (
           (errorMessage.includes('model') &&
@@ -433,10 +458,9 @@ export class LLMAgentService {
               errorMessage.includes('does not exist'))) ||
           (errorWithStatus.status_code === 404 && errorMessage.includes('model'))
         ) {
+          const modelPart = modelId.includes(':') ? modelId.split(':')[1] : modelId
           throw new Error(
-            `Model "${modelName}" not found in Ollama.\n` +
-              `Please pull the model:\n` +
-              `  ollama pull ${modelName}`
+            `Model not found (${modelId}).\nPlease pull the model, e.g.: ollama pull ${modelPart}`
           )
         }
       }
@@ -463,31 +487,28 @@ export class LLMAgentService {
     options: LLMQueryOptions | undefined,
     onEvent: StreamEventHandler
   ): Promise<void> {
-    if (!this.executor || !this.llm) {
+    if (!this.checkpointer) {
       throw new Error('Agent not initialized. Call initialize() first.')
     }
 
     const { conversationId, context, agent, model } = options ?? {}
+    const modelId = await this.resolveModelId(options)
+    const executor = await this.getExecutorForModel(modelId)
 
-    // Use provided conversationId or generate new one
     const convId = conversationId ?? `conv-${Date.now()}`
-
     const config = { configurable: { thread_id: convId } }
 
-    console.log(`[LLMAgent] Streaming query: ${message} (streamId: ${streamId})`)
+    console.log(
+      `[LLMAgent] Streaming query: ${message} (streamId: ${streamId}, model: ${modelId})`
+    )
 
-    // Log context and agent info for debugging
     if (context?.viewId) {
       console.log(`[LLMAgent] Context from: ${context.viewId}`)
     }
     if (agent?.id) {
       console.log(`[LLMAgent] Agent: ${agent.name} (${agent.id})`)
     }
-    if (model) {
-      console.log(`[LLMAgent] Model override: ${model}`)
-    }
 
-    // Build messages with context/instructions if provided
     const systemPrompt = this.buildSystemPrompt({ context, agent, model })
     const messages: BaseMessage[] = []
 
@@ -496,10 +517,6 @@ export class LLMAgentService {
     }
     messages.push(new HumanMessage(message))
 
-    // Acknowledge model override for future use
-    void model
-
-    // Emit start event
     onEvent({
       type: 'start',
       streamId,
@@ -509,13 +526,42 @@ export class LLMAgentService {
     const trace: TraceEntry[] = []
     let finalResponse = ''
     let accumulated = ''
-    let lastMessageCount = -1 // -1 = haven't seen initial state yet
-    const processedToolCalls = new Set<string>() // Track processed tool calls
-    const toolCallStartTimes = new Map<string, number>() // Track start times for duration
+    let lastMessageCount = -1
+    const processedToolCalls = new Set<string>()
+    const toolCallStartTimes = new Map<string, number>()
+    /** Accumulate thinking from message chunks; flush when we see text. */
+    const reasoningByIndex = new Map<number, string>()
+    /** Skip emitting reasoning in values if we already emitted from messages stream. */
+    let reasoningEmittedFromMessages = false
+
+    const flushReasoningFromChunks = () => {
+      if (reasoningByIndex.size === 0) return
+      if (reasoningEmittedFromMessages) {
+        reasoningByIndex.clear()
+        return
+      }
+      reasoningEmittedFromMessages = true
+      const indices = Array.from(reasoningByIndex.keys()).sort((a, b) => a - b)
+      for (const idx of indices) {
+        const text = reasoningByIndex.get(idx)?.trim()
+        if (text) {
+          onEvent({
+            type: 'trace',
+            streamId,
+            conversationId: convId,
+            trace: {
+              type: 'reasoning',
+              content: text,
+              timestamp: Date.now(),
+            },
+          })
+        }
+      }
+      reasoningByIndex.clear()
+    }
 
     try {
-      // Use stream with both "messages" (token streaming) and "values" (step updates)
-      const stream = await this.executor.stream(
+      const stream = await executor.stream(
         { messages },
         { ...config, streamMode: ['messages', 'values'] }
       )
@@ -527,14 +573,35 @@ export class LLMAgentService {
 
         if (mode === 'messages') {
           // Token streaming from LLM - data is [messageChunk, metadata]
-          const [msgChunk] = data as [{ content?: string }, unknown]
-          if (msgChunk?.content && typeof msgChunk.content === 'string') {
-            accumulated += msgChunk.content
+          const [msgChunk] = data as [{ content?: unknown }, unknown]
+          const content = msgChunk?.content
+          // Process block-based content for reasoning (emit during stream)
+          if (Array.isArray(content)) {
+            let sawText = false
+            for (const block of content) {
+              if (!block || typeof block !== 'object') continue
+              const b = block as Record<string, unknown>
+              const idx = typeof b.index === 'number' ? b.index : 0
+              if (
+                (b.type === 'thinking' || b.type === 'thinking_delta') &&
+                typeof b.thinking === 'string'
+              ) {
+                const prev = reasoningByIndex.get(idx) ?? ''
+                reasoningByIndex.set(idx, prev + b.thinking)
+              } else if (b.type === 'text' && typeof b.text === 'string') {
+                sawText = true
+              }
+            }
+            if (sawText) flushReasoningFromChunks()
+          }
+          const token = messageContentToString(content)
+          if (token) {
+            accumulated += token
             onEvent({
               type: 'token',
               streamId,
               conversationId: convId,
-              token: msgChunk.content,
+              token,
               accumulated,
             })
           }
@@ -586,22 +653,35 @@ export class LLMAgentService {
                 }
               }
 
-              // Capture final response content
-              const content =
-                typeof aiMsg.content === 'string'
-                  ? aiMsg.content
-                  : JSON.stringify(aiMsg.content)
-
-              if (content && content.trim() && !aiMsg.tool_calls?.length) {
-                finalResponse = content
+              // Capture final response and any reasoning (emit only if not already from messages stream)
+              const parsed = parseAIContent(aiMsg.content)
+              if (!reasoningEmittedFromMessages) {
+                for (const thinking of parsed.thinkingBlocks) {
+                  if (thinking.trim()) {
+                    const reasoningEntry: TraceEntry = {
+                      type: 'reasoning',
+                      content: thinking.trim(),
+                      timestamp: Date.now(),
+                    }
+                    onEvent({
+                      type: 'trace',
+                      streamId,
+                      conversationId: convId,
+                      trace: reasoningEntry,
+                    })
+                  }
+                }
+                if (parsed.thinkingBlocks.some(t => t.trim())) {
+                  reasoningEmittedFromMessages = true
+                }
+              }
+              if (parsed.textContent.trim() && !aiMsg.tool_calls?.length) {
+                finalResponse = parsed.textContent.trim()
               }
             } else if (msgType === 'tool') {
               const toolMsg = msg as ToolMessage
               // Tool result
-              const content =
-                typeof toolMsg.content === 'string'
-                  ? toolMsg.content
-                  : JSON.stringify(toolMsg.content)
+              const content = messageContentToString(toolMsg.content)
 
               const toolName = toolMsg.name || 'unknown'
               const toolCallId = toolMsg.tool_call_id
@@ -656,6 +736,9 @@ export class LLMAgentService {
         }
       }
 
+      // Flush any reasoning left in buffer (e.g. stream ended before text chunk)
+      flushReasoningFromChunks()
+
       // Use accumulated tokens as final response if we have them
       if (accumulated.trim()) {
         finalResponse = accumulated
@@ -670,13 +753,14 @@ export class LLMAgentService {
         })
       }
 
-      // Emit completion event
+      // Emit completion event (include model for conversation/message tracking)
       onEvent({
         type: 'complete',
         streamId,
         conversationId: convId,
         response: finalResponse || 'No response',
         trace,
+        model: modelId,
       })
 
       console.log(
@@ -706,15 +790,15 @@ export class LLMAgentService {
           suggestion = 'Please start the Ollama server with: ollama serve'
         }
 
-        const modelName = this.config.llm.model || 'llama3.2'
         const errorWithStatus = errorWithCause as Error & { status_code?: number }
         if (
           (errMsg.includes('model') &&
             (errMsg.includes('not found') || errMsg.includes('does not exist'))) ||
           (errorWithStatus.status_code === 404 && errMsg.includes('model'))
         ) {
-          errorMessage = `Model "${modelName}" not found in Ollama.`
-          suggestion = `Please pull the model with: ollama pull ${modelName}`
+          errorMessage = `Model not found (${modelId}).`
+          const part = modelId.includes(':') ? modelId.split(':')[1] : modelId
+          suggestion = `Please pull the model, e.g.: ollama pull ${part}`
         }
       }
 
@@ -729,15 +813,72 @@ export class LLMAgentService {
   }
 
   /**
+   * Build a map of output message index -> timestamp from checkpoint history.
+   * Each checkpoint's ts is when that step completed (user sent or agent finished).
+   */
+  private async buildMessageTimestampMap(
+    conversationId: string
+  ): Promise<Map<number, number>> {
+    const map = new Map<number, number>()
+    const config = { configurable: { thread_id: conversationId } }
+    const checkpoints: {
+      checkpoint: { ts: string }
+      channelValues: { messages?: BaseMessage[] }
+    }[] = []
+
+    for await (const tuple of this.checkpointer!.list(config)) {
+      if (!tuple?.checkpoint) continue
+      const cv = tuple.checkpoint.channel_values as { messages?: BaseMessage[] }
+      checkpoints.push({ checkpoint: tuple.checkpoint, channelValues: cv })
+    }
+
+    // Oldest first so we assign each message the first checkpoint that contains it
+    checkpoints.sort(
+      (a, b) => new Date(a.checkpoint.ts).getTime() - new Date(b.checkpoint.ts).getTime()
+    )
+
+    for (const { checkpoint, channelValues: cv } of checkpoints) {
+      if (!cv?.messages || !Array.isArray(cv.messages)) continue
+      let outIndex = 0
+      for (const msg of cv.messages) {
+        const msgType = this.getMessageType(msg)
+        if (msgType === 'system') continue
+        if (msgType === 'human') {
+          if (!map.has(outIndex)) map.set(outIndex, new Date(checkpoint.ts).getTime())
+          outIndex++
+        } else if (msgType === 'ai') {
+          const aiMsg = msg as AIMessage
+          const content = messageContentToString(aiMsg.content)
+          if (content && content.trim()) {
+            if (!map.has(outIndex)) map.set(outIndex, new Date(checkpoint.ts).getTime())
+            outIndex++
+          }
+        } else if (msgType === 'tool') {
+          // Tool results don't add output messages
+        }
+      }
+    }
+    return map
+  }
+
+  /**
    * Get conversation messages from the checkpointer.
    *
    * Reads the checkpoint state for a conversation and extracts
    * messages in a format suitable for UI display.
+   * Uses checkpoint history to set timestamps: user = when sent, agent = when response finished.
    *
    * @param conversationId The conversation thread ID
    * @returns Array of chat messages
    */
-  async getConversationMessages(conversationId: string): Promise<ChatMessage[]> {
+  /**
+   * @param messageModels Optional list of model ids per assistant message (by order);
+   *        merged from conversation metadata for per-message attribution when loading history.
+   */
+  async getConversationMessages(
+    conversationId: string,
+    messageModels?: string[]
+  ): Promise<ChatMessage[]> {
     if (!this.checkpointer) {
       throw new Error('Checkpointer not initialized. Call initialize() first.')
     }
@@ -766,8 +907,13 @@ export class LLMAgentService {
         return []
       }
 
+      const timestampMap = await this.buildMessageTimestampMap(conversationId)
+      const fallbackTs = Date.now()
+
       const messages: ChatMessage[] = []
       let messageIndex = 0
+      let assistantIndex = 0
+      let outputIndex = 0
 
       // Track pending trace entries for current assistant turn
       let pendingTrace: TraceEntry[] = []
@@ -784,15 +930,15 @@ export class LLMAgentService {
           // New user message - reset pending trace
           pendingTrace = []
 
-          const content =
-            typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)
+          const content = messageContentToString(msg.content)
 
           messages.push({
             id: `msg-${conversationId}-${messageIndex++}`,
             role: 'user',
             content,
-            timestamp: Date.now(),
+            timestamp: timestampMap.get(outputIndex) ?? fallbackTs,
           })
+          outputIndex++
         } else if (msgType === 'ai') {
           const aiMsg = msg as AIMessage
           const toolCalls = aiMsg.tool_calls
@@ -811,29 +957,30 @@ export class LLMAgentService {
           }
 
           // If this AI message has content (final response), add it with trace
-          const content =
-            typeof aiMsg.content === 'string'
-              ? aiMsg.content
-              : JSON.stringify(aiMsg.content)
+          const content = messageContentToString(aiMsg.content)
 
           if (content && content.trim()) {
+            const model =
+              messageModels && assistantIndex < messageModels.length
+                ? messageModels[assistantIndex]
+                : undefined
+            assistantIndex += 1
             messages.push({
               id: `msg-${conversationId}-${messageIndex++}`,
               role: 'assistant',
               content,
-              timestamp: Date.now(),
+              timestamp: timestampMap.get(outputIndex) ?? fallbackTs,
               trace: pendingTrace.length > 0 ? [...pendingTrace] : undefined,
+              ...(model ? { model } : {}),
             })
+            outputIndex++
             // Reset trace after attaching to response
             pendingTrace = []
           }
         } else if (msgType === 'tool') {
           // Tool result - add to pending trace
           const toolMsg = msg as ToolMessage
-          const content =
-            typeof toolMsg.content === 'string'
-              ? toolMsg.content
-              : JSON.stringify(toolMsg.content)
+          const content = messageContentToString(toolMsg.content)
 
           pendingTrace.push({
             type: 'tool_result',
@@ -863,10 +1010,10 @@ export class LLMAgentService {
   }
 
   /**
-   * Check if agent is initialized
+   * True when checkpointer is ready; executors are created per model on demand.
    */
   isInitialized(): boolean {
-    return this.executor !== null
+    return this.checkpointer !== null
   }
 }
 

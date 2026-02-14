@@ -89,30 +89,28 @@ The migration is straightforward because Deep Agents are built on top of LangGra
 
 **Migration effort**: ~1-2 hours, primarily swapping agent creation method and optionally enabling middleware.
 
-## Implementation Approach
-
-### Phase 1: Core Migration
+## Phase 1: Core Migration
 
 1. Replace `createAgent()` with `create_deep_agent()`
 2. Configure default middleware (filesystem, summarization)
 3. Test existing tools work unchanged
 4. Verify IPC interface unchanged
 
-### Phase 2: Storage Backend Setup
+## Phase 2: Storage Backend Setup
 
 1. Configure `CompositeBackend` for hybrid storage
 2. Set up `StoreBackend` for persistent memory (`/memories/` path)
 3. Configure `StateBackend` for ephemeral working files
 4. Test cross-conversation persistence
 
-### Phase 3: Custom Agents Integration
+## Phase 3: Custom Agents Integration
 
 1. Implement MD → Deep Agents config conversion
 2. Map `tools.ask` to `interrupt_on`
 3. Map `memory.namespace` to `StoreBackend` namespacing
 4. Test agent switching with Deep Agents backend
 
-### Phase 4: Sub-Agent Integration
+## Phase 4: Sub-Agent Integration
 
 1. Implement `delegate` tool wrapping `task()`
 2. Add permission checking before delegation
@@ -137,7 +135,7 @@ The migration is straightforward because Deep Agents are built on top of LangGra
 - [Sub-Agent Delegation](./sub-agent-delegation.md) - Agent-to-agent delegation
 
 **Related:**
-- [Tool Permission System](./tool-permission-system.md) - Permission model used by agents
+- [Tool Permission System](./tool-permission-system.md) - Permission model used by agents. **Phase 6 (runtime approval)** depends on a minimal Deep Agents slice: harness + `interrupt_on` for tool calls. Implement that MVP for this single use case so "ask" tools use Deep Agents' human-in-the-loop instead of custom interrupt logic.
 - [Chat Features (Future)](./chat-features-future.md) - Memory feature leverages Deep Agents storage
 
 ## Notes

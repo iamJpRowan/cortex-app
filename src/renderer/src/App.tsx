@@ -10,6 +10,10 @@ import { CommandPalette } from './components/CommandPalette'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { cn } from '@/lib/utils'
 import { initHotkeys } from '@/lib/hotkeys'
+import { usePersistedState } from '@/hooks/use-persisted-state'
+import { LAYOUT_SIDEBAR_COLLAPSED_KEY, LAYOUT_LAST_VIEW_KEY } from '@/lib/layout-storage'
+
+const VALID_ROUTES = ['/', '/chat', '/settings'] as const
 
 /**
  * AppContent Component
@@ -19,6 +23,28 @@ import { initHotkeys } from '@/lib/hotkeys'
 function AppContent() {
   const location = useLocation()
   const navigate = useNavigate()
+  const [sidebarCollapsed, setSidebarCollapsed] = usePersistedState(
+    LAYOUT_SIDEBAR_COLLAPSED_KEY,
+    false
+  )
+
+  // Restore last view on mount
+  React.useEffect(() => {
+    const stored = localStorage.getItem(LAYOUT_LAST_VIEW_KEY)
+    if (stored && VALID_ROUTES.includes(stored as (typeof VALID_ROUTES)[number])) {
+      const path = stored as (typeof VALID_ROUTES)[number]
+      const current = location.pathname === '' ? '/' : location.pathname
+      if (path !== current) navigate(path)
+    }
+  }, [])
+
+  // Persist current view on route change
+  React.useEffect(() => {
+    const path = location.pathname === '' ? '/' : location.pathname
+    if (VALID_ROUTES.includes(path as (typeof VALID_ROUTES)[number])) {
+      localStorage.setItem(LAYOUT_LAST_VIEW_KEY, path)
+    }
+  }, [location.pathname])
 
   // Initialize hotkeys on mount
   React.useEffect(() => {
@@ -46,7 +72,9 @@ function AppContent() {
 
   return (
     <SidebarProvider
-      defaultOpen={true}
+      defaultOpen={!sidebarCollapsed}
+      open={!sidebarCollapsed}
+      onOpenChange={open => setSidebarCollapsed(!open)}
       style={
         {
           '--sidebar-width': '16rem',
@@ -99,7 +127,12 @@ function AppContent() {
               <Route
                 path="/settings"
                 element={
-                  <div className="flex-1 overflow-auto p-4">
+                  <div
+                    className="flex-1 overflow-auto p-4"
+                    data-settings-scroll
+                    role="region"
+                    aria-label="Settings content"
+                  >
                     <div className="flex flex-col gap-4">
                       <SettingsView />
                     </div>

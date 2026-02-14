@@ -1,5 +1,5 @@
 import { ipcMain, BrowserWindow, shell } from 'electron'
-import { getSettingsService } from '../services/settings'
+import { getSettingsService } from '@main/services/settings'
 
 let mainWindow: BrowserWindow | null = null
 

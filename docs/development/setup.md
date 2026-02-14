@@ -140,6 +140,5 @@ cortex-app/
 ├── logs/                     # Application logs
 ├── data/                     # Development data (gitignored)
 ├── docs/                     # Architecture and guides
-├── devlogs/                  # Development progress logs
-└── automation-candidates/    # Ideas for future automation
+└── devlogs/                  # Development progress logs
 ```

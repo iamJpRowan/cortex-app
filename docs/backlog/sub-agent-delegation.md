@@ -172,16 +172,14 @@ subagents:
 - Clear error when depth exceeded
 - Depth tracked per branch in parallel execution trees
 
-## Implementation Approach
-
-### Phase 1: Sub-Agent Schema
+## Phase 1: Sub-Agent Schema
 
 1. Add `subagents` field to agent frontmatter schema
 2. Update agent parser to handle sub-agent configuration
 3. Validate sub-agent references (exist, not circular)
 4. Update AgentDefinition type
 
-### Phase 2: Delegation Service
+## Phase 2: Delegation Service
 
 1. Create delegation service for invoking sub-agents
 2. Implement context passing options (full, summary, task_only)
@@ -189,7 +187,7 @@ subagents:
 4. Capture and return results to parent
 5. Track delegation depth
 
-### Phase 2.5: Parallel Execution
+## Phase 2.5: Parallel Execution
 
 1. Implement parallel delegation executor
 2. Support concurrent sub-agent invocations
@@ -198,28 +196,28 @@ subagents:
 5. Aggregate results from parallel executions
 6. Handle partial failures in parallel batches
 
-### Phase 3: Permission Resolution
+## Phase 3: Permission Resolution
 
 1. Implement permission intersection logic
 2. Calculate effective permissions for sub-agent invocation
 3. Pass resolved permissions to LLMAgentService
 4. Test permission scoping scenarios
 
-### Phase 4: Trace Integration
+## Phase 4: Trace Integration
 
 1. Add delegation events to trace format
 2. Display delegation chain in trace UI
 3. Show parent → sub-agent → result flow
 4. Include timing and context information
 
-### Phase 5: Error Handling
+## Phase 5: Error Handling
 
 1. Define delegation error types
 2. Implement retry policies (configurable)
 3. Handle sub-agent failures gracefully
 4. Surface errors in trace and conversation
 
-### Phase 6: UI for Configuration
+## Phase 6: UI for Configuration
 
 1. Add sub-agent configuration to agent editor
 2. Agent selector for allow/deny lists

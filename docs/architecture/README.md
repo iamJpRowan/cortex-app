@@ -25,8 +25,8 @@ Cortex Desktop App
 │   └── IPC Handlers (API for renderer)
 │
 └── Renderer Process (Chromium/TypeScript)
-    ├── UI Layer (Vanilla JSX + Tailwind)
-    ├── Component System (No React)
+    ├── UI Layer (React + shadcn/ui + Tailwind)
+    ├── Component System (React)
     └── IPC Client (calls main process)
 ```
 

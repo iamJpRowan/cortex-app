@@ -346,4 +346,4 @@ function Modal(): HTMLElement {
 
 - [UI Guide](./ui-guide.md) - Component usage patterns
 - [Terminology](./terminology.md) - UI terminology and naming conventions
-- [Component Lifecycle](../development/component-lifecycle.md) - Component patterns
+- [Feature Development](../development/feature-development.md) - React components and lifecycle

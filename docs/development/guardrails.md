@@ -51,6 +51,11 @@ These are hard constraints that keep development aligned with Cortex's long-term
 - Don't build automation until pattern is well-understood and proven valuable
 - Document automation opportunities, don't implement them immediately
 
+### Persist User-Modified UI State
+- User-controlled layout and view state should survive app restarts
+- Use `localStorage` with keys in `layout-storage.ts` or `chat-storage.ts` (`cortex.*` namespace)
+- See [UI State Persistence](./ui-state-persistence.md)
+
 ## Red Flags (Never Do This)
 
 ### Don't Patch the Graph
@@ -89,6 +94,6 @@ If any answer is "no" or "not sure", pause and reconsider the approach.
 ## See Also
 
 - [Architecture Principles](../architecture/principles.md) - The principles these guardrails protect
-- [Development Patterns](./patterns.md) - Patterns that follow these guardrails
-- [Use Case Workflow](./use-case-workflow.md) - How to implement features within these constraints
+- [Feature Development](./feature-development.md) - How to implement features within these constraints
+- [Electron Guidance](./electron-guidance.md) - Main/renderer patterns that follow these guardrails
 - [Architecture Security](../architecture/security.md) - Security-related guardrails

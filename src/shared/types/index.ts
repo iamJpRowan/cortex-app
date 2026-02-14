@@ -23,6 +23,10 @@ export type {
   TraceEntry,
   TraceEntryType,
   MessageMetadata,
+  // Model discovery (Phase 3)
+  ModelCapabilities,
+  ModelMetadata,
+  ListModelsResult,
   // Chat message types
   ChatMessageRole,
   ChatMessage,

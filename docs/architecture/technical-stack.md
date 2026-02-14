@@ -13,9 +13,9 @@
 ## Renderer Process (Frontend)
 - **Runtime**: Chromium (bundled with Electron)
 - **Language**: TypeScript with JSX
-- **UI**: Vanilla JSX (no React) + Tailwind CSS
-- **Components**: Custom createElement function for JSX transformation
-- **State**: Driven by main process via IPC, minimal local UI state
+- **UI**: React + shadcn/ui + Tailwind CSS
+- **Components**: React function components; shadcn/ui for primitives
+- **State**: Driven by main process via IPC; React state for local UI
 
 ## Communication Layer
 - **IPC (Inter-Process Communication)**: Electron's built-in IPC for main ↔ renderer
