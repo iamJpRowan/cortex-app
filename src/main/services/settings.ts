@@ -17,6 +17,8 @@ export interface SettingsDefaults {
   'appearance.theme': 'light' | 'dark' | 'system'
   'hotkeys.commandPalette': string
   'hotkeys.settings': string
+  /** Toggle app sidebar (show/collapse). */
+  'hotkeys.sidebar': string
   /** Chat view: toggle composer mode (Plain / Live Preview). */
   'chatView.hotkeys.toggleComposerMode': string
   /** Prefixed model id (e.g. ollama:llama3.2:3b). Empty string = use fallback. */
@@ -32,6 +34,7 @@ const DEFAULTS: SettingsDefaults = {
   'appearance.theme': 'system',
   'hotkeys.commandPalette': process.platform === 'darwin' ? 'Cmd+K' : 'Ctrl+K',
   'hotkeys.settings': process.platform === 'darwin' ? 'Cmd+,' : 'Ctrl+,',
+  'hotkeys.sidebar': process.platform === 'darwin' ? 'Cmd+[' : 'Ctrl+[',
   'chatView.hotkeys.toggleComposerMode':
     process.platform === 'darwin' ? 'Cmd+Alt+E' : 'Ctrl+Alt+E',
   'llm.defaultModel': '',

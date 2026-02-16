@@ -141,6 +141,7 @@ Defined in `src/main/services/settings.ts`:
 |-------------------------|-----------------|----------------------|---------|
 | `hotkeys.commandPalette`| `'Cmd+K'`       | `'Ctrl+K'`           | Command palette (display/future use; kbar owns the binding). |
 | `hotkeys.settings`      | `'Cmd+,'`       | `'Ctrl+,'`           | Open Settings. |
+| `hotkeys.sidebar`       | `'Cmd+['`       | `'Ctrl+['`           | Toggle sidebar (show/collapse). |
 
 Defaults are in `DEFAULTS`; add new keys there and in `SettingsDefaults` when you add settings-driven hotkeys.
 
@@ -156,10 +157,11 @@ From `getCommands()` in `src/renderer/src/lib/commands.ts`:
 
 ### Current hotkeys
 
-| Shortcut   | Action            | Implemented in |
-|------------|-------------------|----------------|
+| Shortcut     | Action              | Implemented in |
+|--------------|---------------------|----------------|
 | Cmd+K / Ctrl+K | Open command palette | kbar (CommandPalette) |
 | Cmd+, / Ctrl+, | Open Settings        | `initHotkeys()` → `hotkeys.settings` |
+| Cmd+[ / Ctrl+[ | Toggle sidebar       | `initHotkeys()` → `hotkeys.sidebar` |
 
 ### Files
 

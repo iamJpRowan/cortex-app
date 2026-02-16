@@ -161,18 +161,18 @@ export function unregisterAllHotkeys(): void {
  */
 export async function initHotkeys(actions: {
   openSettings: () => void
+  toggleSidebar: () => void
 }): Promise<() => void> {
   let currentSettingsShortcut: string | null = null
+  let currentSidebarShortcut: string | null = null
 
   const registerSettingsHotkey = async () => {
     try {
-      // Unregister existing settings hotkey if present
       if (currentSettingsShortcut) {
         unregisterHotkey(currentSettingsShortcut)
         currentSettingsShortcut = null
       }
 
-      // Read hotkey settings
       const settingsResult = await window.api?.settings?.get()
       if (!settingsResult?.success || !settingsResult.data) {
         console.warn('[Hotkeys] Failed to load settings')
@@ -183,7 +183,6 @@ export async function initHotkeys(actions: {
         'hotkeys.settings'?: string
       }
 
-      // Register settings hotkey (Cmd+, / Ctrl+,)
       const settingsShortcut = settings['hotkeys.settings']
       if (settingsShortcut) {
         registerHotkey(settingsShortcut, actions.openSettings)
@@ -195,23 +194,57 @@ export async function initHotkeys(actions: {
     }
   }
 
-  // Initial registration
-  await registerSettingsHotkey()
+  const registerSidebarHotkey = async () => {
+    try {
+      if (currentSidebarShortcut) {
+        unregisterHotkey(currentSidebarShortcut)
+        currentSidebarShortcut = null
+      }
 
-  // Subscribe to settings changes to re-register if hotkey binding changes
+      const settingsResult = await window.api?.settings?.get()
+      if (!settingsResult?.success || !settingsResult.data) {
+        return
+      }
+
+      const settings = settingsResult.data as {
+        'hotkeys.sidebar'?: string
+      }
+
+      const sidebarShortcut = settings['hotkeys.sidebar']
+      if (sidebarShortcut) {
+        registerHotkey(sidebarShortcut, actions.toggleSidebar)
+        currentSidebarShortcut = sidebarShortcut
+        console.log(`[Hotkeys] Registered sidebar shortcut: ${sidebarShortcut}`)
+      }
+    } catch (error) {
+      console.error('[Hotkeys] Failed to register sidebar hotkey:', error)
+    }
+  }
+
+  const registerAll = async () => {
+    await registerSettingsHotkey()
+    await registerSidebarHotkey()
+  }
+
+  await registerAll()
+
   let unsubscribe: (() => void) | null = null
   if (window.api?.settings?.onChange) {
     unsubscribe = window.api.settings.onChange(data => {
       if (data.key === 'hotkeys.settings') {
         registerSettingsHotkey()
+      } else if (data.key === 'hotkeys.sidebar') {
+        registerSidebarHotkey()
       }
     })
   }
 
-  // Return cleanup function
   return () => {
     if (currentSettingsShortcut) {
       unregisterHotkey(currentSettingsShortcut)
+    }
+    if (currentSidebarShortcut) {
+      unregisterHotkey(currentSidebarShortcut)
     }
     if (unsubscribe) {
       unsubscribe()

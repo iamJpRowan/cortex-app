@@ -7,7 +7,7 @@ import { HomeView } from './components/HomeView'
 import { SettingsView } from './components/SettingsView'
 import { ChatView } from './components/ChatView'
 import { CommandPalette } from './components/CommandPalette'
-import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
+import { SidebarInset, SidebarProvider, useSidebar } from '@/components/ui/sidebar'
 import { cn } from '@/lib/utils'
 import { initHotkeys } from '@/lib/hotkeys'
 import { usePersistedState } from '@/hooks/use-persisted-state'
@@ -46,23 +46,6 @@ function AppContent() {
     }
   }, [location.pathname])
 
-  // Initialize hotkeys on mount
-  React.useEffect(() => {
-    let cleanup: (() => void) | undefined
-
-    initHotkeys({
-      openSettings: () => navigate('/settings'),
-    }).then(cleanupFn => {
-      cleanup = cleanupFn
-    })
-
-    return () => {
-      if (cleanup) {
-        cleanup()
-      }
-    }
-  }, [navigate])
-
   // Get title based on current route
   const getTitle = () => {
     if (location.pathname === '/settings') return 'Settings'
@@ -83,68 +66,95 @@ function AppContent() {
       }
       className="bg-bg-secondary rounded-lg"
     >
-      <AppSidebar />
-      {/* Outer container wrapping main content - draggable for window movement */}
-      <div
-        className={cn(
-          // Layout - flex-1 fills remaining space, min-h-0 allows shrinking
-          'flex flex-1 flex-col min-h-0',
-          // Styling
-          'bg-bg-secondary rounded-tr-lg rounded-br-lg',
-          // Spacing and overflow
-          'p-3 overflow-hidden',
-          'peer-data-[state=collapsed]:pl-0'
-        )}
-        style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
-      >
-        {/* Main content area - inset with padding creating frame effect */}
-        <SidebarInset
+      <HotkeysInit openSettings={() => navigate('/settings')}>
+        <AppSidebar />
+        {/* Outer container wrapping main content - draggable for window movement */}
+        <div
           className={cn(
-            // Layout - flex-1 fills space, min-h-0 critical for nested flex
-            'flex flex-col flex-1 min-h-0',
+            // Layout - flex-1 fills remaining space, min-h-0 allows shrinking
+            'flex flex-1 flex-col min-h-0',
             // Styling
-            'bg-bg-primary rounded-lg',
-            // Border and overflow
-            'border border-border-primary overflow-hidden'
+            'bg-bg-secondary rounded-tr-lg rounded-br-lg',
+            // Spacing and overflow
+            'p-3 overflow-hidden',
+            'peer-data-[state=collapsed]:pl-0'
           )}
-          style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+          style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
         >
-          <MainHeader title={getTitle()} />
-          {/* Content area - flex-1 to fill remaining space */}
-          <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
-            <Routes>
-              <Route
-                path="/"
-                element={
-                  <div className="flex-1 overflow-auto p-4">
-                    <div className="flex flex-col gap-4">
-                      <HomeView />
+          {/* Main content area - inset with padding creating frame effect */}
+          <SidebarInset
+            className={cn(
+              // Layout - flex-1 fills space, min-h-0 critical for nested flex
+              'flex flex-col flex-1 min-h-0',
+              // Styling
+              'bg-bg-primary rounded-lg',
+              // Border and overflow
+              'border border-border-primary overflow-hidden'
+            )}
+            style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
+          >
+            <MainHeader title={getTitle()} />
+            {/* Content area - flex-1 to fill remaining space */}
+            <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
+              <Routes>
+                <Route
+                  path="/"
+                  element={
+                    <div className="flex-1 overflow-auto p-4">
+                      <div className="flex flex-col gap-4">
+                        <HomeView />
+                      </div>
                     </div>
-                  </div>
-                }
-              />
-              <Route path="/chat" element={<ChatView />} />
-              <Route
-                path="/settings"
-                element={
-                  <div
-                    className="flex-1 overflow-auto p-4"
-                    data-settings-scroll
-                    role="region"
-                    aria-label="Settings content"
-                  >
-                    <div className="flex flex-col gap-4">
-                      <SettingsView />
+                  }
+                />
+                <Route path="/chat" element={<ChatView />} />
+                <Route
+                  path="/settings"
+                  element={
+                    <div
+                      className="flex-1 overflow-auto p-4"
+                      data-settings-scroll
+                      role="region"
+                      aria-label="Settings content"
+                    >
+                      <div className="flex flex-col gap-4">
+                        <SettingsView />
+                      </div>
                     </div>
-                  </div>
-                }
-              />
-            </Routes>
-          </div>
-        </SidebarInset>
-      </div>
+                  }
+                />
+              </Routes>
+            </div>
+          </SidebarInset>
+        </div>
+      </HotkeysInit>
     </SidebarProvider>
   )
+}
+
+/**
+ * Registers app-level hotkeys (must be inside SidebarProvider to access toggleSidebar).
+ */
+function HotkeysInit({
+  openSettings,
+  children,
+}: {
+  openSettings: () => void
+  children: React.ReactNode
+}) {
+  const { toggleSidebar } = useSidebar()
+
+  React.useEffect(() => {
+    let cleanup: (() => void) | undefined
+    initHotkeys({ openSettings, toggleSidebar }).then(fn => {
+      cleanup = fn
+    })
+    return () => {
+      cleanup?.()
+    }
+  }, [openSettings, toggleSidebar])
+
+  return <>{children}</>
 }
 
 /**

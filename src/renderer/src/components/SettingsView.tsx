@@ -46,6 +46,7 @@ interface Settings {
   'appearance.theme': Theme
   'hotkeys.commandPalette': string
   'hotkeys.settings': string
+  'hotkeys.sidebar': string
   'chatView.hotkeys.toggleComposerMode': string
   'llm.defaultModel': string
   'llm.providers': LLMProvidersConfig
@@ -669,6 +670,20 @@ export function SettingsView() {
                     className="w-[200px] bg-bg-secondary"
                   />
                   <p className="text-xs text-text-secondary">Open the settings view</p>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-text-primary">
+                    Toggle sidebar
+                  </label>
+                  <Input
+                    value={settings['hotkeys.sidebar']}
+                    readOnly
+                    className="w-[200px] bg-bg-secondary"
+                  />
+                  <p className="text-xs text-text-secondary">
+                    Show or collapse the app sidebar
+                  </p>
                 </div>
               </div>
             </div>
