@@ -46,6 +46,7 @@ interface Settings {
   'appearance.theme': Theme
   'hotkeys.commandPalette': string
   'hotkeys.settings': string
+  'chatView.hotkeys.toggleComposerMode': string
   'llm.defaultModel': string
   'llm.providers': LLMProvidersConfig
 }
@@ -517,7 +518,7 @@ export function SettingsView() {
       {/* Header with Open in Editor button */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-text-primary">Settings</h1>
+          {/* <h1 className="text-2xl font-semibold text-text-primary">Settings</h1> */}
           <p className="mt-1 text-sm text-text-secondary">
             Manage application preferences and configuration
           </p>
@@ -633,36 +634,61 @@ export function SettingsView() {
         </TabsContent>
 
         <TabsContent value="shortcuts" className="mt-0">
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-6">
             <div>
-              <h2 className="text-lg font-medium text-text-primary">
+              <h1 className="text-2xl font-medium text-text-primary">
                 Keyboard Shortcuts
-              </h2>
+              </h1>
               <p className="mt-1 text-sm text-text-secondary">
-                App-level keyboard shortcuts (read-only for now)
+                App-level and view-specific shortcuts (read-only for now)
               </p>
             </div>
-            <div className="flex flex-col gap-4">
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-text-primary">
-                  Command Palette
-                </label>
-                <Input
-                  value={settings['hotkeys.commandPalette']}
-                  readOnly
-                  className="w-[200px] bg-bg-secondary"
-                />
-                <p className="text-xs text-text-secondary">Open the command palette</p>
-              </div>
 
-              <div className="flex flex-col gap-2">
-                <label className="text-sm font-medium text-text-primary">Settings</label>
-                <Input
-                  value={settings['hotkeys.settings']}
-                  readOnly
-                  className="w-[200px] bg-bg-secondary"
-                />
-                <p className="text-xs text-text-secondary">Open the settings view</p>
+            <div className="flex flex-col gap-4">
+              <h2 className="text-xl font-medium text-text-primary">App</h2>
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-text-primary">
+                    Command Palette
+                  </label>
+                  <Input
+                    value={settings['hotkeys.commandPalette']}
+                    readOnly
+                    className="w-[200px] bg-bg-secondary"
+                  />
+                  <p className="text-xs text-text-secondary">Open the command palette</p>
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-text-primary">
+                    Settings
+                  </label>
+                  <Input
+                    value={settings['hotkeys.settings']}
+                    readOnly
+                    className="w-[200px] bg-bg-secondary"
+                  />
+                  <p className="text-xs text-text-secondary">Open the settings view</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-4">
+              <h2 className="text-xl font-medium text-text-primary">Chat view</h2>
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-2">
+                  <label className="text-sm font-medium text-text-primary">
+                    Toggle composer mode
+                  </label>
+                  <Input
+                    value={settings['chatView.hotkeys.toggleComposerMode']}
+                    readOnly
+                    className="w-[200px] bg-bg-secondary"
+                  />
+                  <p className="text-xs text-text-secondary">
+                    Switch between Plain and Live Preview in the message input
+                  </p>
+                </div>
               </div>
             </div>
           </div>

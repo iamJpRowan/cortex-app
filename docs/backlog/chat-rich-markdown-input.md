@@ -1,69 +1,160 @@
+---
+status: ready to test
+---
+
 [Docs](../README.md) / [Backlog](./README.md) / Chat Rich Markdown Input
 
-# Chat Rich Markdown Input
+# Chat Rich Markdown Input 
 
 ## Goal
 
-Provide a **rich markdown editing experience** in the chat composer (and optionally other editors in the app) so users can write and format long-form messages with headings, lists, code, and emphasis without typing raw markdown by hand. The editor should output **markdown** for agent context and for consistency with existing message rendering. This item is separate from the Cursor-style layout and multi-line textarea; it is the upgrade path once that is in place.
+Provide a rich markdown editing experience in the chat composer with paste-to-render, plaintext/preview toggle, and markdown-aware plaintext editor. Content is stored and sent to the LLM as plaintext markdown.
+
+---
+
+## Libraries
+
+### Rich editor (TipTap)
+
+- `@tiptap/react` — React bindings
+- `@tiptap/starter-kit` — Blockquote, Bold, Code, CodeBlock, headings, lists, Strike, etc.; typed markdown shorthand and common hotkeys (Cmd+B, Cmd+I, etc.) via defaults
+- `@tiptap/markdown` — Markdown serialization (`getMarkdown`), deserialization (`setContent` with `contentType: 'markdown'`), and parsing for paste
+- `@tiptap/extension-placeholder` — Placeholder text when empty
+
+### Plaintext editor
+
+- No external libraries; custom textarea with keydown/input handlers.
+
+### Shared
+
+- Markdown parsing for paste and plaintext→preview: TipTap Markdown extension (`generateJSON` or `insertContent` with markdown) or shared util.
+
+---
+
+## Requirements (Explicit Only)
+
+### Shared
+
+- **Single container** — One input area; same container switches between plaintext and preview modes.
+- **Toggle plain ↔ preview** — User can switch between plaintext editor (markdown aware) and rich editor (TipTap WYSIWYG).
+- **Submit: Ctrl/Cmd+Enter only** — Ctrl/Cmd+Enter submits in both modes. Enter and Shift+Enter behave as normal editor keys (new paragraph, soft break).
+- **Submit guard** — Do not submit when content is empty or whitespace-only; respect `disabled` when loading.
+- **Storage and LLM output** — Content is stored and sent to the LLM as plaintext markdown.
+- **Shared parse logic** — The same markdown→formatted parsing is used for paste (into rich editor) and for switching from plaintext to preview mode.
+- **Component API** — `value`, `onChange`, `onSubmit`, `disabled`, `placeholder`, `ref`, `className`; controlled `value` + `onChange`; ref exposes `focus()` for programmatic focus.
+- **Focus on switch** — When switching conversations or modes, focus the active editor.
+- **Draft persistence** — Store markdown strings in `localStorage`; persist on `onChange` (debounced); no migration for existing drafts.
+- **Placeholder** — Show placeholder when empty (e.g. "Type a message...").
+- **Height** — Editor container: min-height ~60px, max-height ~280px, overflow-y-auto.
+- **Accessibility** — ARIA labels, keyboard navigation, focus management per [docs/design/accessibility.md](../design/accessibility.md).
+
+### Plaintext editor (markdown aware)
+
+- **Raw markdown** — Shows and edits plain markdown syntax.
+- **List continuation** — Typing `- ` or `1. ` and pressing Enter inserts the same prefix on the next line.
+- **Auto-closing pairs** — Typing `**` or `` ` `` inserts the closing delimiter with cursor between.
+
+### Rich editor
+
+- **Paste handling** — Use TipTap paste rules to normalize pasted content: markdown → formatted content; HTML (e.g. from web pages) → markdown.
+- **Shared styling** — Renders using existing CSS (design tokens, typography, code blocks) applied elsewhere in the app; leverage preexisting styles.
+
+---
+
+## Component Ownership
+
+### PromptInput
+
+- Single container wrapper; composes plaintext editor and rich editor.
+- Toggle state (plaintext vs preview); renders one or the other.
+- Ctrl/Cmd+Enter submit handler (wrapper-level `onKeyDown` so it works in both modes); submit guard (empty, disabled).
+- Value/onChange API; passes through to the active editor.
+- Ref with `focus()`; focus active editor when switching conversations or modes.
+- Invokes shared parse logic when switching from plaintext to preview.
+- Height (min/max, overflow); placeholder.
+
+### Plaintext editor (markdown aware)
+
+- Raw markdown display and editing.
+- List continuation on Enter.
+- Auto-closing pairs (`**`, `` ` ``).
+
+### Rich editor (TipTap)
+
+- Paste handler: TipTap paste rules to normalize markdown and HTML → markdown.
+- Shared styling: use existing CSS (design tokens, typography) from the app.
+- Serialize to markdown for value/onChange.
+
+### Shared
+
+- Markdown→formatted parsing (used by PromptInput for plaintext→preview, by TipTap for paste).
+
+---
 
 ## Prerequisites
 
-- **[Cursor-Style Chat UI](./cursor-style-chat-ui.md)** - Must be complete. Delivers multi-line composer and full-width layout; this item replaces or wraps the composer’s textarea with a rich editor.
+- **[Cursor-Style Chat UI](./archive/cursor-style-chat-ui.md)** — Complete. Multi-line composer and layout in place.
 
-## Key Capabilities
+---
 
-### Rich Markdown Editor in Chat
+## Architecture (Summary)
 
-- **WYSIWYG or hybrid editing** in the chat input: toolbar or shortcuts for bold, italic, code, lists, headings, links, etc., with markdown as the stored/sent format.
-- **TipTap** (or an equivalent ProseMirror-based editor) is the preferred base: good React integration, extensions for markdown shortcuts and serialization, and theming to match the app.
-- **Output format:** Markdown (or a single canonical format) so LLM context and existing **MessageResponse** rendering stay aligned. No separate “HTML path” for the agent unless explicitly required later.
-- **Paste behavior:** Paste markdown or HTML and normalize to markdown where possible; avoid broken or overly complex content in context.
-- **Accessibility:** Keyboard navigation, focus management, and ARIA where needed; consistent with [Accessibility](../design/accessibility.md).
+| Concern | Owner |
+|---------|--------|
+| Ctrl/Cmd+Enter submit, submit guard | PromptInput (wrapper) |
+| Focus on switch | PromptInput |
+| Paste handling (markdown, HTML → markdown) | Rich editor |
+| Accessibility (ARIA, keyboard nav, focus) | PromptInput, editors |
+| Toggle state, plaintext vs preview | PromptInput |
+| Value/onChange API | PromptInput (pass-through) |
+| Draft persistence | ChatView (uses onChange) |
+| Markdown parsing (paste + toggle) | TipTap Markdown extension or shared util |
+| Plaintext editor QoL (list continuation, auto-close) | Plaintext editor |
 
-### Reuse Elsewhere
+---
 
-- Implement as a **reusable editor component** (e.g. `MarkdownEditor` or `RichComposer`) so it can be used in:
-  - Chat composer (primary).
-  - Other future surfaces (e.g. notes, descriptions, custom agent instructions) without duplicating editor logic.
-- The component should accept design tokens and theme (light/dark) so it fits existing [Design Tokens](../design/design-tokens.md) and [UI Guide](../design/ui-guide.md).
+## Proposed approach (implementation)
 
-### Integration with Chat
+- **Scope**
+  - **PromptInput** (single wrapper): One container; internal state for mode (`plain` | `preview`). Renders either a custom plaintext editor or the TipTap rich editor. Handles Ctrl/Cmd+Enter submit at wrapper level (keydown), submit guard (empty/whitespace, `disabled`). Ref type: `{ focus(): void }`; `focus()` focuses the currently active editor. Min-height ~60px, max-height ~280px, overflow-y-auto. Placeholder passed to both editors. When switching plain → preview, run shared markdown→formatted parse and set rich editor content; when switching preview → plain, get markdown from TipTap and set plaintext value.
+  - **Plaintext editor**: Custom `<textarea>` (no new deps). Raw markdown; list continuation on Enter (`- `, `1. ` → insert same prefix on next line); auto-closing pairs for `**` and `` ` `` (cursor between). Same height/overflow container. Value/onChange; no submit key handling (wrapper handles it).
+  - **Rich editor (TipTap)**: New deps: `@tiptap/react`, `@tiptap/starter-kit`, `@tiptap/pm`, `@tiptap/markdown`, `@tiptap/extension-placeholder`. Paste: use TipTap markdown paste rules so pasted markdown/HTML is normalized to formatted content (markdown as source). Serialize to markdown for `onChange`. Styling: reuse design tokens and typography from the app (e.g. `main.css`, same code-block/heading styles as message rendering where applicable) so the composer preview looks consistent.
+  - **Shared parse**: Use TipTap Markdown’s `generateJSON` (or equivalent) for markdown→formatted so paste (rich) and plaintext→preview use the same logic.
+  - **ChatView**: Keep owning draft key per conversation (`CHAT_DRAFT_KEY_PREFIX + conversationId`). Add debounced persist on `onChange` (e.g. 300–500 ms) so drafts are written as the user types, in addition to existing persist-on-conversation-switch. No migration for existing drafts.
+- **Submit behavior**: Change from “Enter to submit” to **Ctrl/Cmd+Enter only**. Enter = new paragraph (plaintext: newline; rich: new block). Shift+Enter = soft break where applicable.
+- **UI/UX**
+  - **Toggle**: A small control (e.g. icon button or segmented control) near the input to switch “Plain” ↔ “Preview”. Placement: left of the Send button or above the input row; exact placement is a good point for your input.
+  - **Focus**: When conversation or mode changes, PromptInput’s `focus()` is called (existing `inputRef` in ChatView); wrapper focuses the active editor.
+- **Accessibility**: `aria-label` on the input container (e.g. “Message input”) and on the mode toggle (e.g. “Switch to preview” / “Switch to plain text”); ensure keyboard nav and focus management per `docs/design/accessibility.md`.
+- **Recommendations**
+  - Use TipTap’s `getMarkdown()` / `setContent(..., { contentType: 'markdown' })` for value round-trip and for plain→preview.
+  - Keep the Send button; it can also trigger submit (same guard) for users who prefer click.
+- **Where your input helps**
+  - Toggle placement (left of Send vs above the input) and icon/label (“Plain” / “Preview” vs “Write” / “Preview”).
+  - Debounce interval for draft persistence (suggest 400 ms).
 
-- **Submit:** On submit, get markdown from the editor and pass it into the existing send-message flow (same as current plain-text path). No changes to agent or conversation model required beyond receiving markdown strings.
-- **State:** Editor state clears or resets after send; no requirement to persist draft in the editor across sessions (can be a follow-on).
-- **Placement:** Editor replaces the current chat composer textarea (from Cursor-Style Chat UI); layout and sticky/composer placement remain unchanged.
+**Implemented:** Toggle is text in top-right corner: "Plaintext" / "Live Preview", click to switch. Draft debounce 400 ms.
 
-## Phase 1: Editor Component and Markdown Pipeline
-
-1. Add TipTap (and chosen extensions: StarterKit, markdown or similar, code block, list, etc.); ensure markdown serialization/deserialization is consistent and that output is suitable for LLM context.
-2. Build a **MarkdownEditor** (or equivalent) component that:
-   - Renders with app theme and design tokens.
-   - Exposes a controlled or uncontrolled value as markdown.
-   - Supports min/max height and resize behavior appropriate for chat (and future use).
-3. Style toolbar and editor to match shadcn/ui and existing chat UI (borders, focus, disabled state).
-4. Add tests or manual checks for: markdown round-trip, paste from HTML/markdown, and accessibility basics.
-
-## Phase 2: Chat Composer Integration
-
-1. Replace the Prompt Input textarea (or current composer) in the chat view with the new **MarkdownEditor**.
-2. Wire submit: get markdown from the editor, call existing send-message handler, clear editor on success.
-3. Preserve Enter to submit and Shift+Enter for newline (or chosen convention) if the editor supports it; otherwise document and implement the chosen shortcut.
-4. Verify streaming and trace display still work; no change to message rendering (MessageResponse already handles markdown).
-
-## Phase 3: Reuse and Documentation
-
-1. Document the component: props (value, onChange, placeholder, min/max height, disabled), and where it is used (chat now; other surfaces later).
-2. If other consumers (e.g. notes, agent instructions) are planned, add a short “Using MarkdownEditor elsewhere” note in the component or in docs.
+---
 
 ## Success Criteria
 
-- Chat composer uses a rich markdown editor (TipTap or equivalent) with toolbar/shortcuts and markdown output.
-- Submitted content is markdown and is handled by the existing chat and agent pipeline; message rendering is unchanged.
-- Editor component is reusable and themed; it can be dropped into other views later.
-- Accessibility and paste behavior are acceptable; no regressions in chat submit or streaming.
+- Pasting markdown or HTML renders formatted in the rich editor (normalized to markdown).
+- Content is stored and sent as plaintext markdown.
+- Ctrl/Cmd+Enter submits in both plaintext and preview modes; empty/whitespace does not submit.
+- Toggle between plaintext and preview in the same container.
+- Plaintext editor list continuation and auto-closing pairs.
+- Rich editor uses existing app CSS for consistent styling.
+- Placeholder shows when empty.
+- Focus works when switching conversations or modes.
+- Draft persistence (markdown strings, debounced) works; no migration needed.
+- Accessibility: ARIA labels, keyboard navigation, focus management per accessibility.md.
+- No regressions in chat submit, streaming, or draft persistence.
+
+---
 
 ## See Also
 
-- [Cursor-Style Chat UI](./cursor-style-chat-ui.md) - Full-width layout and multi-line composer (prerequisite).
-- [docs/design/design-tokens.md](../design/design-tokens.md) - Theming and tokens.
-- [docs/design/accessibility.md](../design/accessibility.md) - Accessibility guidelines.
+- [Cursor-Style Chat UI](./archive/cursor-style-chat-ui.md) — Prerequisite.
+- [docs/design/design-tokens.md](../design/design-tokens.md) — Theming.
+- [docs/design/accessibility.md](../design/accessibility.md) — Accessibility.

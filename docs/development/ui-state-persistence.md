@@ -11,7 +11,7 @@ User-modified UI state should survive app restarts. Use `localStorage` with keys
 | Namespace | Scope | Example keys |
 |-----------|--------|---------------|
 | `cortex.layout` | App-wide | `sidebarCollapsed`, `lastView` |
-| `cortex.chat` | Chat view | `sidebarWidth`, `lastActiveConversationId`, `draft.{id}` |
+| `cortex.chat` | Chat view | `sidebarWidth`, `lastActiveConversationId`, `draft.{id}`, `composerMode.{id}` |
 | `cortex.settings` | Settings view | `tab`, `providerExpanded`, `scrollPosition` |
 | `cortex.{viewId}` | Future views | Add as needed |
 

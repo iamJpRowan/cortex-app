@@ -8,6 +8,8 @@
 interface ParsedShortcut {
   modifier: 'meta' | 'ctrl'
   key: string
+  altKey: boolean
+  shiftKey: boolean
 }
 
 type HotkeyAction = () => void
@@ -18,54 +20,87 @@ const registeredHotkeys = new Map<
 >()
 
 /**
- * Parse shortcut string (e.g., "Cmd+K" or "Ctrl+,") into modifier and key
+ * Parse shortcut string (e.g. "Cmd+K", "Ctrl+Alt+E") into modifier and key.
+ * Supports optional Alt and Shift before the key.
  */
 function parseShortcut(shortcut: string): ParsedShortcut | null {
-  const parts = shortcut.split('+').map(s => s.trim())
+  const parts = shortcut
+    .split('+')
+    .map(s => s.trim())
+    .filter(Boolean)
 
-  if (parts.length !== 2) {
+  if (parts.length < 2) {
     console.warn(`[Hotkeys] Invalid shortcut format: ${shortcut}`)
     return null
   }
 
-  const [modifierPart, keyPart] = parts
-  const modifier = modifierPart.toLowerCase()
+  const keyPart = parts[parts.length - 1]
+  const modParts = parts.slice(0, -1).map(p => p.toLowerCase())
 
-  // Normalize modifier names
-  if (modifier === 'cmd' || modifier === 'meta') {
-    return { modifier: 'meta', key: keyPart.toLowerCase() }
-  }
-  if (modifier === 'ctrl' || modifier === 'control') {
-    return { modifier: 'ctrl', key: keyPart.toLowerCase() }
+  let modifier: 'meta' | 'ctrl' | null = null
+  let altKey = false
+  let shiftKey = false
+
+  for (const p of modParts) {
+    if (p === 'cmd' || p === 'meta') {
+      if (modifier != null) {
+        console.warn(`[Hotkeys] Duplicate modifier in: ${shortcut}`)
+        return null
+      }
+      modifier = 'meta'
+    } else if (p === 'ctrl' || p === 'control') {
+      if (modifier != null) {
+        console.warn(`[Hotkeys] Duplicate modifier in: ${shortcut}`)
+        return null
+      }
+      modifier = 'ctrl'
+    } else if (p === 'alt') {
+      altKey = true
+    } else if (p === 'shift') {
+      shiftKey = true
+    } else {
+      console.warn(`[Hotkeys] Unknown modifier: ${p} in ${shortcut}`)
+      return null
+    }
   }
 
-  console.warn(`[Hotkeys] Unknown modifier: ${modifierPart}`)
-  return null
+  if (modifier == null) {
+    console.warn(`[Hotkeys] Missing Cmd/Ctrl in: ${shortcut}`)
+    return null
+  }
+
+  return { modifier, key: keyPart.toLowerCase(), altKey, shiftKey }
 }
 
 /**
- * Check if keyboard event matches the parsed shortcut
+ * Check if keyboard event matches the parsed shortcut.
+ * Uses event.code for letter keys so Cmd+Alt+E matches KeyE on macOS
+ * even when Option+E produces a different character (e.g. ´).
  */
 function matchesShortcut(event: KeyboardEvent, parsed: ParsedShortcut): boolean {
   const modifierMatch = parsed.modifier === 'meta' ? event.metaKey : event.ctrlKey
 
-  // Handle special keys
   let keyMatch = false
   const eventKey = event.key.toLowerCase()
   const eventCode = event.code.toLowerCase()
 
   if (parsed.key === ',') {
-    // Comma can be reported as ',' or 'comma' in key, or 'comma' in code
     keyMatch = eventKey === ',' || eventKey === 'comma' || eventCode === 'comma'
   } else if (parsed.key.length === 1) {
-    // Single character keys - check both key and code
-    keyMatch = eventKey === parsed.key || eventCode === parsed.key
+    // Prefer event.code (physical key) for letters so Cmd+Alt+E matches KeyE on macOS
+    const codeForLetter = 'key' + parsed.key
+    keyMatch =
+      eventCode === codeForLetter || eventKey === parsed.key || eventCode === parsed.key
   } else {
-    // Handle named keys (e.g., 'k', 'enter', 'escape')
     keyMatch = eventKey === parsed.key || eventCode === parsed.key
   }
 
-  return modifierMatch && keyMatch && !event.shiftKey && !event.altKey
+  return (
+    modifierMatch &&
+    keyMatch &&
+    event.altKey === parsed.altKey &&
+    event.shiftKey === parsed.shiftKey
+  )
 }
 
 /**
@@ -91,7 +126,8 @@ export function registerHotkey(shortcut: string, action: HotkeyAction): () => vo
     }
   }
 
-  window.addEventListener('keydown', handler)
+  // Capture phase so we run before the focused element (e.g. composer) handles the key
+  window.addEventListener('keydown', handler, true)
   registeredHotkeys.set(shortcut, { action, handler })
 
   // Return cleanup function
@@ -104,7 +140,7 @@ export function registerHotkey(shortcut: string, action: HotkeyAction): () => vo
 export function unregisterHotkey(shortcut: string): void {
   const registered = registeredHotkeys.get(shortcut)
   if (registered) {
-    window.removeEventListener('keydown', registered.handler)
+    window.removeEventListener('keydown', registered.handler, true)
     registeredHotkeys.delete(shortcut)
   }
 }

@@ -13,7 +13,11 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { PromptInput } from '@/components/ui/prompt-input'
+import {
+  PromptInput,
+  type PromptInputRef,
+  type PromptInputMode,
+} from '@/components/ui/prompt-input'
 import { ConversationList, type ConversationListRef } from './ConversationList'
 import {
   Conversation,
@@ -54,10 +58,12 @@ import { cn } from '@/lib/utils'
 import {
   CHAT_LAST_ACTIVE_KEY,
   CHAT_DRAFT_KEY_PREFIX,
+  CHAT_COMPOSER_MODE_KEY_PREFIX,
   CHAT_LAST_VIEWED_KEY_PREFIX,
   CHAT_SIDEBAR_WIDTH_KEY,
 } from '@/lib/chat-storage'
 import type { ListModelsResult } from '@shared/types'
+import { registerHotkey } from '@/lib/hotkeys'
 
 /**
  * ChatView Component
@@ -71,6 +77,10 @@ export function ChatView() {
   const [input, setInput] = React.useState('')
   const [isLoading, setIsLoading] = React.useState(false)
   const [conversationId, setConversationId] = React.useState<string | null>(null)
+  /** Composer mode (plain vs preview) per conversation; persisted in localStorage. */
+  const [composerMode, setComposerMode] = React.useState<PromptInputMode>('plain')
+  const composerModeRef = React.useRef(composerMode)
+  composerModeRef.current = composerMode
   /** Single source of truth for conversation list (and thus header title). */
   const [conversations, setConversations] = React.useState<ConversationMetadata[]>([])
   const [listLoading, setListLoading] = React.useState(true)
@@ -102,7 +112,7 @@ export function ChatView() {
     return 256
   })
 
-  const inputRef = React.useRef<HTMLTextAreaElement>(null)
+  const inputRef = React.useRef<PromptInputRef>(null)
   const titleInputRef = React.useRef<HTMLInputElement>(null)
   const conversationListRef = React.useRef<ConversationListRef>(null)
   /** Ref mirroring trace during stream for merging reasoning on complete. */
@@ -137,7 +147,14 @@ export function ChatView() {
   React.useEffect(() => {
     let cancelled = false
     const lastId = localStorage.getItem(CHAT_LAST_ACTIVE_KEY)
-    if (!lastId) return
+    if (!lastId) {
+      const newMode =
+        localStorage.getItem(CHAT_COMPOSER_MODE_KEY_PREFIX + '_new') === 'preview'
+          ? 'preview'
+          : 'plain'
+      if (!cancelled) setComposerMode(newMode)
+      return
+    }
 
     window.api.conversations
       .get(lastId)
@@ -152,9 +169,16 @@ export function ChatView() {
       .then(messagesResult => {
         if (cancelled || !messagesResult?.success) return
         setMessages(messagesResult.messages ?? [])
-        // Restore draft for the restored conversation
+        // Restore draft and composer mode for the restored conversation
         const draft = localStorage.getItem(CHAT_DRAFT_KEY_PREFIX + lastId) ?? ''
-        if (!cancelled) setInput(draft)
+        const mode =
+          localStorage.getItem(CHAT_COMPOSER_MODE_KEY_PREFIX + lastId) === 'preview'
+            ? 'preview'
+            : 'plain'
+        if (!cancelled) {
+          setInput(draft)
+          setComposerMode(mode)
+        }
       })
       .catch(() => {})
 
@@ -390,11 +414,10 @@ export function ChatView() {
     // Don't reload if already selected
     if (conversationId === conversation.id) return
 
-    // Save draft for the conversation we're leaving (persists across restarts)
-    const leavingKey = conversationId
-      ? CHAT_DRAFT_KEY_PREFIX + conversationId
-      : CHAT_DRAFT_KEY_PREFIX + '_new'
-    localStorage.setItem(leavingKey, input)
+    // Save draft and composer mode for the conversation we're leaving
+    const leavingId = conversationId ?? '_new'
+    localStorage.setItem(CHAT_DRAFT_KEY_PREFIX + leavingId, input)
+    localStorage.setItem(CHAT_COMPOSER_MODE_KEY_PREFIX + leavingId, composerMode)
 
     // Clear optimistic state immediately so we don't show previous conversation's content
     setMessages([])
@@ -441,9 +464,70 @@ export function ChatView() {
       const draft = localStorage.getItem(draftKey) ?? fromNew ?? ''
       if (fromNew) localStorage.removeItem(CHAT_DRAFT_KEY_PREFIX + '_new')
       setInput(draft)
+      const storedMode =
+        localStorage.getItem(CHAT_COMPOSER_MODE_KEY_PREFIX + conversation.id) ===
+        'preview'
+          ? 'preview'
+          : 'plain'
+      setComposerMode(storedMode)
       inputRef.current?.focus()
     }
   }
+
+  const handleComposerModeChange = React.useCallback(
+    (mode: PromptInputMode) => {
+      setComposerMode(mode)
+      const key = conversationId
+        ? CHAT_COMPOSER_MODE_KEY_PREFIX + conversationId
+        : CHAT_COMPOSER_MODE_KEY_PREFIX + '_new'
+      localStorage.setItem(key, mode)
+    },
+    [conversationId]
+  )
+
+  // Register view-scoped hotkey: toggle composer mode (only active while ChatView is mounted)
+  React.useEffect(() => {
+    let unregister: (() => void) | null = null
+
+    const setup = async () => {
+      const result = await window.api?.settings?.get()
+      const data = result?.success ? result.data : null
+      const shortcut = (data as { 'chatView.hotkeys.toggleComposerMode'?: string })?.[
+        'chatView.hotkeys.toggleComposerMode'
+      ]
+      if (!shortcut) return
+      if (unregister) unregister()
+      unregister = registerHotkey(shortcut, () => {
+        const next = composerModeRef.current === 'plain' ? 'preview' : 'plain'
+        handleComposerModeChange(next)
+      })
+    }
+
+    setup()
+
+    const unsubscribe = window.api?.settings?.onChange?.((data: { key: string }) => {
+      if (data.key === 'chatView.hotkeys.toggleComposerMode') {
+        setup()
+      }
+    })
+
+    return () => {
+      if (unregister) unregister()
+      unsubscribe?.()
+    }
+  }, [handleComposerModeChange])
+
+  // Debounced draft persistence (save as user types)
+  const DRAFT_DEBOUNCE_MS = 400
+  React.useEffect(() => {
+    const key = conversationId
+      ? CHAT_DRAFT_KEY_PREFIX + conversationId
+      : CHAT_DRAFT_KEY_PREFIX + '_new'
+    const t = window.setTimeout(() => {
+      localStorage.setItem(key, input)
+    }, DRAFT_DEBOUNCE_MS)
+    return () => window.clearTimeout(t)
+  }, [input, conversationId])
 
   const handleStartEditTitle = () => {
     const currentTitle = conversations.find(c => c.id === conversationId)?.title ?? ''
@@ -670,6 +754,8 @@ export function ChatView() {
                 placeholder="Type a message..."
                 disabled={isLoading}
                 className="flex-1 min-h-[60px]"
+                mode={composerMode}
+                onModeChange={handleComposerModeChange}
               />
               <Button type="submit" disabled={isLoading || !input.trim()}>
                 {isLoading ? (
