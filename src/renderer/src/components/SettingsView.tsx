@@ -70,6 +70,7 @@ const DEFAULT_MODEL_FALLBACK = '__fallback__'
 
 export function SettingsView() {
   const [settings, setSettings] = React.useState<Settings | null>(null)
+  const [settingsFilePath, setSettingsFilePath] = React.useState<string | null>(null)
   const [isLoading, setIsLoading] = React.useState(true)
   const [providerTestStatus, setProviderTestStatus] = React.useState<
     Record<string, ProviderTestStatus>
@@ -160,6 +161,19 @@ export function SettingsView() {
   // Load settings on mount
   React.useEffect(() => {
     loadSettings()
+  }, [])
+
+  // Load settings file path for footer
+  React.useEffect(() => {
+    let cancelled = false
+    window.api?.settings?.getFilePath().then(result => {
+      if (!cancelled && result?.success && typeof result.data === 'string') {
+        setSettingsFilePath(result.data)
+      }
+    })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   // Load model list when settings or provider test results change (so list
@@ -515,652 +529,695 @@ export function SettingsView() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* Header with Open in Editor button */}
-      <div className="flex items-center justify-between">
-        <div>
-          {/* <h1 className="text-2xl font-semibold text-text-primary">Settings</h1> */}
-          <p className="mt-1 text-sm text-text-secondary">
-            Manage application preferences and configuration
-          </p>
-        </div>
-        <Button onClick={handleOpenInEditor} variant="outline">
-          <FileText className="h-4 w-4" />
-          Open in Editor
-        </Button>
-      </div>
-
-      <Tabs
-        value={activeTab}
-        onValueChange={v =>
-          setActiveTab(
-            VALID_SETTINGS_TABS.includes(v as (typeof VALID_SETTINGS_TABS)[number])
-              ? (v as (typeof VALID_SETTINGS_TABS)[number])
-              : 'llm'
-          )
-        }
-        className="w-full"
+    <div className="flex flex-1 flex-col min-h-0">
+      <div
+        className="flex-1 min-h-0 overflow-auto p-4"
+        data-settings-scroll
+        role="region"
+        aria-label="Settings content"
       >
-        <TabsList className="w-full">
-          <TabsTrigger
-            value="llm"
-            className="flex flex-1 items-center justify-center gap-2"
+        <div className="flex flex-col gap-6">
+          <Tabs
+            value={activeTab}
+            onValueChange={v =>
+              setActiveTab(
+                VALID_SETTINGS_TABS.includes(v as (typeof VALID_SETTINGS_TABS)[number])
+                  ? (v as (typeof VALID_SETTINGS_TABS)[number])
+                  : 'llm'
+              )
+            }
+            className="w-full"
           >
-            <Bot className="h-4 w-4" />
-            LLM Providers
-          </TabsTrigger>
-          <TabsTrigger
-            value="appearance"
-            className="flex flex-1 items-center justify-center gap-2"
-          >
-            <Sun className="h-4 w-4" />
-            Appearance
-          </TabsTrigger>
-          <TabsTrigger
-            value="shortcuts"
-            className="flex flex-1 items-center justify-center gap-2"
-          >
-            <Keyboard className="h-4 w-4" />
-            Shortcuts
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="appearance" className="mt-0">
-          <div className="flex flex-col gap-4">
-            <div>
-              <h2 className="text-lg font-medium text-text-primary">Appearance</h2>
-              <p className="mt-1 text-sm text-text-secondary">
-                Customize the look and feel of the application
-              </p>
-            </div>
-            <div className="flex flex-col gap-2">
-              <label
-                htmlFor="theme-select"
-                className="text-sm font-medium text-text-primary"
+            <TabsList className="w-full">
+              <TabsTrigger
+                value="llm"
+                className="flex flex-1 items-center justify-center gap-2"
               >
-                Theme
-              </label>
-              <Select
-                value={settings['appearance.theme']}
-                onValueChange={handleThemeChange}
+                <Bot className="h-4 w-4" />
+                LLM Providers
+              </TabsTrigger>
+              <TabsTrigger
+                value="appearance"
+                className="flex flex-1 items-center justify-center gap-2"
               >
-                <SelectTrigger id="theme-select" className="w-[200px]">
-                  <SelectValue>
-                    {settings['appearance.theme'] === 'light' && (
-                      <div className="flex items-center gap-2">
-                        <Sun className="h-4 w-4" />
-                        <span>Light</span>
-                      </div>
-                    )}
-                    {settings['appearance.theme'] === 'dark' && (
-                      <div className="flex items-center gap-2">
-                        <Moon className="h-4 w-4" />
-                        <span>Dark</span>
-                      </div>
-                    )}
-                    {settings['appearance.theme'] === 'system' && (
-                      <div className="flex items-center gap-2">
-                        <Monitor className="h-4 w-4" />
-                        <span>System</span>
-                      </div>
-                    )}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="light">
-                    <div className="flex items-center gap-2">
-                      <Sun className="h-4 w-4" />
-                      <span>Light</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="dark">
-                    <div className="flex items-center gap-2">
-                      <Moon className="h-4 w-4" />
-                      <span>Dark</span>
-                    </div>
-                  </SelectItem>
-                  <SelectItem value="system">
-                    <div className="flex items-center gap-2">
-                      <Monitor className="h-4 w-4" />
-                      <span>System</span>
-                    </div>
-                  </SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-text-secondary">
-                Choose between light, dark, or system theme
-              </p>
-            </div>
-          </div>
-        </TabsContent>
+                <Sun className="h-4 w-4" />
+                Appearance
+              </TabsTrigger>
+              <TabsTrigger
+                value="shortcuts"
+                className="flex flex-1 items-center justify-center gap-2"
+              >
+                <Keyboard className="h-4 w-4" />
+                Shortcuts
+              </TabsTrigger>
+            </TabsList>
 
-        <TabsContent value="shortcuts" className="mt-0">
-          <div className="flex flex-col gap-6">
-            <div>
-              <h1 className="text-2xl font-medium text-text-primary">
-                Keyboard Shortcuts
-              </h1>
-              <p className="mt-1 text-sm text-text-secondary">
-                App-level and view-specific shortcuts (read-only for now)
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-4">
-              <h2 className="text-xl font-medium text-text-primary">App</h2>
+            <TabsContent value="appearance" className="mt-0">
               <div className="flex flex-col gap-4">
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-text-primary">
-                    Command Palette
-                  </label>
-                  <Input
-                    value={settings['hotkeys.commandPalette']}
-                    readOnly
-                    className="w-[200px] bg-bg-secondary"
-                  />
-                  <p className="text-xs text-text-secondary">Open the command palette</p>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-text-primary">
-                    Settings
-                  </label>
-                  <Input
-                    value={settings['hotkeys.settings']}
-                    readOnly
-                    className="w-[200px] bg-bg-secondary"
-                  />
-                  <p className="text-xs text-text-secondary">Open the settings view</p>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-text-primary">
-                    Toggle sidebar
-                  </label>
-                  <Input
-                    value={settings['hotkeys.sidebar']}
-                    readOnly
-                    className="w-[200px] bg-bg-secondary"
-                  />
-                  <p className="text-xs text-text-secondary">
-                    Show or collapse the app sidebar
+                <div>
+                  <h2 className="text-lg font-medium text-text-primary">Appearance</h2>
+                  <p className="mt-1 text-sm text-text-secondary">
+                    Customize the look and feel of the application
                   </p>
                 </div>
-              </div>
-            </div>
-
-            <div className="flex flex-col gap-4">
-              <h2 className="text-xl font-medium text-text-primary">Chat view</h2>
-              <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-2">
-                  <label className="text-sm font-medium text-text-primary">
-                    Toggle composer mode
+                  <label
+                    htmlFor="theme-select"
+                    className="text-sm font-medium text-text-primary"
+                  >
+                    Theme
                   </label>
-                  <Input
-                    value={settings['chatView.hotkeys.toggleComposerMode']}
-                    readOnly
-                    className="w-[200px] bg-bg-secondary"
-                  />
-                  <p className="text-xs text-text-secondary">
-                    Switch between Plain and Live Preview in the message input
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </TabsContent>
-
-        <TabsContent value="llm" className="mt-0">
-          <div className="flex flex-col gap-4">
-            <div>
-              <h2 className="text-lg font-medium text-text-primary">LLM Providers</h2>
-              <p className="mt-1 text-sm text-text-secondary">
-                Configure API keys and endpoints for chat providers
-              </p>
-            </div>
-
-            {/* Default model */}
-            <div className="flex flex-col gap-2">
-              <label
-                htmlFor="default-model-select"
-                className="text-sm font-medium text-text-primary"
-              >
-                Default model
-              </label>
-              <Select
-                value={defaultModelSelectValue}
-                onValueChange={handleDefaultModelChange}
-              >
-                <SelectTrigger id="default-model-select" className="w-full max-w-md">
-                  <SelectValue placeholder="Use fallback (auto)">
-                    {defaultModelSelectValue === DEFAULT_MODEL_FALLBACK ? (
-                      <div className="flex items-center gap-2">
-                        <Bot className="h-4 w-4 shrink-0 text-text-secondary" />
-                        <span className="text-text-secondary">Use fallback (auto)</span>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
-                        <ProviderIcon
-                          providerId={getProviderIdFromModelId(defaultModel)}
-                          size={16}
-                        />
-                        <span>
-                          {modelList?.all?.find(m => m.id === defaultModel)?.label ??
-                            defaultModel}
-                        </span>
-                      </div>
-                    )}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={DEFAULT_MODEL_FALLBACK}>
-                    <div className="flex items-center gap-2">
-                      <Bot className="h-4 w-4 shrink-0 text-text-secondary" />
-                      <span className="text-text-secondary">Use fallback (auto)</span>
-                    </div>
-                  </SelectItem>
-                  {modelList?.all?.map(model => (
-                    <SelectItem key={model.id} value={model.id}>
-                      <div className="flex items-center gap-2">
-                        <ProviderIcon
-                          providerId={getProviderIdFromModelId(model.id)}
-                          size={16}
-                        />
-                        <span>{model.label ?? model.id}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-text-secondary">
-                Model used for new conversations when none is selected. Only models you
-                have enabled per provider are listed. Fallback uses first available
-                enabled model.
-              </p>
-            </div>
-
-            <div className="flex flex-col gap-6">
-              {/* Ollama */}
-              <Collapsible
-                open={providerExpanded.ollama}
-                onOpenChange={open => setProviderExpanded(s => ({ ...s, ollama: open }))}
-              >
-                <div
-                  className={cn(
-                    `
-                      flex flex-col gap-2 rounded-lg border border-border
-                      bg-bg-secondary/50 p-4
-                    `
-                  )}
-                  role="button"
-                  tabIndex={0}
-                  aria-expanded={providerExpanded.ollama}
-                  onClick={() => setProviderExpanded(s => ({ ...s, ollama: !s.ollama }))}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault()
-                      setProviderExpanded(s => ({ ...s, ollama: !s.ollama }))
-                    }
-                  }}
-                >
-                  <div className="flex cursor-pointer items-center justify-between gap-2">
-                    <div className="flex min-w-0 flex-1 items-center gap-2">
-                      <ProviderIcon providerId="ollama" size={16} />
-                      <span className="font-medium text-text-primary">Ollama</span>
-                      <ProviderStatusRow providerId="ollama" />
-                    </div>
-                    <div className="flex shrink-0 items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className={cn(
-                          'h-8 w-8 shrink-0 text-text-secondary',
-                          'hover:text-text-primary'
+                  <Select
+                    value={settings['appearance.theme']}
+                    onValueChange={handleThemeChange}
+                  >
+                    <SelectTrigger id="theme-select" className="w-[200px]">
+                      <SelectValue>
+                        {settings['appearance.theme'] === 'light' && (
+                          <div className="flex items-center gap-2">
+                            <Sun className="h-4 w-4" />
+                            <span>Light</span>
+                          </div>
                         )}
-                        onClick={e => {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          handleTestProvider('ollama')
-                        }}
-                        disabled={providerTestStatus.ollama === 'loading'}
-                        title="Test connection"
-                        aria-label="Test connection"
-                      >
-                        {providerTestStatus.ollama === 'loading' ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
+                        {settings['appearance.theme'] === 'dark' && (
+                          <div className="flex items-center gap-2">
+                            <Moon className="h-4 w-4" />
+                            <span>Dark</span>
+                          </div>
+                        )}
+                        {settings['appearance.theme'] === 'system' && (
+                          <div className="flex items-center gap-2">
+                            <Monitor className="h-4 w-4" />
+                            <span>System</span>
+                          </div>
+                        )}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="light">
+                        <div className="flex items-center gap-2">
+                          <Sun className="h-4 w-4" />
+                          <span>Light</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="dark">
+                        <div className="flex items-center gap-2">
+                          <Moon className="h-4 w-4" />
+                          <span>Dark</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="system">
+                        <div className="flex items-center gap-2">
+                          <Monitor className="h-4 w-4" />
+                          <span>System</span>
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-text-secondary">
+                    Choose between light, dark, or system theme
+                  </p>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="shortcuts" className="mt-0">
+              <div className="flex flex-col gap-6">
+                <div>
+                  <h1 className="text-2xl font-medium text-text-primary">
+                    Keyboard Shortcuts
+                  </h1>
+                  <p className="mt-1 text-sm text-text-secondary">
+                    App-level and view-specific shortcuts (read-only for now)
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-4">
+                  <h2 className="text-xl font-medium text-text-primary">App</h2>
+                  <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-2">
+                      <label className="text-sm font-medium text-text-primary">
+                        Command Palette
+                      </label>
+                      <Input
+                        value={settings['hotkeys.commandPalette']}
+                        readOnly
+                        className="w-[200px] bg-bg-secondary"
+                      />
+                      <p className="text-xs text-text-secondary">
+                        Open the command palette
+                      </p>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <label className="text-sm font-medium text-text-primary">
+                        Settings
+                      </label>
+                      <Input
+                        value={settings['hotkeys.settings']}
+                        readOnly
+                        className="w-[200px] bg-bg-secondary"
+                      />
+                      <p className="text-xs text-text-secondary">
+                        Open the settings view
+                      </p>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <label className="text-sm font-medium text-text-primary">
+                        Toggle sidebar
+                      </label>
+                      <Input
+                        value={settings['hotkeys.sidebar']}
+                        readOnly
+                        className="w-[200px] bg-bg-secondary"
+                      />
+                      <p className="text-xs text-text-secondary">
+                        Show or collapse the app sidebar
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-4">
+                  <h2 className="text-xl font-medium text-text-primary">Chat view</h2>
+                  <div className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-2">
+                      <label className="text-sm font-medium text-text-primary">
+                        Toggle composer mode
+                      </label>
+                      <Input
+                        value={settings['chatView.hotkeys.toggleComposerMode']}
+                        readOnly
+                        className="w-[200px] bg-bg-secondary"
+                      />
+                      <p className="text-xs text-text-secondary">
+                        Switch between Plain and Live Preview in the message input
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="llm" className="mt-0">
+              <div className="flex flex-col gap-4">
+                <div>
+                  <h2 className="text-lg font-medium text-text-primary">LLM Providers</h2>
+                  <p className="mt-1 text-sm text-text-secondary">
+                    Configure API keys and endpoints for chat providers
+                  </p>
+                </div>
+
+                {/* Default model */}
+                <div className="flex flex-col gap-2">
+                  <label
+                    htmlFor="default-model-select"
+                    className="text-sm font-medium text-text-primary"
+                  >
+                    Default model
+                  </label>
+                  <Select
+                    value={defaultModelSelectValue}
+                    onValueChange={handleDefaultModelChange}
+                  >
+                    <SelectTrigger id="default-model-select" className="w-full max-w-md">
+                      <SelectValue placeholder="Use fallback (auto)">
+                        {defaultModelSelectValue === DEFAULT_MODEL_FALLBACK ? (
+                          <div className="flex items-center gap-2">
+                            <Bot className="h-4 w-4 shrink-0 text-text-secondary" />
+                            <span className="text-text-secondary">
+                              Use fallback (auto)
+                            </span>
+                          </div>
                         ) : (
-                          <RefreshCw className="h-4 w-4" />
+                          <div className="flex items-center gap-2">
+                            <ProviderIcon
+                              providerId={getProviderIdFromModelId(defaultModel)}
+                              size={16}
+                            />
+                            <span>
+                              {modelList?.all?.find(m => m.id === defaultModel)?.label ??
+                                defaultModel}
+                            </span>
+                          </div>
                         )}
-                      </Button>
-                      {isOllamaConfigured &&
-                        getEnabledModelIds('ollama').length === 0 && (
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value={DEFAULT_MODEL_FALLBACK}>
+                        <div className="flex items-center gap-2">
+                          <Bot className="h-4 w-4 shrink-0 text-text-secondary" />
+                          <span className="text-text-secondary">Use fallback (auto)</span>
+                        </div>
+                      </SelectItem>
+                      {modelList?.all?.map(model => (
+                        <SelectItem key={model.id} value={model.id}>
+                          <div className="flex items-center gap-2">
+                            <ProviderIcon
+                              providerId={getProviderIdFromModelId(model.id)}
+                              size={16}
+                            />
+                            <span>{model.label ?? model.id}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-text-secondary">
+                    Model used for new conversations when none is selected. Only models
+                    you have enabled per provider are listed. Fallback uses first
+                    available enabled model.
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-6">
+                  {/* Ollama */}
+                  <Collapsible
+                    open={providerExpanded.ollama}
+                    onOpenChange={open =>
+                      setProviderExpanded(s => ({ ...s, ollama: open }))
+                    }
+                  >
+                    <div
+                      className={cn(
+                        `
+                          flex flex-col gap-2 rounded-lg border border-border
+                          bg-bg-secondary/50 p-4
+                        `
+                      )}
+                      role="button"
+                      tabIndex={0}
+                      aria-expanded={providerExpanded.ollama}
+                      onClick={() =>
+                        setProviderExpanded(s => ({ ...s, ollama: !s.ollama }))
+                      }
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          setProviderExpanded(s => ({ ...s, ollama: !s.ollama }))
+                        }
+                      }}
+                    >
+                      <div
+                        className="flex cursor-pointer items-center justify-between gap-2"
+                      >
+                        <div className="flex min-w-0 flex-1 items-center gap-2">
+                          <ProviderIcon providerId="ollama" size={16} />
+                          <span className="font-medium text-text-primary">Ollama</span>
+                          <ProviderStatusRow providerId="ollama" />
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1">
                           <Button
                             variant="ghost"
-                            size="sm"
+                            size="icon"
+                            className={cn(
+                              'h-8 w-8 shrink-0 text-text-secondary',
+                              'hover:text-text-primary'
+                            )}
                             onClick={e => {
                               e.preventDefault()
                               e.stopPropagation()
-                              handleClearProvider('ollama')
+                              handleTestProvider('ollama')
                             }}
+                            disabled={providerTestStatus.ollama === 'loading'}
+                            title="Test connection"
+                            aria-label="Test connection"
                           >
-                            Clear
+                            {providerTestStatus.ollama === 'loading' ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <RefreshCw className="h-4 w-4" />
+                            )}
                           </Button>
-                        )}
-                      <CogIcon className="h-4 w-4 text-text-secondary" />
-                    </div>
-                  </div>
-                  <CollapsibleContent>
-                    <div onClick={e => e.stopPropagation()} role="presentation">
-                      <p className="text-xs text-text-secondary">
-                        Local models. Optional custom base URL.
-                      </p>
-                      <div className="flex flex-col gap-2">
-                        <label
-                          htmlFor="ollama-base-url"
-                          className="text-sm font-medium text-text-primary"
-                        >
-                          Base URL
-                        </label>
-                        <Input
-                          id="ollama-base-url"
-                          type="url"
-                          placeholder={OLLAMA_DEFAULT_BASE_URL}
-                          value={ollamaBaseUrl}
-                          onChange={e => setOllamaBaseUrlInput(e.target.value)}
-                          onBlur={handleOllamaBaseUrlBlur}
-                          className="max-w-md font-mono text-sm"
-                        />
-                      </div>
-                      <div className="mt-4 flex flex-col gap-2">
-                        <span className="text-sm font-medium text-text-primary">
-                          Models
-                        </span>
-                        <p className="text-xs text-text-secondary">
-                          Enable models to use in the app. None enabled by default.
-                        </p>
-                        <ul className="flex flex-col gap-1">
-                          {(discoverableByProvider.ollama ?? []).map(model => {
-                            const enabled = getEnabledModelIds('ollama').includes(
-                              model.id
-                            )
-                            return (
-                              <li
-                                key={model.id}
-                                role="button"
-                                tabIndex={0}
-                                className="
-                                  flex cursor-pointer items-center justify-between gap-2
-                                  rounded border border-transparent px-2 py-1.5 text-sm
-                                  transition-colors
-                                  hover:border-border
-                                "
-                                onClick={() =>
-                                  handleToggleModelEnabled('ollama', model.id, !enabled)
-                                }
-                                onKeyDown={e => {
-                                  if (e.key === 'Enter' || e.key === ' ') {
-                                    e.preventDefault()
-                                    handleToggleModelEnabled('ollama', model.id, !enabled)
-                                  }
+                          {isOllamaConfigured &&
+                            getEnabledModelIds('ollama').length === 0 && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={e => {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  handleClearProvider('ollama')
                                 }}
                               >
-                                <span
-                                  className={cn(
-                                    'min-w-0 truncate',
-                                    enabled ? 'text-text-primary' : 'text-text-secondary'
-                                  )}
-                                >
-                                  {model.label ?? model.id}
-                                </span>
-                                <span onClick={e => e.stopPropagation()}>
-                                  <Switch
-                                    checked={enabled}
-                                    onCheckedChange={checked =>
+                                Clear
+                              </Button>
+                            )}
+                          <CogIcon className="h-4 w-4 text-text-secondary" />
+                        </div>
+                      </div>
+                      <CollapsibleContent>
+                        <div onClick={e => e.stopPropagation()} role="presentation">
+                          <p className="text-xs text-text-secondary">
+                            Local models. Optional custom base URL.
+                          </p>
+                          <div className="flex flex-col gap-2">
+                            <label
+                              htmlFor="ollama-base-url"
+                              className="text-sm font-medium text-text-primary"
+                            >
+                              Base URL
+                            </label>
+                            <Input
+                              id="ollama-base-url"
+                              type="url"
+                              placeholder={OLLAMA_DEFAULT_BASE_URL}
+                              value={ollamaBaseUrl}
+                              onChange={e => setOllamaBaseUrlInput(e.target.value)}
+                              onBlur={handleOllamaBaseUrlBlur}
+                              className="max-w-md font-mono text-sm"
+                            />
+                          </div>
+                          <div className="mt-4 flex flex-col gap-2">
+                            <span className="text-sm font-medium text-text-primary">
+                              Models
+                            </span>
+                            <p className="text-xs text-text-secondary">
+                              Enable models to use in the app. None enabled by default.
+                            </p>
+                            <ul className="flex flex-col gap-1">
+                              {(discoverableByProvider.ollama ?? []).map(model => {
+                                const enabled = getEnabledModelIds('ollama').includes(
+                                  model.id
+                                )
+                                return (
+                                  <li
+                                    key={model.id}
+                                    role="button"
+                                    tabIndex={0}
+                                    className="
+                                      flex cursor-pointer items-center justify-between
+                                      gap-2 rounded border border-transparent px-2 py-1.5
+                                      text-sm transition-colors
+                                      hover:border-border
+                                    "
+                                    onClick={() =>
                                       handleToggleModelEnabled(
                                         'ollama',
                                         model.id,
-                                        checked
+                                        !enabled
                                       )
                                     }
-                                    aria-label={
-                                      enabled
-                                        ? `Disable ${model.label ?? model.id}`
-                                        : `Enable ${model.label ?? model.id}`
-                                    }
-                                  />
-                                </span>
-                              </li>
-                            )
-                          })}
-                          {(discoverableByProvider.ollama ?? []).length === 0 && (
-                            <li className="py-2 text-center text-xs text-text-secondary">
-                              Connect to see available models
-                            </li>
-                          )}
-                        </ul>
-                      </div>
-                    </div>
-                  </CollapsibleContent>
-                </div>
-              </Collapsible>
-
-              {/* Anthropic */}
-              <Collapsible
-                open={providerExpanded.anthropic}
-                onOpenChange={open =>
-                  setProviderExpanded(s => ({ ...s, anthropic: open }))
-                }
-              >
-                <div
-                  className={cn(
-                    `
-                      flex flex-col gap-2 rounded-lg border border-border
-                      bg-bg-secondary/50 p-4
-                    `
-                  )}
-                  role="button"
-                  tabIndex={0}
-                  aria-expanded={providerExpanded.anthropic}
-                  onClick={() =>
-                    setProviderExpanded(s => ({
-                      ...s,
-                      anthropic: !s.anthropic,
-                    }))
-                  }
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault()
-                      setProviderExpanded(s => ({
-                        ...s,
-                        anthropic: !s.anthropic,
-                      }))
-                    }
-                  }}
-                >
-                  <div className="flex cursor-pointer items-center justify-between gap-2">
-                    <div className="flex min-w-0 flex-1 items-center gap-2">
-                      <ProviderIcon providerId="anthropic" size={16} />
-                      <span className="font-medium text-text-primary">Anthropic</span>
-                      <ProviderStatusRow providerId="anthropic" />
-                    </div>
-                    <div className="flex shrink-0 items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className={cn(
-                          'h-8 w-8 shrink-0 text-text-secondary',
-                          'hover:text-text-primary'
-                        )}
-                        onClick={e => {
-                          e.preventDefault()
-                          e.stopPropagation()
-                          handleTestProvider('anthropic')
-                        }}
-                        disabled={providerTestStatus.anthropic === 'loading'}
-                        title="Test connection"
-                        aria-label="Test connection"
-                      >
-                        {providerTestStatus.anthropic === 'loading' ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <RefreshCw className="h-4 w-4" />
-                        )}
-                      </Button>
-                      <CogIcon className="h-4 w-4 text-text-secondary" />
-                    </div>
-                  </div>
-                  <CollapsibleContent>
-                    <div onClick={e => e.stopPropagation()} role="presentation">
-                      <p className="text-xs text-text-secondary">
-                        Claude models. API key required.
-                      </p>
-                      <div className="flex flex-col gap-2">
-                        <label
-                          htmlFor="anthropic-api-key"
-                          className="text-sm font-medium text-text-primary"
-                        >
-                          API key
-                        </label>
-                        <div className="flex max-w-md items-center gap-2">
-                          <div className="relative flex-1">
-                            <Input
-                              id="anthropic-api-key"
-                              type="password"
-                              placeholder={
-                                anthropicSaveMessage === 'error'
-                                  ? 'Save failed'
-                                  : isAnthropicConfigured
-                                    ? 'API key saved'
-                                    : 'Enter API key'
-                              }
-                              value={anthropicKeyInput}
-                              onChange={e => {
-                                setAnthropicKeyInput(e.target.value)
-                                if (anthropicSaveMessage === 'error')
-                                  setAnthropicSaveMessage(null)
-                              }}
-                              className={cn(
-                                'font-mono text-sm pr-9',
-                                anthropicSaveMessage === 'error' &&
-                                  `
-                                    border-red-500/70
-                                    placeholder:text-red-600
-                                    dark:placeholder:text-red-400
-                                  `
+                                    onKeyDown={e => {
+                                      if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault()
+                                        handleToggleModelEnabled(
+                                          'ollama',
+                                          model.id,
+                                          !enabled
+                                        )
+                                      }
+                                    }}
+                                  >
+                                    <span
+                                      className={cn(
+                                        'min-w-0 truncate',
+                                        enabled
+                                          ? 'text-text-primary'
+                                          : 'text-text-secondary'
+                                      )}
+                                    >
+                                      {model.label ?? model.id}
+                                    </span>
+                                    <span onClick={e => e.stopPropagation()}>
+                                      <Switch
+                                        checked={enabled}
+                                        onCheckedChange={checked =>
+                                          handleToggleModelEnabled(
+                                            'ollama',
+                                            model.id,
+                                            checked
+                                          )
+                                        }
+                                        aria-label={
+                                          enabled
+                                            ? `Disable ${model.label ?? model.id}`
+                                            : `Enable ${model.label ?? model.id}`
+                                        }
+                                      />
+                                    </span>
+                                  </li>
+                                )
+                              })}
+                              {(discoverableByProvider.ollama ?? []).length === 0 && (
+                                <li
+                                  className="py-2 text-center text-xs text-text-secondary"
+                                >
+                                  Connect to see available models
+                                </li>
                               )}
-                              autoComplete="off"
-                            />
-                            {isAnthropicConfigured && (
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="
-                                  absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2
-                                  text-text-secondary
-                                  hover:text-text-primary
-                                "
-                                onClick={() => handleClearProvider('anthropic')}
-                                title="Clear saved API key"
-                                aria-label="Clear saved API key"
-                              >
-                                <X className="h-3.5 w-3.5" />
-                              </Button>
-                            )}
+                            </ul>
                           </div>
+                        </div>
+                      </CollapsibleContent>
+                    </div>
+                  </Collapsible>
+
+                  {/* Anthropic */}
+                  <Collapsible
+                    open={providerExpanded.anthropic}
+                    onOpenChange={open =>
+                      setProviderExpanded(s => ({ ...s, anthropic: open }))
+                    }
+                  >
+                    <div
+                      className={cn(
+                        `
+                          flex flex-col gap-2 rounded-lg border border-border
+                          bg-bg-secondary/50 p-4
+                        `
+                      )}
+                      role="button"
+                      tabIndex={0}
+                      aria-expanded={providerExpanded.anthropic}
+                      onClick={() =>
+                        setProviderExpanded(s => ({
+                          ...s,
+                          anthropic: !s.anthropic,
+                        }))
+                      }
+                      onKeyDown={e => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          setProviderExpanded(s => ({
+                            ...s,
+                            anthropic: !s.anthropic,
+                          }))
+                        }
+                      }}
+                    >
+                      <div
+                        className="flex cursor-pointer items-center justify-between gap-2"
+                      >
+                        <div className="flex min-w-0 flex-1 items-center gap-2">
+                          <ProviderIcon providerId="anthropic" size={16} />
+                          <span className="font-medium text-text-primary">Anthropic</span>
+                          <ProviderStatusRow providerId="anthropic" />
+                        </div>
+                        <div className="flex shrink-0 items-center gap-1">
                           <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleSaveAnthropicKey}
-                            disabled={!anthropicKeyInput.trim()}
+                            variant="ghost"
+                            size="icon"
+                            className={cn(
+                              'h-8 w-8 shrink-0 text-text-secondary',
+                              'hover:text-text-primary'
+                            )}
+                            onClick={e => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              handleTestProvider('anthropic')
+                            }}
+                            disabled={providerTestStatus.anthropic === 'loading'}
+                            title="Test connection"
+                            aria-label="Test connection"
                           >
-                            Save
+                            {providerTestStatus.anthropic === 'loading' ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <RefreshCw className="h-4 w-4" />
+                            )}
                           </Button>
+                          <CogIcon className="h-4 w-4 text-text-secondary" />
                         </div>
                       </div>
-                      <div className="mt-4 flex flex-col gap-2">
-                        <span className="text-sm font-medium text-text-primary">
-                          Models
-                        </span>
-                        <p className="text-xs text-text-secondary">
-                          Enable models to use in the app. None enabled by default.
-                        </p>
-                        <ul className="flex flex-col gap-1">
-                          {(discoverableByProvider.anthropic ?? []).map(model => {
-                            const enabled = getEnabledModelIds('anthropic').includes(
-                              model.id
-                            )
-                            return (
-                              <li
-                                key={model.id}
-                                role="button"
-                                tabIndex={0}
-                                className="
-                                  flex cursor-pointer items-center justify-between gap-2
-                                  rounded border border-transparent px-2 py-1.5 text-sm
-                                  transition-colors
-                                  hover:border-border
-                                "
-                                onClick={() =>
-                                  handleToggleModelEnabled(
-                                    'anthropic',
-                                    model.id,
-                                    !enabled
-                                  )
-                                }
-                                onKeyDown={e => {
-                                  if (e.key === 'Enter' || e.key === ' ') {
-                                    e.preventDefault()
-                                    handleToggleModelEnabled(
-                                      'anthropic',
-                                      model.id,
-                                      !enabled
-                                    )
+                      <CollapsibleContent>
+                        <div onClick={e => e.stopPropagation()} role="presentation">
+                          <p className="text-xs text-text-secondary">
+                            Claude models. API key required.
+                          </p>
+                          <div className="flex flex-col gap-2">
+                            <label
+                              htmlFor="anthropic-api-key"
+                              className="text-sm font-medium text-text-primary"
+                            >
+                              API key
+                            </label>
+                            <div className="flex max-w-md items-center gap-2">
+                              <div className="relative flex-1">
+                                <Input
+                                  id="anthropic-api-key"
+                                  type="password"
+                                  placeholder={
+                                    anthropicSaveMessage === 'error'
+                                      ? 'Save failed'
+                                      : isAnthropicConfigured
+                                        ? 'API key saved'
+                                        : 'Enter API key'
                                   }
-                                }}
-                              >
-                                <span
+                                  value={anthropicKeyInput}
+                                  onChange={e => {
+                                    setAnthropicKeyInput(e.target.value)
+                                    if (anthropicSaveMessage === 'error')
+                                      setAnthropicSaveMessage(null)
+                                  }}
                                   className={cn(
-                                    'min-w-0 truncate',
-                                    enabled ? 'text-text-primary' : 'text-text-secondary'
+                                    'font-mono text-sm pr-9',
+                                    anthropicSaveMessage === 'error' &&
+                                      `
+                                        border-red-500/70
+                                        placeholder:text-red-600
+                                        dark:placeholder:text-red-400
+                                      `
                                   )}
-                                >
-                                  {model.label ?? model.id}
-                                </span>
-                                <span onClick={e => e.stopPropagation()}>
-                                  <Switch
-                                    checked={enabled}
-                                    onCheckedChange={checked =>
+                                  autoComplete="off"
+                                />
+                                {isAnthropicConfigured && (
+                                  <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="icon"
+                                    className="
+                                      absolute right-1 top-1/2 h-6 w-6 -translate-y-1/2
+                                      text-text-secondary
+                                      hover:text-text-primary
+                                    "
+                                    onClick={() => handleClearProvider('anthropic')}
+                                    title="Clear saved API key"
+                                    aria-label="Clear saved API key"
+                                  >
+                                    <X className="h-3.5 w-3.5" />
+                                  </Button>
+                                )}
+                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleSaveAnthropicKey}
+                                disabled={!anthropicKeyInput.trim()}
+                              >
+                                Save
+                              </Button>
+                            </div>
+                          </div>
+                          <div className="mt-4 flex flex-col gap-2">
+                            <span className="text-sm font-medium text-text-primary">
+                              Models
+                            </span>
+                            <p className="text-xs text-text-secondary">
+                              Enable models to use in the app. None enabled by default.
+                            </p>
+                            <ul className="flex flex-col gap-1">
+                              {(discoverableByProvider.anthropic ?? []).map(model => {
+                                const enabled = getEnabledModelIds('anthropic').includes(
+                                  model.id
+                                )
+                                return (
+                                  <li
+                                    key={model.id}
+                                    role="button"
+                                    tabIndex={0}
+                                    className="
+                                      flex cursor-pointer items-center justify-between
+                                      gap-2 rounded border border-transparent px-2 py-1.5
+                                      text-sm transition-colors
+                                      hover:border-border
+                                    "
+                                    onClick={() =>
                                       handleToggleModelEnabled(
                                         'anthropic',
                                         model.id,
-                                        checked
+                                        !enabled
                                       )
                                     }
-                                    aria-label={
-                                      enabled
-                                        ? `Disable ${model.label ?? model.id}`
-                                        : `Enable ${model.label ?? model.id}`
-                                    }
-                                  />
-                                </span>
-                              </li>
-                            )
-                          })}
-                          {(discoverableByProvider.anthropic ?? []).length === 0 && (
-                            <li className="py-2 text-center text-xs text-text-secondary">
-                              Add API key and connect to see available models
-                            </li>
-                          )}
-                        </ul>
-                      </div>
+                                    onKeyDown={e => {
+                                      if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault()
+                                        handleToggleModelEnabled(
+                                          'anthropic',
+                                          model.id,
+                                          !enabled
+                                        )
+                                      }
+                                    }}
+                                  >
+                                    <span
+                                      className={cn(
+                                        'min-w-0 truncate',
+                                        enabled
+                                          ? 'text-text-primary'
+                                          : 'text-text-secondary'
+                                      )}
+                                    >
+                                      {model.label ?? model.id}
+                                    </span>
+                                    <span onClick={e => e.stopPropagation()}>
+                                      <Switch
+                                        checked={enabled}
+                                        onCheckedChange={checked =>
+                                          handleToggleModelEnabled(
+                                            'anthropic',
+                                            model.id,
+                                            checked
+                                          )
+                                        }
+                                        aria-label={
+                                          enabled
+                                            ? `Disable ${model.label ?? model.id}`
+                                            : `Enable ${model.label ?? model.id}`
+                                        }
+                                      />
+                                    </span>
+                                  </li>
+                                )
+                              })}
+                              {(discoverableByProvider.anthropic ?? []).length === 0 && (
+                                <li
+                                  className="py-2 text-center text-xs text-text-secondary"
+                                >
+                                  Add API key and connect to see available models
+                                </li>
+                              )}
+                            </ul>
+                          </div>
+                        </div>
+                      </CollapsibleContent>
                     </div>
-                  </CollapsibleContent>
+                  </Collapsible>
                 </div>
-              </Collapsible>
-            </div>
-          </div>
-        </TabsContent>
-      </Tabs>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
+
+      <footer
+        className="
+          flex-shrink-0 border-t border-border bg-muted/30 px-4 py-2.5 flex items-center
+          justify-between gap-4
+        "
+      >
+        <span
+          className="text-xs text-text-secondary truncate min-w-0"
+          title={settingsFilePath ?? undefined}
+        >
+          {settingsFilePath ?? '…'}
+        </span>
+        <Button onClick={handleOpenInEditor} variant="outline" size="sm">
+          <FileText className="h-4 w-4" />
+          Open in Editor
+        </Button>
+      </footer>
     </div>
   )
 }

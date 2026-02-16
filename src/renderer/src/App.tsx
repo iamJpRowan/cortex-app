@@ -111,15 +111,8 @@ function AppContent() {
                 <Route
                   path="/settings"
                   element={
-                    <div
-                      className="flex-1 overflow-auto p-4"
-                      data-settings-scroll
-                      role="region"
-                      aria-label="Settings content"
-                    >
-                      <div className="flex flex-col gap-4">
-                        <SettingsView />
-                      </div>
+                    <div className="flex flex-1 flex-col min-h-0">
+                      <SettingsView />
                     </div>
                   }
                 />
