@@ -1,20 +1,28 @@
 import { StructuredTool } from '@langchain/core/tools'
 import type { Agent } from '@shared/types'
+import type { ToolAccess, ToolCategory, ToolScope } from './definition-types'
 
 /**
- * Metadata for a tool
+ * Metadata for a registered tool.
+ * scope and access are required for permission resolution; category is derived (scope × access).
  */
 export interface ToolMetadata {
   name: string
   description: string
-  category?: string
+  scope: ToolScope
+  access: ToolAccess
+  category: ToolCategory
+  connectionType?: string
+  connection?: string
+  risk?: 'safe' | 'caution' | 'dangerous'
+  permissionExplanation?: string
   permissions?: string[]
 }
 
 /**
- * Tool definition combining the tool instance and metadata
+ * Registered tool: tool instance plus metadata (stored in the registry).
  */
-export interface ToolDefinition {
+export interface RegisteredTool {
   tool: StructuredTool
   metadata: ToolMetadata
 }
@@ -24,7 +32,7 @@ export interface ToolDefinition {
  * Supports built-in tools and future plugin tools
  */
 export class ToolRegistry {
-  private tools = new Map<string, ToolDefinition>()
+  private tools = new Map<string, RegisteredTool>()
 
   /**
    * Register a tool with metadata
@@ -78,9 +86,9 @@ export class ToolRegistry {
   }
 
   /**
-   * Get all tool definitions
+   * Get all registered tools (tool + metadata)
    */
-  getAllDefinitions(): ToolDefinition[] {
+  getAllDefinitions(): RegisteredTool[] {
     return Array.from(this.tools.values())
   }
 

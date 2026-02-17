@@ -1,7 +1,10 @@
+import { StructuredTool } from '@langchain/core/tools'
+import { createToolsFromDefinitions } from '@main/services/llm/tools/factory'
 import { toolRegistry } from '@main/services/llm/tools/registry'
-import { echoTool } from './echo/echo.tool'
-import { countNodesTool } from './neo4j/count-nodes.tool'
-import { createInvokeCommandTool } from './command/invoke-command.tool'
+import { getCommandToolDefinitions } from './command/tools'
+import { commandHandlers } from './command/handlers'
+import { neo4jHandlers } from './neo4j/handlers'
+import { neo4jToolDefinitions } from './neo4j/tools'
 import { registerBuiltinCommands } from '@main/services/commands'
 
 /**
@@ -11,31 +14,25 @@ import { registerBuiltinCommands } from '@main/services/commands'
 export function registerBuiltinTools(): void {
   console.log('[ToolRegistry] Registering built-in tools...')
 
-  // Initialize command registry first (so invoke_command tool can use it)
+  // Initialize command registry first (so command tool definitions can use it)
   registerBuiltinCommands()
 
-  // Register echo tool
-  toolRegistry.register(echoTool, {
-    name: 'echo',
-    description:
-      'Echoes back the input message. Useful for testing that tools are working correctly.',
-    category: 'builtin',
-  })
+  // Register Neo4j tools (definition + handler pattern)
+  for (const { tool, metadata } of createToolsFromDefinitions(
+    neo4jToolDefinitions,
+    neo4jHandlers
+  )) {
+    toolRegistry.register(tool as StructuredTool, metadata)
+  }
 
-  // Register Neo4j count-nodes tool
-  toolRegistry.register(countNodesTool, {
-    name: 'count_nodes',
-    description: 'Counts the total number of nodes in the Neo4j graph database.',
-    category: 'builtin',
-  })
-
-  // Register invoke-command tool (created dynamically with enum of valid commands)
-  const invokeCommandTool = createInvokeCommandTool()
-  toolRegistry.register(invokeCommandTool, {
-    name: 'invoke_command',
-    description: 'Invoke an application command to take an action on behalf of the user.',
-    category: 'builtin',
-  })
+  // Register command tools (definition + handler; schema is dynamic from command registry)
+  const commandDefs = getCommandToolDefinitions()
+  for (const { tool, metadata } of createToolsFromDefinitions(
+    commandDefs,
+    commandHandlers
+  )) {
+    toolRegistry.register(tool as StructuredTool, metadata)
+  }
 
   console.log(`[ToolRegistry] Registered ${toolRegistry.size()} built-in tool(s)`)
 }

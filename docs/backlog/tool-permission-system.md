@@ -1,3 +1,7 @@
+---
+status: in progress
+---
+
 [Docs](../README.md) / [Backlog](./README.md) / Tool Permission System
 
 # Tool Permission System
@@ -31,7 +35,7 @@ The current pattern—one file per tool with a `DynamicStructuredTool` instance 
 
 A **tool definition** is a declarative object (no LangChain types at definition time):
 
-- **name**: string (unique tool id). **Canonical tool ID** used in permission modes and [Custom Agents](./custom-agents.md) frontmatter. Use **namespaced names** (e.g. `neo4j.count_nodes`, `web.search`, `command.invoke`) to avoid collisions when plugins add tools.
+- **name**: string (unique tool id). **Canonical tool ID** used in permission modes and [Custom Agents](./custom-agents.md) frontmatter. Use **namespaced names** with underscores (e.g. `neo4j_count_nodes`, `command_invoke`). Many provider APIs (e.g. Anthropic) require names to match `^[a-zA-Z0-9_-]{1,128}$`—no dots.
 - **description**: string (for the LLM and for UI/documentation).
 - **schema**: Zod schema (parameters the tool accepts).
 - **handler**: string key that maps to an implementation function (or, for plugins, a loadable module path).
@@ -137,20 +141,42 @@ Each prebuilt mode defines allow/ask/deny for all six categories:
 Tool registry requires permission metadata per tool as specified in **Part I: Tool Definition shape**. **Scope** (`local` | `external` | `app`) and **access** (`read` | `write`) are required; category is derived (six values). Connection type and connection are optional; description, risk, permissionExplanation are supported. Registry rejects tools missing scope or access at registration.
 
 ## Phase 1: Factory and Types (Tool Definitions)
+
+**Status:** Done. Minimal test delayed (per decision).
+
+### Approach (Phase 1)
+
+- **Scope**
+  - **Declarative tool type:** Add a new type for the declarative definition (name, description, schema, handler key, metadata with required `scope` and `access`, optional connectionType, connection, risk, permissionExplanation). The registry currently uses `ToolDefinition` for the *registered* pair `{ tool, metadata }`; we will rename that to `RegisteredTool` (or `ToolEntry`) and use `ToolDefinition` for the declarative shape so the backlog’s naming is the source of truth.
+  - **Factory:** New module `src/main/services/llm/tools/factory.ts` with:
+    - `createToolFromDefinition(def, handlers)` → `{ tool, metadata }` (category derived from def.scope + def.access; no separate category parameter).
+    - `createToolsFromDefinitions(defs, handlers)` → `{ tool, metadata }[]`.
+  - Factory rejects definitions missing `scope` or `access` (throws or returns error); derives category as one of six values (`read local`, `write local`, `read external`, `write external`, `read app`, `write app`) and sets it on metadata.
+  - **ToolMetadata:** Extend in `registry.ts` with required `scope` and `access`, and optional `connectionType`, `connection`, `risk`, `permissionExplanation`. Category remains (derived). Existing call sites (builtin index) will be updated to pass at least `scope` and `access` for each tool so registration still succeeds (e.g. echo: `scope: 'app', access: 'read'`; count_nodes: `scope: 'external', access: 'read'`; invoke_command: `scope: 'app', access: 'write'`).
+  - **Minimal test:** One test file that creates one definition, one handler, runs the factory, registers with the registry, and asserts the tool is listed and callable (or that metadata is correct). If the project has no test runner yet, add Vitest and one test as in the development testing guide.
+- **Recommendations**
+  - Place declarative types and factory in `tools/` (e.g. `tools/definition-types.ts` and `tools/factory.ts`) so definition files can import types without importing the registry.
+  - Handler type: `Record<string, (input: unknown) => Promise<string>>` or a generic keyed by handler key; handler receives parsed schema output so the factory binds the correct handler by key.
+- **Decisions**
+  - Registry’s current `ToolDefinition` → `RegisteredTool`. (No preference; chosen for clarity.)
+  - Minimal test delayed until project has a test framework; Phase 1 does not add Vitest.
+
 1. Add `ToolDefinition` type (name, description, schema, handler key, metadata including required **scope** and **access** and optional connectionType/connection).
 2. Add `createToolFromDefinition(def, handlers, category)` and `createToolsFromDefinitions(defs, handlers, category)` that return `{ tool, metadata }[]` compatible with `toolRegistry.register()`. Derive category from scope + access (six values); **reject at registration** if scope or access is missing.
-3. Add a minimal test: one definition + one handler → one registered tool that the agent can call.
-4. Update tool registry schema so `ToolMetadata` includes scope, access, derived category, connectionType, connection, risk, permissionExplanation.
+3. Add a minimal test: one definition + one handler → one registered tool that the agent can call. **(Delayed:** test deferred until project has a test framework.)
+4. Update tool registry schema so `ToolMetadata` includes scope, access, derived category, connectionType, connection, risk, permissionExplanation. **Done.**
 
 ## Phase 2: Migrate One Domain and Categorize
-1. Extract one domain (e.g. Neo4j) into definition file (e.g. `neo4j/tools.ts`) and handlers (e.g. `neo4j/handlers.ts`). Wire through the factory and register in the built-in index. Assign **scope** and **access** (and connection type where applicable) to each tool.
-2. Remove the old per-tool files for that domain (or keep as re-exports during transition). Verify tools still work in chat.
-3. Add scope and access to all other built-in tools so registry has full metadata; reject at registration if missing.
+**Status:** Done.
+1. Extract one domain (e.g. Neo4j) into definition file (e.g. `neo4j/tools.ts`) and handlers (e.g. `neo4j/handlers.ts`). Wire through the factory and register in the built-in index. Assign **scope** and **access** (and connection type where applicable) to each tool. **Done:** `builtin/neo4j/tools.ts`, `builtin/neo4j/handlers.ts`; tool name `neo4j.count_nodes` (namespaced).
+2. Remove the old per-tool files for that domain (or keep as re-exports during transition). Verify tools still work in chat. **Done:** Deleted `builtin/neo4j/count-nodes.tool.ts`.
+3. Add scope and access to all other built-in tools so registry has full metadata; reject at registration if missing. **Done** (in Phase 1).
 
 ## Phase 3: Migrate Remaining Built-in Tools; Remove Echo
-1. **Remove the echo tool** — No longer needed (was only for testing); delete `builtin/echo/` and its registration.
-2. Migrate command and any other built-in domains to the definition + handler pattern. Built-in index: for each domain, `createToolsFromDefinitions(domainDefs, domainHandlers, category)` then register each result.
-3. No per-tool `toolRegistry.register()` calls; only domain-level loops. Document the definition shape and “adding a new tool” guide (add definition, add handler, register the domain).
+**Status:** Done.
+1. **Remove the echo tool** — No longer needed (was only for testing); delete `builtin/echo/` and its registration. **Done:** Removed `builtin/echo/` and echo registration.
+2. Migrate command and any other built-in domains to the definition + handler pattern. Built-in index: for each domain, `createToolsFromDefinitions(domainDefs, domainHandlers)` then register each result. **Done:** `builtin/command/tools.ts` (getCommandToolDefinitions), `builtin/command/handlers.ts`; tool name `command_invoke`. Deleted `invoke-command.tool.ts`.
+3. No per-tool `toolRegistry.register()` calls; only domain-level loops. Document the definition shape and “adding a new tool” guide (add definition, add handler, register the domain). **Done:** [docs/development/adding-a-tool.md](../development/adding-a-tool.md).
 
 ## Phase 4: Mode Storage & Permission Service
 1. Permission/mode service (e.g. `src/main/services/permissions.ts` or mode registry). **Main settings**: single key for default mode (e.g. `agents.defaultModeId`). No other permission data in main settings.
