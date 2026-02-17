@@ -5,6 +5,27 @@
  * Reads hotkey bindings from settings and registers event listeners.
  */
 
+/** Format shortcut string to symbol form for tooltips (e.g. "Mod+Shift+P" → "⌘⇧P"). */
+export function formatShortcutForDisplay(shortcut: string): string {
+  const isMac = typeof process !== 'undefined' && process.platform === 'darwin'
+  const parts = shortcut.split('+').map(s => s.trim().toLowerCase())
+  const key = parts.length > 0 ? parts[parts.length - 1]!.toUpperCase() : ''
+  const mods = parts.slice(0, -1)
+  const symbols: string[] = []
+  for (const p of mods) {
+    if (p === 'mod' || p === 'cmd' || p === 'meta') {
+      symbols.push(isMac ? '⌘' : '⌃')
+    } else if (p === 'ctrl' || p === 'control') {
+      symbols.push('⌃')
+    } else if (p === 'alt' || p === 'option') {
+      symbols.push('⌥')
+    } else if (p === 'shift') {
+      symbols.push('⇧')
+    }
+  }
+  return symbols.join('') + key
+}
+
 interface ParsedShortcut {
   modifier: 'meta' | 'ctrl'
   key: string

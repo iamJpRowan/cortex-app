@@ -9,6 +9,13 @@ export const CHAT_DRAFT_KEY_PREFIX = 'cortex.chat.draft.'
 export const CHAT_COMPOSER_MODE_KEY_PREFIX = 'cortex.chat.composerMode.'
 export const CHAT_LAST_VIEWED_KEY_PREFIX = 'cortex.chat.lastViewed.'
 export const CHAT_SIDEBAR_WIDTH_KEY = 'cortex.chat.sidebarWidth'
+export const CHAT_COMPOSER_HEIGHT_KEY_PREFIX = 'cortex.chat.composerHeight.'
+
+/** Default and bounds for resizable chat composer height (~3–4 rows). */
+export const CHAT_COMPOSER_HEIGHT_DEFAULT = 200
+export const CHAT_COMPOSER_HEIGHT_MIN = 160
+/** Max composer height as % of viewport (90 = 90vh, almost full height). */
+export const CHAT_COMPOSER_HEIGHT_MAX_VH = 80
 
 const LEGACY_LAST_ACTIVE = 'cortex.lastActiveConversationId'
 const LEGACY_DRAFT_PREFIX = 'cortex.draft.'

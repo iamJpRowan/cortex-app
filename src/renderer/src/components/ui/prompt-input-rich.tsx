@@ -61,9 +61,11 @@ function PromptInputRichInner({
           class: cn(
             'min-h-[60px] max-h-[280px] overflow-y-auto w-full rounded-md border-0',
             `
-              bg-transparent px-3 py-2 text-base outline-none
-              md:text-sm
+              bg-transparent
+              focus-visible:bg-transparent
+              px-3 py-2 text-base outline-none
             `,
+            'md:text-sm',
             'prose-prompt-input prose-prompt-input-p',
             className
           ),
@@ -125,12 +127,8 @@ function PromptInputRichInner({
       data-prompt-rich
       className={cn(
         `
-          flex min-w-0 flex-1 min-h-[60px] max-h-[280px] w-full rounded-md border
-          border-input
-        `,
-        `
-          bg-transparent shadow-sm overflow-hidden
-          focus-within:ring-1 focus-within:ring-ring
+          flex min-w-0 flex-1 min-h-[60px] max-h-[280px] w-full bg-transparent
+          overflow-hidden
         `,
         disabled && 'cursor-not-allowed opacity-50',
         className

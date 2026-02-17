@@ -61,6 +61,10 @@ import {
   CHAT_COMPOSER_MODE_KEY_PREFIX,
   CHAT_LAST_VIEWED_KEY_PREFIX,
   CHAT_SIDEBAR_WIDTH_KEY,
+  CHAT_COMPOSER_HEIGHT_KEY_PREFIX,
+  CHAT_COMPOSER_HEIGHT_DEFAULT,
+  CHAT_COMPOSER_HEIGHT_MIN,
+  CHAT_COMPOSER_HEIGHT_MAX_VH,
 } from '@/lib/chat-storage'
 import type { ListModelsResult } from '@shared/types'
 import { registerHotkey } from '@/lib/hotkeys'
@@ -81,6 +85,10 @@ export function ChatView() {
   const [composerMode, setComposerMode] = React.useState<PromptInputMode>('plain')
   const composerModeRef = React.useRef(composerMode)
   composerModeRef.current = composerMode
+  /** Raw shortcut for composer mode toggle (for tooltip). */
+  const [composerModeShortcut, setComposerModeShortcut] = React.useState<string | null>(
+    null
+  )
   /** Single source of truth for conversation list (and thus header title). */
   const [conversations, setConversations] = React.useState<ConversationMetadata[]>([])
   const [listLoading, setListLoading] = React.useState(true)
@@ -111,6 +119,9 @@ export function ChatView() {
     }
     return 256
   })
+  /** Composer height in px (resizable, persisted per conversation). */
+  const [composerHeight, setComposerHeight] = React.useState(CHAT_COMPOSER_HEIGHT_DEFAULT)
+  const prevConversationIdRef = React.useRef<string | null>(null)
 
   const inputRef = React.useRef<PromptInputRef>(null)
   const titleInputRef = React.useRef<HTMLInputElement>(null)
@@ -120,6 +131,34 @@ export function ChatView() {
   /** Ref for conversationId so stream handler can filter events without stale closure. */
   const conversationIdRef = React.useRef<string | null>(null)
   conversationIdRef.current = conversationId
+
+  // Load/save composer height when switching conversations
+  React.useEffect(() => {
+    const prevId = prevConversationIdRef.current
+    if (prevId != null) {
+      localStorage.setItem(
+        CHAT_COMPOSER_HEIGHT_KEY_PREFIX + prevId,
+        String(composerHeight)
+      )
+    }
+    const nextId = conversationId ?? '_new'
+    const key = CHAT_COMPOSER_HEIGHT_KEY_PREFIX + nextId
+    const stored = localStorage.getItem(key)
+    const maxPx =
+      (typeof window !== 'undefined' ? window.innerHeight : 800) *
+      (CHAT_COMPOSER_HEIGHT_MAX_VH / 100)
+    if (stored) {
+      const h = parseInt(stored, 10)
+      if (!Number.isNaN(h) && h >= CHAT_COMPOSER_HEIGHT_MIN) {
+        setComposerHeight(Math.min(h, maxPx))
+      } else {
+        setComposerHeight(CHAT_COMPOSER_HEIGHT_DEFAULT)
+      }
+    } else {
+      setComposerHeight(CHAT_COMPOSER_HEIGHT_DEFAULT)
+    }
+    prevConversationIdRef.current = conversationId
+  }, [conversationId])
 
   // Load conversation list (single source of truth for list and header title)
   const loadConversations = React.useCallback(async () => {
@@ -495,6 +534,7 @@ export function ChatView() {
       const shortcut = (data as { 'chatView.hotkeys.toggleComposerMode'?: string })?.[
         'chatView.hotkeys.toggleComposerMode'
       ]
+      setComposerModeShortcut(shortcut ?? null)
       if (!shortcut) return
       if (unregister) unregister()
       unregister = registerHotkey(shortcut, () => {
@@ -732,49 +772,59 @@ export function ChatView() {
             <ConversationScrollButton />
           </Conversation>
 
-          {/* Input Area - fixed at bottom */}
+          {/* Composer: full-width footer with input + actions inside one container */}
           <form
             onSubmit={e => {
               e.preventDefault()
               if (input.trim() && !isLoading) handleSubmit(e)
             }}
-            className="
-              flex-shrink-0 p-4 border-t border-border-primary flex flex-col gap-2
-            "
+            className="flex-shrink-0 w-full p-4 pt-2"
           >
-            <div className="flex gap-2 items-end">
-              <PromptInput
-                ref={inputRef}
-                value={input}
-                onChange={setInput}
-                onSubmit={() => {
-                  if (input.trim() && !isLoading)
-                    handleSubmit({ preventDefault: () => {} } as React.FormEvent)
-                }}
-                placeholder="Type a message..."
-                disabled={isLoading}
-                className="flex-1 min-h-[60px]"
-                mode={composerMode}
-                onModeChange={handleComposerModeChange}
-              />
-              <Button type="submit" disabled={isLoading || !input.trim()}>
-                {isLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
-            <div className="flex items-center gap-2">
-              <ModelSelector
-                value={selectedModelId}
-                onValueChange={handleModelChange}
-                modelList={modelList}
-                disabled={isLoading}
-                placeholder="Select model"
-                className="w-full max-w-xs"
-              />
-            </div>
+            <PromptInput
+              key={conversationId ?? '_new'}
+              ref={inputRef}
+              value={input}
+              onChange={setInput}
+              onSubmit={() => {
+                if (input.trim() && !isLoading)
+                  handleSubmit({ preventDefault: () => {} } as React.FormEvent)
+              }}
+              placeholder="Type a message..."
+              disabled={isLoading}
+              className="w-full min-h-[60px]"
+              mode={composerMode}
+              onModeChange={handleComposerModeChange}
+              modeToggleShortcut={composerModeShortcut ?? undefined}
+              containerHeight={composerHeight}
+              onContainerHeightChange={h => {
+                const maxPx = (window.innerHeight * CHAT_COMPOSER_HEIGHT_MAX_VH) / 100
+                const clamped = Math.min(maxPx, Math.max(CHAT_COMPOSER_HEIGHT_MIN, h))
+                setComposerHeight(clamped)
+                const key = CHAT_COMPOSER_HEIGHT_KEY_PREFIX + (conversationId ?? '_new')
+                localStorage.setItem(key, String(clamped))
+              }}
+              containerHeightMin={CHAT_COMPOSER_HEIGHT_MIN}
+              containerHeightMaxVh={CHAT_COMPOSER_HEIGHT_MAX_VH}
+              footer={
+                <>
+                  <ModelSelector
+                    value={selectedModelId}
+                    onValueChange={handleModelChange}
+                    modelList={modelList}
+                    disabled={isLoading}
+                    placeholder="Select model"
+                    className="flex-1 max-w-xs"
+                  />
+                  <Button type="submit" disabled={isLoading || !input.trim()}>
+                    {isLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
+                  </Button>
+                </>
+              }
+            />
           </form>
         </div>
       </div>
