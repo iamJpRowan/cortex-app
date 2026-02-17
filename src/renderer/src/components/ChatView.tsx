@@ -730,13 +730,9 @@ export function ChatView() {
 
       {/* Main Chat Area - capped width for readability, centered when narrower than pane */}
       <div className="flex flex-col flex-1 min-w-0 min-h-0 overflow-hidden items-center">
-        <div className="flex flex-col flex-1 min-w-0 w-full max-w-4xl min-h-0">
-          {/* Header - fixed at top */}
-          <div
-            className="
-              flex-shrink-0 flex items-center gap-2 p-4 border-b border-border-primary
-            "
-          >
+        {/* Header: full-width divider, content in max-w-4xl */}
+        <div className="flex-shrink-0 w-full border-b border-border-primary">
+          <div className="flex items-center gap-2 p-4 max-w-4xl mx-auto w-full">
             {isEditingTitle ? (
               <div className="flex items-center gap-2 flex-1">
                 <Input
@@ -791,7 +787,9 @@ export function ChatView() {
               </div>
             )}
           </div>
+        </div>
 
+        <div className="flex flex-col flex-1 min-w-0 w-full max-w-4xl min-h-0">
           {/* Messages Area - Conversation with scroll-to-bottom */}
           <Conversation className="flex-1 min-h-0 overflow-hidden">
             <ConversationContent className="gap-0">
