@@ -186,6 +186,17 @@ export function ChatView() {
     loadConversations()
   }, [loadConversations])
 
+  // Focus prompt input when starting a new chat or switching conversations.
+  // Try immediately and once more after a short delay (rich editor may not be ready yet).
+  React.useEffect(() => {
+    const id1 = setTimeout(() => inputRef.current?.focus(), 0)
+    const id2 = setTimeout(() => inputRef.current?.focus(), 120)
+    return () => {
+      clearTimeout(id1)
+      clearTimeout(id2)
+    }
+  }, [conversationId])
+
   // Restore last active conversation when returning to chat view
   React.useEffect(() => {
     let cancelled = false
@@ -566,7 +577,6 @@ export function ChatView() {
           ? 'preview'
           : 'plain'
       setComposerMode(storedMode)
-      inputRef.current?.focus()
     }
   }
 
@@ -993,8 +1003,26 @@ function ChatTurn({
   )
   const hasTrace = orderedTraceItems.length > 0
 
-  const formatTime = (timestamp: number) =>
-    new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  const formatTimestamp = (timestamp: number) => {
+    const date = new Date(timestamp)
+    const now = new Date()
+    const timeStr = date.toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const msgDay = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+    const diffDays = Math.round(
+      (today.getTime() - msgDay.getTime()) / (1000 * 60 * 60 * 24)
+    )
+    if (diffDays === 0) return `Today, ${timeStr}`
+    if (diffDays === 1) return `Yesterday, ${timeStr}`
+    const dateStr = date.toLocaleDateString([], {
+      month: 'short',
+      day: 'numeric',
+    })
+    return `${dateStr}, ${timeStr}`
+  }
 
   return (
     <div
@@ -1042,7 +1070,7 @@ function ChatTurn({
           {!isUser && message.model && (
             <span>{getModelLabel(message.model, modelList)}</span>
           )}
-          <span>{formatTime(message.timestamp)}</span>
+          <span>{formatTimestamp(message.timestamp)}</span>
         </div>
       </div>
 

@@ -100,12 +100,34 @@ function PromptInputRichInner({
     const current = normalizeMarkdownForStorage(raw)
     if (current !== value) {
       editor.commands.setContent(value, { contentType: 'markdown' })
+      if (!value || value.trim() === '') {
+        editor.commands.setTextSelection(1)
+      }
     }
   }, [editor, value])
 
   React.useEffect(() => {
     editor?.setEditable(!disabled)
   }, [editor, disabled])
+
+  // When editor gains focus and is empty, collapse selection so no blank character is selected
+  React.useEffect(() => {
+    if (!editor) return
+    const onFocus = () => {
+      if (!editor.isDestroyed && editor.isEmpty) {
+        const sel = editor.state.selection
+        if (sel.from !== sel.to) {
+          requestAnimationFrame(() => {
+            if (!editor.isDestroyed) editor.commands.setTextSelection(1)
+          })
+        }
+      }
+    }
+    editor.on('focus', onFocus)
+    return () => {
+      editor.off('focus', onFocus)
+    }
+  }, [editor])
 
   editorRefForPaste.current = editor
 
@@ -114,27 +136,55 @@ function PromptInputRichInner({
     editorRef.current = editor
       ? {
           focus() {
+            if (editor.isEmpty) {
+              editor.commands.setTextSelection(1)
+            }
             editor.commands.focus()
           },
         }
       : null
+    // Focus when editor becomes ready so focus isn't lost after switching chat
+    if (editor && !editor.isDestroyed) {
+      const id = requestAnimationFrame(() => {
+        if (!editor.isDestroyed) {
+          if (editor.isEmpty) editor.commands.setTextSelection(1)
+          editor.commands.focus()
+        }
+      })
+      return () => cancelAnimationFrame(id)
+    }
   }, [editor, editorRef])
 
   if (!editor) return null
+
+  const isEmpty = !value || value.trim() === ''
 
   return (
     <div
       data-prompt-rich
       className={cn(
         `
-          flex min-w-0 flex-1 min-h-[60px] max-h-[280px] w-full bg-transparent
+          relative flex min-w-0 flex-1 min-h-[60px] max-h-[280px] w-full bg-transparent
           overflow-hidden
         `,
         disabled && 'cursor-not-allowed opacity-50',
         className
       )}
     >
-      <EditorContent editor={editor} className="min-w-0 w-full" />
+      {/* Placeholder overlay when empty (TipTap placeholder decoration can be unreliable) */}
+      {isEmpty && (
+        <div
+          className="
+            pointer-events-none absolute inset-0 flex items-start px-3 py-2 text-base
+            md:text-sm
+            text-[var(--color-text-tertiary)]
+          "
+          aria-hidden
+        >
+          {placeholder}
+        </div>
+      )}
+      <EditorContent editor={editor} className="relative min-w-0 w-full" />
     </div>
   )
 }

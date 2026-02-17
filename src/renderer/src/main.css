@@ -553,6 +553,14 @@ textarea:focus-visible,
     pointer-events: none;
     height: 0;
   }
+  /* Live Preview: TipTap uses p.is-editor-empty:first-child for placeholder */
+  [data-prompt-rich] .ProseMirror p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    float: left;
+    color: var(--color-text-tertiary);
+    pointer-events: none;
+    height: 0;
+  }
   .prose-prompt-input p {
     margin: 0 0 0.5em;
   }
