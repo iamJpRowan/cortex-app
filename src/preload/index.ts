@@ -38,6 +38,10 @@ contextBridge.exposeInMainWorld('api', {
       ipcRenderer.on('llm:stream', handler)
       return () => ipcRenderer.removeListener('llm:stream', handler)
     },
+    /**
+     * Cancel an active stream by stream ID.
+     */
+    cancelStream: (streamId: string) => ipcRenderer.invoke('llm:cancelStream', streamId),
     toolsList: () => ipcRenderer.invoke('llm:tools:list'),
     toolsTest: (toolName: string, args: Record<string, unknown>) =>
       ipcRenderer.invoke('llm:tools:test', toolName, args),
@@ -129,6 +133,28 @@ contextBridge.exposeInMainWorld('api', {
     delete: (id: string) => ipcRenderer.invoke('conversations:delete', id),
     /** Get messages for a conversation */
     getMessages: (id: string) => ipcRenderer.invoke('conversations:getMessages', id),
+    /**
+     * Get checkpoint ID for "restore from here" at the given message index.
+     * Returns { success, checkpointId, messageCount } or { success: false, error }.
+     */
+    getCheckpointIdForRestore: (conversationId: string, lastOutputMessageIndex: number) =>
+      ipcRenderer.invoke(
+        'conversations:getCheckpointIdForRestore',
+        conversationId,
+        lastOutputMessageIndex
+      ),
+    /** Set restore point; next load and submit use this checkpoint. */
+    setRestorePoint: (
+      conversationId: string,
+      checkpointId: string,
+      messageCount: number
+    ) =>
+      ipcRenderer.invoke(
+        'conversations:setRestorePoint',
+        conversationId,
+        checkpointId,
+        messageCount
+      ),
     /** Subscribe to title updates (e.g. from auto-generated titles). */
     onTitleUpdated: (
       callback: (data: { conversationId: string; title: string }) => void

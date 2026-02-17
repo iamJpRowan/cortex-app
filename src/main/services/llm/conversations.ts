@@ -27,6 +27,8 @@ export interface ConversationRecord {
   createdAt: number
   updatedAt: number
   messageCount: number
+  /** When set, load and submit from this checkpoint (restore from here). */
+  headCheckpointId: string | null
 }
 
 /**
@@ -62,6 +64,8 @@ export interface UpdateConversationOptions {
   /** Full list of model ids per assistant message (by order). */
   messageModels?: string[]
   messageCount?: number
+  /** Set to resume from this checkpoint; null to use latest. */
+  headCheckpointId?: string | null
 }
 
 /**
@@ -124,6 +128,13 @@ export class ConversationService {
       // Column already exists
     }
 
+    // Migration: add head_checkpoint_id for "restore from here"
+    try {
+      this.db.exec(`ALTER TABLE conversations ADD COLUMN head_checkpoint_id TEXT`)
+    } catch {
+      // Column already exists
+    }
+
     console.log('[ConversationService] Initialized with database:', this.dbPath)
   }
 
@@ -177,7 +188,7 @@ export class ConversationService {
     const orderDirection = orderDir.toUpperCase()
 
     const query = `
-      SELECT id, title, agent_id, current_model, message_models, created_at, updated_at, message_count
+      SELECT id, title, agent_id, current_model, message_models, created_at, updated_at, message_count, head_checkpoint_id
       FROM conversations
       ${whereClause}
       ORDER BY ${orderColumn} ${orderDirection}
@@ -195,6 +206,7 @@ export class ConversationService {
       created_at: number
       updated_at: number
       message_count: number
+      head_checkpoint_id: string | null
     }>
 
     return rows.map(row => ({
@@ -206,6 +218,7 @@ export class ConversationService {
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       messageCount: row.message_count,
+      headCheckpointId: row.head_checkpoint_id ?? null,
     }))
   }
 
@@ -217,7 +230,7 @@ export class ConversationService {
 
     const row = db
       .prepare(
-        `SELECT id, title, agent_id, current_model, message_models, created_at, updated_at, message_count
+        `SELECT id, title, agent_id, current_model, message_models, created_at, updated_at, message_count, head_checkpoint_id
          FROM conversations WHERE id = ?`
       )
       .get(id) as
@@ -230,6 +243,7 @@ export class ConversationService {
           created_at: number
           updated_at: number
           message_count: number
+          head_checkpoint_id: string | null
         }
       | undefined
 
@@ -244,6 +258,7 @@ export class ConversationService {
       createdAt: row.created_at,
       updatedAt: row.updated_at,
       messageCount: row.message_count,
+      headCheckpointId: row.head_checkpoint_id ?? null,
     }
   }
 
@@ -258,8 +273,8 @@ export class ConversationService {
     const title = options?.title || 'New Chat'
 
     db.prepare(
-      `INSERT INTO conversations (id, title, agent_id, current_model, created_at, updated_at, message_count)
-       VALUES (?, ?, ?, ?, ?, ?, 0)`
+      `INSERT INTO conversations (id, title, agent_id, current_model, created_at, updated_at, message_count, head_checkpoint_id)
+       VALUES (?, ?, ?, ?, ?, ?, 0, NULL)`
     ).run(id, title, options?.agentId || null, options?.currentModel || null, now, now)
 
     console.log(`[ConversationService] Created conversation: ${id}`)
@@ -273,6 +288,7 @@ export class ConversationService {
       createdAt: now,
       updatedAt: now,
       messageCount: 0,
+      headCheckpointId: null,
     }
   }
 
@@ -310,6 +326,11 @@ export class ConversationService {
       params.push(updates.messageCount)
     }
 
+    if (updates.headCheckpointId !== undefined) {
+      setClauses.push('head_checkpoint_id = ?')
+      params.push(updates.headCheckpointId)
+    }
+
     params.push(id)
 
     db.prepare(`UPDATE conversations SET ${setClauses.join(', ')} WHERE id = ?`).run(
@@ -342,6 +363,28 @@ export class ConversationService {
        SET message_count = message_count + ?, updated_at = ?
        WHERE id = ?`
     ).run(increment, Date.now(), id)
+  }
+
+  /**
+   * Set the restore point for "restore from here": next load and submit use this checkpoint.
+   * Truncates messageCount and messageModels to match the checkpoint state.
+   */
+  setRestorePoint(id: string, checkpointId: string, messageCount: number): void {
+    const conv = this.get(id)
+    if (!conv) return
+    const messageModels = conv.messageModels.slice(0, messageCount)
+    this.update(id, {
+      headCheckpointId: checkpointId,
+      messageCount,
+      messageModels,
+    })
+  }
+
+  /**
+   * Clear the restore point so the conversation uses the latest checkpoint again.
+   */
+  clearRestorePoint(id: string): void {
+    this.update(id, { headCheckpointId: null })
   }
 
   /**

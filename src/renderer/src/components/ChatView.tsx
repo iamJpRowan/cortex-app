@@ -10,6 +10,8 @@ import {
   Copy,
   ChevronDown,
   Brain,
+  Square,
+  RotateCcw,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -110,6 +112,8 @@ export function ChatView() {
   /** Conversation ID currently generating title (shows "Generating title..." indicator). */
   const [generatingTitleConversationId, setGeneratingTitleConversationId] =
     React.useState<string | null>(null)
+  /** Stream ID of the active stream (for cancel). Cleared on complete/error/cancelled. */
+  const [currentStreamId, setCurrentStreamId] = React.useState<string | null>(null)
   /** Chat sidebar width in px (resizable, persisted). */
   const [sidebarWidth, setSidebarWidth] = React.useState(() => {
     const stored = localStorage.getItem(CHAT_SIDEBAR_WIDTH_KEY)
@@ -322,10 +326,15 @@ export function ChatView() {
     // Always track streaming and unread state (for sidebar indicators when switched away)
     if (event.type === 'start') {
       setStreamingConversationId(event.conversationId)
-    } else if (event.type === 'complete' || event.type === 'error') {
+    } else if (
+      event.type === 'complete' ||
+      event.type === 'error' ||
+      event.type === 'cancelled'
+    ) {
       setStreamingConversationId(prev =>
         prev === event.conversationId ? undefined : prev
       )
+      setCurrentStreamId(null)
     }
     if (event.type === 'complete') {
       setLastMessageAt(prev => ({
@@ -386,6 +395,26 @@ export function ChatView() {
         break
       }
 
+      case 'cancelled': {
+        setGeneratingTitleConversationId(prev =>
+          prev === event.conversationId ? null : prev
+        )
+        const partial = event.accumulated?.trim() ?? ''
+        const newMessage: ChatMessage = {
+          id: `msg-${Date.now()}`,
+          role: 'assistant',
+          content: partial ? `${partial}\n\n_Stopped._` : 'Stopped.',
+          timestamp: Date.now(),
+          trace: currentTraceRef.current,
+        }
+        setMessages(prev => [...prev, newMessage])
+        setStreamingContent('')
+        currentTraceRef.current = []
+        setCurrentTrace([])
+        setIsLoading(false)
+        break
+      }
+
       case 'error':
         console.error('Stream error:', event.error)
         setStreamingContent('')
@@ -433,6 +462,7 @@ export function ChatView() {
     if (result.success && result.conversationId) {
       setConversationId(result.conversationId)
       setStreamingConversationId(result.conversationId)
+      setCurrentStreamId(result.streamId ?? null)
       localStorage.setItem(CHAT_LAST_ACTIVE_KEY, result.conversationId)
     } else if (!result.success) {
       setStreamingConversationId(undefined)
@@ -448,6 +478,33 @@ export function ChatView() {
       ])
     }
   }
+
+  const handleRestoreFromHere = React.useCallback(
+    async (convId: string, lastOutputMessageIndex: number) => {
+      const result = await window.api.conversations.getCheckpointIdForRestore(
+        convId,
+        lastOutputMessageIndex
+      )
+      if (!result.success || result.checkpointId == null || result.messageCount == null) {
+        console.error('Restore from here failed:', result.error)
+        return
+      }
+      const setResult = await window.api.conversations.setRestorePoint(
+        convId,
+        result.checkpointId,
+        result.messageCount
+      )
+      if (!setResult.success) {
+        console.error('setRestorePoint failed:', setResult.error)
+        return
+      }
+      const msgResult = await window.api.conversations.getMessages(convId)
+      if (msgResult.success && msgResult.messages) {
+        setMessages(msgResult.messages)
+      }
+    },
+    []
+  )
 
   const handleSelectConversation = async (conversation: ConversationMetadata) => {
     // Don't reload if already selected
@@ -745,8 +802,15 @@ export function ChatView() {
                   description="Type a message below to begin."
                 />
               )}
-              {messages.map(message => (
-                <ChatTurn key={message.id} message={message} modelList={modelList} />
+              {messages.map((message, index) => (
+                <ChatTurn
+                  key={message.id}
+                  message={message}
+                  modelList={modelList}
+                  conversationId={conversationId}
+                  messageIndex={index}
+                  onRestoreFromHere={handleRestoreFromHere}
+                />
               ))}
               {(streamingContent || (isLoading && currentTrace.length > 0)) && (
                 <ChatTurn
@@ -760,6 +824,9 @@ export function ChatView() {
                     ...(selectedModelId ? { model: selectedModelId } : {}),
                   }}
                   modelList={modelList}
+                  conversationId={conversationId}
+                  messageIndex={messages.length}
+                  onRestoreFromHere={handleRestoreFromHere}
                 />
               )}
               {isLoading && !streamingContent && currentTrace.length === 0 && (
@@ -815,13 +882,20 @@ export function ChatView() {
                     placeholder="Select model"
                     className="flex-1 max-w-xs"
                   />
-                  <Button type="submit" disabled={isLoading || !input.trim()}>
-                    {isLoading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
+                  {isLoading && currentStreamId ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => window.api.llm.cancelStream(currentStreamId)}
+                      title="Stop generating"
+                    >
+                      <Square className="h-4 w-4" />
+                    </Button>
+                  ) : (
+                    <Button type="submit" disabled={isLoading || !input.trim()}>
                       <Send className="h-4 w-4" />
-                    )}
-                  </Button>
+                    </Button>
+                  )}
                 </>
               }
             />
@@ -872,20 +946,18 @@ function CopyAction({
   }, [isCopied])
 
   return (
-    <MessageActions className="mt-2 w-full justify-end">
-      <MessageAction
-        label={isCopied ? 'Copied!' : 'Copy'}
-        tooltip={isCopied ? 'Copied!' : 'Copy message'}
-        onClick={handleCopy}
-        className={cn('rounded-md', isUser ? 'hover:bg-base-200' : 'hover:bg-muted')}
-      >
-        {isCopied ? (
-          <Check className="h-3 w-3 text-success-500" />
-        ) : (
-          <Copy className="h-3 w-3" />
-        )}
-      </MessageAction>
-    </MessageActions>
+    <MessageAction
+      label={isCopied ? 'Copied!' : 'Copy'}
+      tooltip={isCopied ? 'Copied!' : 'Copy message'}
+      onClick={handleCopy}
+      className={cn('rounded-md', isUser ? 'hover:bg-base-200' : 'hover:bg-muted')}
+    >
+      {isCopied ? (
+        <Check className="h-3 w-3 text-success-500" />
+      ) : (
+        <Copy className="h-3 w-3" />
+      )}
+    </MessageAction>
   )
 }
 
@@ -896,11 +968,27 @@ function CopyAction({
 function ChatTurn({
   message,
   modelList = null,
+  conversationId,
+  messageIndex,
+  onRestoreFromHere,
 }: {
   message: ChatMessage
   modelList?: ListModelsResult | null
+  conversationId: string | null
+  messageIndex: number
+  onRestoreFromHere: (convId: string, lastOutputMessageIndex: number) => Promise<void>
 }) {
   const isUser = message.role === 'user'
+  const [restoring, setRestoring] = React.useState(false)
+  const handleRestore = React.useCallback(async () => {
+    if (!conversationId) return
+    setRestoring(true)
+    try {
+      await onRestoreFromHere(conversationId, messageIndex)
+    } finally {
+      setRestoring(false)
+    }
+  }, [conversationId, messageIndex, onRestoreFromHere])
   const orderedTraceItems = React.useMemo(
     () => (message.trace ? buildOrderedTraceItems(message.trace) : []),
     [message.trace]
@@ -976,7 +1064,24 @@ function ChatTurn({
           <MessageResponse>{message.content}</MessageResponse>
         </MessageContent>
         {!message.isStreaming && message.content && (
-          <CopyAction messageId={message.id} content={message.content} isUser={isUser} />
+          <MessageActions className="mt-2 w-full justify-end">
+            {!isUser && conversationId && (
+              <MessageAction
+                label="Restore from here"
+                tooltip="Remove later messages and continue from here"
+                onClick={handleRestore}
+                disabled={restoring}
+                className={cn('rounded-md', 'hover:bg-muted')}
+              >
+                <RotateCcw className="h-3 w-3" />
+              </MessageAction>
+            )}
+            <CopyAction
+              messageId={message.id}
+              content={message.content}
+              isUser={isUser}
+            />
+          </MessageActions>
         )}
       </Message>
     </div>

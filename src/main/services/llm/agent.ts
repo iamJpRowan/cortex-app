@@ -479,13 +479,15 @@ export class LLMAgentService {
    * @param streamId Unique stream ID for correlating events
    * @param options Query options including conversationId, context, agent, model
    * @param onEvent Callback for handling stream events
+   * @param signal Optional AbortSignal to cancel the stream
    * @returns Promise that resolves when streaming is complete
    */
   async queryStream(
     message: string,
     streamId: string,
     options: LLMQueryOptions | undefined,
-    onEvent: StreamEventHandler
+    onEvent: StreamEventHandler,
+    signal?: AbortSignal
   ): Promise<void> {
     if (!this.checkpointer) {
       throw new Error('Agent not initialized. Call initialize() first.')
@@ -496,7 +498,18 @@ export class LLMAgentService {
     const executor = await this.getExecutorForModel(modelId)
 
     const convId = conversationId ?? `conv-${Date.now()}`
-    const config = { configurable: { thread_id: convId } }
+    const config: {
+      configurable: { thread_id: string; checkpoint_id?: string }
+      signal?: AbortSignal
+    } = {
+      configurable: { thread_id: convId },
+    }
+    if (options?.checkpointId) {
+      config.configurable.checkpoint_id = options.checkpointId
+    }
+    if (signal) {
+      config.signal = signal
+    }
 
     console.log(
       `[LLMAgent] Streaming query: ${message} (streamId: ${streamId}, model: ${modelId})`
@@ -569,7 +582,7 @@ export class LLMAgentService {
       for await (const chunk of stream) {
         // The chunk format depends on which mode emitted it
         // [0] = stream mode identifier, [1] = data
-        const [mode, data] = chunk as [string, unknown]
+        const [mode, data] = chunk as unknown as [string, unknown]
 
         if (mode === 'messages') {
           // Token streaming from LLM - data is [messageChunk, metadata]
@@ -767,6 +780,22 @@ export class LLMAgentService {
         `[LLMAgent] Streaming complete. Response length: ${finalResponse.length}`
       )
     } catch (error) {
+      // User cancelled: emit cancelled event with partial content
+      const isAbort =
+        signal?.aborted ||
+        (error instanceof Error &&
+          (error.name === 'AbortError' || error.message === 'The operation was aborted'))
+
+      if (isAbort) {
+        onEvent({
+          type: 'cancelled',
+          streamId,
+          conversationId: convId,
+          accumulated: accumulated.trim() || undefined,
+        })
+        return
+      }
+
       console.error('[LLMAgent] Streaming query failed:', error)
 
       let errorMessage = error instanceof Error ? error.message : 'Unknown error'
@@ -862,6 +891,66 @@ export class LLMAgentService {
   }
 
   /**
+   * Get the checkpoint ID and message count for "restore from here" at the given
+   * last output message index (0-based index in [user0, asst0, user1, asst1, ...]).
+   * Returns the checkpoint that contains exactly (lastOutputMessageIndex + 1) output messages.
+   */
+  async getCheckpointIdForRestore(
+    conversationId: string,
+    lastOutputMessageIndex: number
+  ): Promise<{ checkpointId: string; messageCount: number } | null> {
+    if (!this.checkpointer) {
+      throw new Error('Checkpointer not initialized. Call initialize() first.')
+    }
+
+    const config = { configurable: { thread_id: conversationId } }
+    const checkpoints: {
+      checkpointId: string
+      checkpoint: { ts: string }
+      channelValues: { messages?: BaseMessage[] }
+    }[] = []
+
+    for await (const tuple of this.checkpointer.list(config)) {
+      if (!tuple?.checkpoint) continue
+      const checkpointId = (
+        tuple as { config?: { configurable?: { checkpoint_id?: string } } }
+      ).config?.configurable?.checkpoint_id
+      if (!checkpointId) continue
+      const cv = tuple.checkpoint.channel_values as { messages?: BaseMessage[] }
+      checkpoints.push({
+        checkpointId,
+        checkpoint: tuple.checkpoint,
+        channelValues: cv,
+      })
+    }
+
+    checkpoints.sort(
+      (a, b) => new Date(a.checkpoint.ts).getTime() - new Date(b.checkpoint.ts).getTime()
+    )
+
+    const targetCount = lastOutputMessageIndex + 1
+    for (const { checkpointId: cid, channelValues: cv } of checkpoints) {
+      if (!cv?.messages || !Array.isArray(cv.messages)) continue
+      let outCount = 0
+      for (const msg of cv.messages) {
+        const msgType = this.getMessageType(msg)
+        if (msgType === 'system') continue
+        if (msgType === 'human') {
+          outCount++
+        } else if (msgType === 'ai') {
+          const aiMsg = msg as AIMessage
+          const content = messageContentToString(aiMsg.content)
+          if (content && content.trim()) outCount++
+        }
+      }
+      if (outCount === targetCount) {
+        return { checkpointId: cid, messageCount: targetCount }
+      }
+    }
+    return null
+  }
+
+  /**
    * Get conversation messages from the checkpointer.
    *
    * Reads the checkpoint state for a conversation and extracts
@@ -869,24 +958,29 @@ export class LLMAgentService {
    * Uses checkpoint history to set timestamps: user = when sent, agent = when response finished.
    *
    * @param conversationId The conversation thread ID
-   * @returns Array of chat messages
-   */
-  /**
    * @param messageModels Optional list of model ids per assistant message (by order);
    *        merged from conversation metadata for per-message attribution when loading history.
+   * @param headCheckpointId When set (restore from here), load from this checkpoint instead of latest.
+   * @returns Array of chat messages
    */
   async getConversationMessages(
     conversationId: string,
-    messageModels?: string[]
+    messageModels?: string[],
+    headCheckpointId?: string | null
   ): Promise<ChatMessage[]> {
     if (!this.checkpointer) {
       throw new Error('Checkpointer not initialized. Call initialize() first.')
     }
 
     try {
-      // Get the latest checkpoint for this conversation
+      const configurable: { thread_id: string; checkpoint_id?: string } = {
+        thread_id: conversationId,
+      }
+      if (headCheckpointId) {
+        configurable.checkpoint_id = headCheckpointId
+      }
       const checkpoint = await this.checkpointer.getTuple({
-        configurable: { thread_id: conversationId },
+        configurable,
       })
 
       if (!checkpoint || !checkpoint.checkpoint) {

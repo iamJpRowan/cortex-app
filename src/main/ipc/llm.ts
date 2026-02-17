@@ -1,4 +1,7 @@
 import { ipcMain, BrowserWindow, safeStorage } from 'electron'
+
+/** Active stream IDs -> AbortController for cancel support */
+const activeStreamControllers = new Map<string, AbortController>()
 import { toolRegistry } from '@main/services/llm/tools/registry'
 import { getLLMAgentService, resetAgentService } from '@main/services/llm/agent'
 import { getConversationService } from '@main/services/llm/conversations'
@@ -186,39 +189,67 @@ export function registerLLMHandlers() {
           console.error('[LLM IPC] Failed to start title generation:', err)
         }
 
+        // Create AbortController for this stream so renderer can cancel
+        const controller = new AbortController()
+        activeStreamControllers.set(streamId, controller)
+
+        const cleanup = () => {
+          activeStreamControllers.delete(streamId)
+        }
+
+        // Resolve checkpointId for "restore from here" (next submit continues from this point)
+        const conv = getConversationService().get(conversationId)
+        const checkpointId = conv?.headCheckpointId ?? undefined
+        const streamOptions = {
+          ...options,
+          conversationId,
+          ...(checkpointId ? { checkpointId } : {}),
+        }
+
         // Start streaming in background (don't await)
         // Events will be sent via webContents.send
-        // Pass streamId to agent service so all events use the same ID
         agentService
-          .queryStream(message, streamId, { ...options, conversationId }, streamEvent => {
-            // On stream complete, persist model to conversation for Phase 5a
-            if (
-              streamEvent.type === 'complete' &&
-              'model' in streamEvent &&
-              streamEvent.model
-            ) {
-              try {
-                const convService = getConversationService()
-                convService.ensureExists(streamEvent.conversationId)
-                const conv = convService.get(streamEvent.conversationId)
-                if (conv) {
-                  const nextModels = [...conv.messageModels, streamEvent.model!]
-                  convService.update(streamEvent.conversationId, {
-                    currentModel: streamEvent.model,
-                    messageModels: nextModels,
-                    messageCount: nextModels.length,
-                  })
-                }
-              } catch (err) {
-                console.error('[LLM IPC] Failed to update conversation model:', err)
+          .queryStream(
+            message,
+            streamId,
+            streamOptions,
+            streamEvent => {
+              // Clean up controller when stream ends (any terminal event)
+              if (
+                streamEvent.type === 'complete' ||
+                streamEvent.type === 'error' ||
+                streamEvent.type === 'cancelled'
+              ) {
+                cleanup()
               }
-            }
-            // Send event to renderer
-            if (!window.isDestroyed()) {
-              window.webContents.send('llm:stream', streamEvent)
-            }
-          })
+              // On stream complete, persist model and clear restore point
+              if (streamEvent.type === 'complete') {
+                try {
+                  const convService = getConversationService()
+                  convService.ensureExists(streamEvent.conversationId)
+                  const c = convService.get(streamEvent.conversationId)
+                  if (c) {
+                    const nextModels = [...c.messageModels, streamEvent.model!]
+                    convService.update(streamEvent.conversationId, {
+                      currentModel: streamEvent.model,
+                      messageModels: nextModels,
+                      messageCount: nextModels.length,
+                      headCheckpointId: null,
+                    })
+                  }
+                } catch (err) {
+                  console.error('[LLM IPC] Failed to update conversation model:', err)
+                }
+              }
+              // Send event to renderer
+              if (!window.isDestroyed()) {
+                window.webContents.send('llm:stream', streamEvent)
+              }
+            },
+            controller.signal
+          )
           .catch(err => {
+            cleanup()
             console.error('[LLM IPC] Streaming error:', err)
             if (!window.isDestroyed()) {
               window.webContents.send('llm:stream', {
@@ -251,6 +282,17 @@ export function registerLLMHandlers() {
       }
     }
   )
+
+  /**
+   * Cancel an active stream by stream ID.
+   */
+  ipcMain.handle('llm:cancelStream', (_event, streamId: string) => {
+    const controller = activeStreamControllers.get(streamId)
+    if (controller) {
+      controller.abort()
+      activeStreamControllers.delete(streamId)
+    }
+  })
 
   /**
    * List all available tools

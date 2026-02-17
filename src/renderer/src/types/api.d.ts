@@ -53,6 +53,10 @@ export interface API {
      * @param callback Function called for each stream event
      */
     onStream: (callback: StreamEventHandler) => () => void
+    /**
+     * Cancel an active stream by stream ID.
+     */
+    cancelStream: (streamId: string) => Promise<void>
     toolsList: () => Promise<{
       success: boolean
       tools?: Array<{ name: string; metadata: unknown }>
@@ -184,6 +188,22 @@ export interface API {
       messages?: ChatMessage[]
       error?: string
     }>
+    /** Get checkpoint ID for "restore from here" at the given message index. */
+    getCheckpointIdForRestore: (
+      conversationId: string,
+      lastOutputMessageIndex: number
+    ) => Promise<{
+      success: boolean
+      checkpointId?: string | null
+      messageCount?: number | null
+      error?: string
+    }>
+    /** Set restore point; next load and submit use this checkpoint. */
+    setRestorePoint: (
+      conversationId: string,
+      checkpointId: string,
+      messageCount: number
+    ) => Promise<{ success: boolean; error?: string }>
     /** Subscribe to title updates (e.g. from auto-generated titles). */
     onTitleUpdated: (
       callback: (data: { conversationId: string; title: string }) => void

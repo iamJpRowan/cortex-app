@@ -46,6 +46,12 @@ export interface LLMQueryOptions {
    * If not provided, uses the agent's default or global default.
    */
   model?: string
+
+  /**
+   * Checkpoint ID to resume from (for "restore from here").
+   * When set, the stream runs from this checkpoint instead of the latest.
+   */
+  checkpointId?: string
 }
 
 /**
@@ -310,7 +316,13 @@ export interface UpdateConversationOptions {
 /**
  * Types of streaming events sent from main process to renderer.
  */
-export type StreamEventType = 'start' | 'token' | 'trace' | 'complete' | 'error'
+export type StreamEventType =
+  | 'start'
+  | 'token'
+  | 'trace'
+  | 'complete'
+  | 'error'
+  | 'cancelled'
 
 /**
  * Base streaming event structure.
@@ -386,6 +398,16 @@ export interface StreamErrorEvent extends StreamEventBase {
 }
 
 /**
+ * Event sent when the user cancels the stream.
+ */
+export interface StreamCancelledEvent extends StreamEventBase {
+  type: 'cancelled'
+
+  /** Accumulated content up to cancellation (for showing partial response) */
+  accumulated?: string
+}
+
+/**
  * Union type of all streaming events.
  */
 export type StreamEvent =
@@ -394,6 +416,7 @@ export type StreamEvent =
   | StreamTraceEvent
   | StreamCompleteEvent
   | StreamErrorEvent
+  | StreamCancelledEvent
 
 /**
  * Callback type for handling stream events.

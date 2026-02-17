@@ -160,6 +160,7 @@ export function registerConversationHandlers() {
   /**
    * Get messages for a conversation from the LangGraph checkpointer.
    * Merges per-message model attribution from conversation metadata (Phase 5a).
+   * When the conversation has a restore point (headCheckpointId), loads from that checkpoint.
    */
   ipcMain.handle('conversations:getMessages', async (_event, id: string) => {
     try {
@@ -172,10 +173,14 @@ export function registerConversationHandlers() {
         await agentService.initialize()
       }
 
-      // Load conversation first so we can pass messageModels for per-message attribution
       const conv = conversationService.get(id)
       const messageModels = conv?.messageModels?.length ? conv.messageModels : undefined
-      const messages = await agentService.getConversationMessages(id, messageModels)
+      const headCheckpointId = conv?.headCheckpointId ?? undefined
+      const messages = await agentService.getConversationMessages(
+        id,
+        messageModels,
+        headCheckpointId
+      )
 
       return {
         success: true,
@@ -190,6 +195,68 @@ export function registerConversationHandlers() {
       }
     }
   })
+
+  /**
+   * Get checkpoint ID for "restore from here" at the given message index.
+   * lastOutputMessageIndex is the 0-based index in the display list (user0, asst0, user1, asst1, ...).
+   */
+  ipcMain.handle(
+    'conversations:getCheckpointIdForRestore',
+    async (_event, conversationId: string, lastOutputMessageIndex: number) => {
+      try {
+        const agentService = getLLMAgentService()
+        if (!agentService.isInitialized()) {
+          await agentService.initialize()
+        }
+        const result = await agentService.getCheckpointIdForRestore(
+          conversationId,
+          lastOutputMessageIndex
+        )
+        return {
+          success: true,
+          checkpointId: result?.checkpointId ?? null,
+          messageCount: result?.messageCount ?? null,
+        }
+      } catch (error) {
+        console.error('[Conversations IPC] getCheckpointIdForRestore failed:', error)
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+          checkpointId: null,
+          messageCount: null,
+        }
+      }
+    }
+  )
+
+  /**
+   * Set restore point for a conversation. Next load and submit use this checkpoint.
+   */
+  ipcMain.handle(
+    'conversations:setRestorePoint',
+    async (
+      _event,
+      conversationId: string,
+      checkpointId: string,
+      messageCount: number
+    ) => {
+      try {
+        const service = getConversationService()
+        const conv = service.get(conversationId)
+        if (!conv) {
+          return { success: false, error: 'Conversation not found' }
+        }
+        service.setRestorePoint(conversationId, checkpointId, messageCount)
+        return { success: true }
+      } catch (error) {
+        console.error('[Conversations IPC] setRestorePoint failed:', error)
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        }
+      }
+    }
+  )
 
   console.log('[IPC] Conversation handlers registered')
 }
