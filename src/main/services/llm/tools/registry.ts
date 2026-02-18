@@ -17,6 +17,10 @@ export interface ToolMetadata {
   risk?: 'safe' | 'caution' | 'dangerous'
   permissionExplanation?: string
   permissions?: string[]
+  /** Human-friendly label for UI (e.g. "Run Cypher" for neo4j_run_cypher) */
+  displayName?: string
+  /** Lucide icon name for UI (e.g. "Database", "Terminal") */
+  icon?: string
 }
 
 /**

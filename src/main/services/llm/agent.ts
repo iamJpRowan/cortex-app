@@ -90,6 +90,83 @@ function parseAIContent(content: unknown): ParsedAIContent {
   return result
 }
 
+/** Token usage shape we emit and store. */
+type TokenUsageShape = {
+  input?: number
+  output?: number
+  thinking?: number
+}
+
+/**
+ * Merge new usage into existing. Only sets fields present in `next` so providers
+ * that send usage in multiple chunks (e.g. Anthropic: input in message_start,
+ * output in message_delta) accumulate correctly.
+ */
+function mergeTokenUsage(
+  current: TokenUsageShape | undefined,
+  next: TokenUsageShape
+): TokenUsageShape {
+  return {
+    input: next.input ?? current?.input,
+    output: next.output ?? current?.output,
+    thinking: next.thinking ?? current?.thinking,
+  }
+}
+
+/**
+ * Extract token usage from provider-specific shapes:
+ * - usage_metadata / response_metadata.usage: input_tokens, output_tokens (or prompt_tokens, completion_tokens)
+ * - response_metadata (Ollama): prompt_eval_count, eval_count
+ */
+function extractTokenUsage(msg: {
+  usage_metadata?: Record<string, unknown>
+  response_metadata?: Record<string, unknown>
+}): TokenUsageShape | undefined {
+  const usage =
+    msg.usage_metadata ??
+    (msg.response_metadata?.usage as Record<string, unknown> | undefined)
+  if (usage && typeof usage === 'object') {
+    const u = usage as Record<string, unknown>
+    const input =
+      typeof u.input_tokens === 'number'
+        ? u.input_tokens
+        : typeof u.prompt_tokens === 'number'
+          ? u.prompt_tokens
+          : typeof u.inputTokens === 'number'
+            ? u.inputTokens
+            : undefined
+    const output =
+      typeof u.output_tokens === 'number'
+        ? u.output_tokens
+        : typeof u.completion_tokens === 'number'
+          ? u.completion_tokens
+          : typeof u.outputTokens === 'number'
+            ? u.outputTokens
+            : undefined
+    if (input !== undefined || output !== undefined) {
+      return {
+        input: typeof input === 'number' ? input : undefined,
+        output: typeof output === 'number' ? output : undefined,
+      }
+    }
+  }
+  // Ollama: usage can be in response_metadata as prompt_eval_count / eval_count
+  const rm = msg.response_metadata
+  if (rm && typeof rm === 'object') {
+    const r = rm as Record<string, unknown>
+    const input =
+      typeof r.prompt_eval_count === 'number' ? r.prompt_eval_count : undefined
+    const output = typeof r.eval_count === 'number' ? r.eval_count : undefined
+    if (input !== undefined || output !== undefined) {
+      return {
+        input,
+        output,
+      }
+    }
+  }
+  return undefined
+}
+
 /**
  * LLM Agent Service
  * Manages LangGraph agent with tool support and conversation state.
@@ -544,8 +621,42 @@ export class LLMAgentService {
     const toolCallStartTimes = new Map<string, number>()
     /** Accumulate thinking from message chunks; flush when we see text. */
     const reasoningByIndex = new Map<number, string>()
+    /** Start time for reasoning (set on first chunk) for duration. */
+    let reasoningStartTime: number | null = null
     /** Skip emitting reasoning in values if we already emitted from messages stream. */
     let reasoningEmittedFromMessages = false
+    /** Last time we emitted incremental reasoning (for periodic emit). */
+    let lastReasoningEmitTime = 0
+    const REASONING_EMIT_INTERVAL_MS = 400
+    /** Token usage from stream metadata when provided by the provider. */
+    let lastTokenUsage: { input?: number; output?: number; thinking?: number } | undefined
+
+    /** Emit current accumulated reasoning as one trace entry (does not clear or set final flag). */
+    const emitReasoningSoFar = () => {
+      if (reasoningByIndex.size === 0 || reasoningEmittedFromMessages) return
+      const indices = Array.from(reasoningByIndex.keys()).sort((a, b) => a - b)
+      const parts: string[] = []
+      for (const idx of indices) {
+        const text = reasoningByIndex.get(idx)?.trim()
+        if (text) parts.push(text)
+      }
+      const merged = parts.join('\n\n').trim()
+      if (!merged) return
+      const now = Date.now()
+      const duration = reasoningStartTime != null ? now - reasoningStartTime : undefined
+      onEvent({
+        type: 'trace',
+        streamId,
+        conversationId: convId,
+        trace: {
+          type: 'reasoning',
+          content: merged,
+          timestamp: now,
+          duration,
+        },
+      })
+      lastReasoningEmitTime = now
+    }
 
     const flushReasoningFromChunks = () => {
       if (reasoningByIndex.size === 0) return
@@ -555,9 +666,12 @@ export class LLMAgentService {
       }
       reasoningEmittedFromMessages = true
       const indices = Array.from(reasoningByIndex.keys()).sort((a, b) => a - b)
+      const now = Date.now()
       for (const idx of indices) {
         const text = reasoningByIndex.get(idx)?.trim()
         if (text) {
+          const duration =
+            reasoningStartTime != null ? now - reasoningStartTime : undefined
           onEvent({
             type: 'trace',
             streamId,
@@ -565,7 +679,8 @@ export class LLMAgentService {
             trace: {
               type: 'reasoning',
               content: text,
-              timestamp: Date.now(),
+              timestamp: now,
+              duration,
             },
           })
         }
@@ -585,9 +700,33 @@ export class LLMAgentService {
         const [mode, data] = chunk as unknown as [string, unknown]
 
         if (mode === 'messages') {
-          // Token streaming from LLM - data is [messageChunk, metadata]
-          const [msgChunk] = data as [{ content?: unknown }, unknown]
-          const content = msgChunk?.content
+          // Token streaming from LLM - data is [messageChunk, metadata] or similar
+          const raw = data as [unknown, unknown] | unknown
+          const msgChunk = Array.isArray(raw) ? raw[0] : raw
+          const metadata = Array.isArray(raw) ? raw[1] : undefined
+          const content =
+            msgChunk && typeof msgChunk === 'object' && 'content' in msgChunk
+              ? (msgChunk as { content?: unknown }).content
+              : undefined
+          // Extract token usage from chunk or metadata (usage_metadata, response_metadata, Ollama shape)
+          const chunkUsage =
+            msgChunk && typeof msgChunk === 'object'
+              ? extractTokenUsage(
+                  msgChunk as {
+                    usage_metadata?: Record<string, unknown>
+                    response_metadata?: Record<string, unknown>
+                  }
+                )
+              : undefined
+          const metaUsage =
+            metadata && typeof metadata === 'object' && 'usage' in metadata
+              ? extractTokenUsage({
+                  usage_metadata: (metadata as { usage?: Record<string, unknown> })
+                    .usage as Record<string, unknown>,
+                })
+              : undefined
+          const usage = chunkUsage ?? metaUsage
+          if (usage) lastTokenUsage = mergeTokenUsage(lastTokenUsage, usage)
           // Process block-based content for reasoning (emit during stream)
           if (Array.isArray(content)) {
             let sawText = false
@@ -599,13 +738,21 @@ export class LLMAgentService {
                 (b.type === 'thinking' || b.type === 'thinking_delta') &&
                 typeof b.thinking === 'string'
               ) {
+                if (reasoningStartTime == null) reasoningStartTime = Date.now()
                 const prev = reasoningByIndex.get(idx) ?? ''
                 reasoningByIndex.set(idx, prev + b.thinking)
               } else if (b.type === 'text' && typeof b.text === 'string') {
                 sawText = true
               }
             }
-            if (sawText) flushReasoningFromChunks()
+            if (sawText) {
+              flushReasoningFromChunks()
+            } else if (reasoningByIndex.size > 0) {
+              const now = Date.now()
+              if (now - lastReasoningEmitTime >= REASONING_EMIT_INTERVAL_MS) {
+                emitReasoningSoFar()
+              }
+            }
           }
           const token = messageContentToString(content)
           if (token) {
@@ -635,7 +782,12 @@ export class LLMAgentService {
             const msgType = this.getMessageType(msg)
 
             if (msgType === 'ai') {
-              const aiMsg = msg as AIMessage
+              const aiMsg = msg as AIMessage & {
+                usage_metadata?: Record<string, unknown>
+                response_metadata?: Record<string, unknown>
+              }
+              const msgUsage = extractTokenUsage(aiMsg)
+              if (msgUsage) lastTokenUsage = mergeTokenUsage(lastTokenUsage, msgUsage)
               // Check for tool calls
               if (aiMsg.tool_calls && aiMsg.tool_calls.length > 0) {
                 for (const toolCall of aiMsg.tool_calls) {
@@ -766,7 +918,7 @@ export class LLMAgentService {
         })
       }
 
-      // Emit completion event (include model for conversation/message tracking)
+      // Emit completion event (include model and token usage when available)
       onEvent({
         type: 'complete',
         streamId,
@@ -774,6 +926,7 @@ export class LLMAgentService {
         response: finalResponse || 'No response',
         trace,
         model: modelId,
+        tokensUsed: lastTokenUsage,
       })
 
       console.log(
@@ -1058,6 +1211,12 @@ export class LLMAgentService {
               messageModels && assistantIndex < messageModels.length
                 ? messageModels[assistantIndex]
                 : undefined
+            const tokensUsed = extractTokenUsage(
+              aiMsg as AIMessage & {
+                usage_metadata?: Record<string, unknown>
+                response_metadata?: Record<string, unknown>
+              }
+            )
             assistantIndex += 1
             messages.push({
               id: `msg-${conversationId}-${messageIndex++}`,
@@ -1066,6 +1225,7 @@ export class LLMAgentService {
               timestamp: timestampMap.get(outputIndex) ?? fallbackTs,
               trace: pendingTrace.length > 0 ? [...pendingTrace] : undefined,
               ...(model ? { model } : {}),
+              ...(tokensUsed ? { tokensUsed } : {}),
             })
             outputIndex++
             // Reset trace after attaching to response

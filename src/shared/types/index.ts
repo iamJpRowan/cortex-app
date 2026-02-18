@@ -46,4 +46,5 @@ export type {
   StreamEvent,
   StreamEventHandler,
   StreamQueryResult,
+  TokenUsage,
 } from './llm'

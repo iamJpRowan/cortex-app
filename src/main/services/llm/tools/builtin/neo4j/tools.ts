@@ -30,6 +30,8 @@ export const neo4jToolDefinitions: ToolDefinition[] = [
       scope: 'external',
       access: 'read',
       connectionType: 'Neo4j',
+      displayName: 'Count nodes',
+      icon: 'calculator',
     },
   },
   {
@@ -44,6 +46,8 @@ export const neo4jToolDefinitions: ToolDefinition[] = [
       connectionType: 'Neo4j',
       risk: 'caution',
       permissionExplanation: 'Can read and modify Neo4j data; agent supplies the query.',
+      displayName: 'Run Cypher',
+      icon: 'network',
     },
   },
 ]

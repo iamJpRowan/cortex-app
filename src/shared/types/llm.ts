@@ -80,6 +80,19 @@ export interface TraceEntry {
   /** Tool name (for tool_call and tool_result types) */
   toolName?: string
 
+  /**
+   * @deprecated Do not set when creating trace entries. Resolved at render time from
+   * the current tool registry (by toolName). Kept optional for backward compatibility
+   * with existing chat history.
+   */
+  displayName?: string
+
+  /**
+   * @deprecated Do not set when creating trace entries. Resolved at render time from
+   * the current tool registry (by toolName). Kept optional for backward compatibility.
+   */
+  icon?: string
+
   /** Arguments passed to the tool (for tool_call type) */
   args?: Record<string, unknown>
 
@@ -154,6 +167,9 @@ export interface ChatMessage {
 
   /** Model that generated this message (assistant messages only) */
   model?: string
+
+  /** Token usage for this message when available (assistant messages only) */
+  tokensUsed?: TokenUsage
 }
 
 /**
@@ -371,6 +387,14 @@ export interface StreamTraceEvent extends StreamEventBase {
 /**
  * Event sent when streaming completes successfully.
  */
+/** Token usage for a completion (when provided by the provider). */
+export interface TokenUsage {
+  input?: number
+  output?: number
+  /** Thinking/reasoning tokens when reported separately (e.g. Anthropic) */
+  thinking?: number
+}
+
 export interface StreamCompleteEvent extends StreamEventBase {
   type: 'complete'
 
@@ -382,6 +406,9 @@ export interface StreamCompleteEvent extends StreamEventBase {
 
   /** Model that was used for this response (for conversation/message tracking) */
   model?: string
+
+  /** Token usage for this response when provided by the LLM provider */
+  tokensUsed?: TokenUsage
 }
 
 /**

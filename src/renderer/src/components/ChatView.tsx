@@ -13,6 +13,8 @@ import {
   Square,
   RotateCcw,
 } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
+import { getToolIcon } from '@/lib/tool-icons'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
@@ -35,12 +37,7 @@ import {
   MessageAction,
 } from '@/components/ai-elements/message'
 import {
-  ChainOfThought,
-  ChainOfThoughtHeader,
-  ChainOfThoughtContent,
-} from '@/components/ai-elements/chain-of-thought'
-import {
-  ToolInvocation,
+  ToolInvocationDetails,
   type ToolInvocationStatus,
 } from '@/components/ai-elements/tool-invocation'
 import {
@@ -135,6 +132,44 @@ export function ChatView() {
   /** Ref for conversationId so stream handler can filter events without stale closure. */
   const conversationIdRef = React.useRef<string | null>(null)
   conversationIdRef.current = conversationId
+  /** Time of last stream event (token/trace/start) for "Still working..." indicator. */
+  const lastEventTimeRef = React.useRef<number>(0)
+  const [showStillWorking, setShowStillWorking] = React.useState(false)
+  /** Tool name -> { displayName, icon } from registry (resolved at render, not stored in chat). */
+  const [toolMetadataMap, setToolMetadataMap] = React.useState<
+    Map<string, { displayName?: string; icon?: string }>
+  >(new Map())
+  /** Index of the latest assistant message in current list (for default-expand steps). -1 when loaded from history. */
+  const [latestAssistantMessageIndex, setLatestAssistantMessageIndex] =
+    React.useState<number>(-1)
+  /** Set after appending on stream complete; applied in useEffect to avoid setState inside setState. */
+  const nextAssistantIndexRef = React.useRef<number | null>(null)
+
+  React.useEffect(() => {
+    if (nextAssistantIndexRef.current !== null) {
+      setLatestAssistantMessageIndex(nextAssistantIndexRef.current)
+      nextAssistantIndexRef.current = null
+    }
+  }, [messages])
+
+  React.useEffect(() => {
+    let cancelled = false
+    window.api.llm
+      .toolsList()
+      .then(res => {
+        if (cancelled || !res.success || !res.tools) return
+        const map = new Map<string, { displayName?: string; icon?: string }>()
+        for (const { name, metadata } of res.tools) {
+          const m = metadata as { displayName?: string; icon?: string }
+          if (name) map.set(name, { displayName: m?.displayName, icon: m?.icon })
+        }
+        setToolMetadataMap(map)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   // Load/save composer height when switching conversations
   React.useEffect(() => {
@@ -197,6 +232,20 @@ export function ChatView() {
     }
   }, [conversationId])
 
+  const STILL_WORKING_THRESHOLD_MS = 5000
+  const STILL_WORKING_CHECK_MS = 1000
+  React.useEffect(() => {
+    if (!isLoading) {
+      setShowStillWorking(false)
+      return
+    }
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - lastEventTimeRef.current
+      setShowStillWorking(elapsed >= STILL_WORKING_THRESHOLD_MS)
+    }, STILL_WORKING_CHECK_MS)
+    return () => clearInterval(interval)
+  }, [isLoading])
+
   // Restore last active conversation when returning to chat view
   React.useEffect(() => {
     let cancelled = false
@@ -223,6 +272,7 @@ export function ChatView() {
       .then(messagesResult => {
         if (cancelled || !messagesResult?.success) return
         setMessages(messagesResult.messages ?? [])
+        setLatestAssistantMessageIndex(-1)
         // Restore draft and composer mode for the restored conversation
         const draft = localStorage.getItem(CHAT_DRAFT_KEY_PREFIX + lastId) ?? ''
         const mode =
@@ -359,16 +409,22 @@ export function ChatView() {
 
     switch (event.type) {
       case 'start':
+        lastEventTimeRef.current = Date.now()
+        setShowStillWorking(false)
         setStreamingContent('')
         setCurrentTrace([])
         currentTraceRef.current = []
         break
 
       case 'token':
+        lastEventTimeRef.current = Date.now()
+        setShowStillWorking(false)
         setStreamingContent(event.accumulated || '')
         break
 
       case 'trace':
+        lastEventTimeRef.current = Date.now()
+        setShowStillWorking(false)
         currentTraceRef.current = [...currentTraceRef.current, event.trace]
         setCurrentTrace(prev => [...prev, event.trace])
         break
@@ -390,8 +446,12 @@ export function ChatView() {
           timestamp: Date.now(),
           trace: mergedTrace,
           ...(event.model != null && event.model !== '' ? { model: event.model } : {}),
+          ...(event.tokensUsed != null ? { tokensUsed: event.tokensUsed } : {}),
         }
-        setMessages(prev => [...prev, newMessage])
+        setMessages(prev => {
+          nextAssistantIndexRef.current = prev.length
+          return [...prev, newMessage]
+        })
         setStreamingContent('')
         currentTraceRef.current = []
         setCurrentTrace([])
@@ -453,6 +513,8 @@ export function ChatView() {
 
     const userMessage = input.trim()
     setInput('')
+    lastEventTimeRef.current = Date.now()
+    setShowStillWorking(false)
     setIsLoading(true)
 
     // Add user message immediately
@@ -512,6 +574,7 @@ export function ChatView() {
       const msgResult = await window.api.conversations.getMessages(convId)
       if (msgResult.success && msgResult.messages) {
         setMessages(msgResult.messages)
+        setLatestAssistantMessageIndex(-1)
       }
     },
     []
@@ -528,6 +591,7 @@ export function ChatView() {
 
     // Clear optimistic state immediately so we don't show previous conversation's content
     setMessages([])
+    setLatestAssistantMessageIndex(-1)
     setStreamingContent('')
     currentTraceRef.current = []
     setCurrentTrace([])
@@ -552,13 +616,16 @@ export function ChatView() {
       const result = await window.api.conversations.getMessages(conversation.id)
       if (result.success && result.messages) {
         setMessages(result.messages)
+        setLatestAssistantMessageIndex(-1)
       } else {
         setMessages([])
+        setLatestAssistantMessageIndex(-1)
         console.error('Failed to load messages:', result.error)
       }
     } catch (err) {
       console.error('Failed to load conversation:', err)
       setMessages([])
+      setLatestAssistantMessageIndex(-1)
     } finally {
       setIsLoading(false)
       // Restore draft for this conversation (or migrate from _new when switching
@@ -818,9 +885,13 @@ export function ChatView() {
                   conversationId={conversationId}
                   messageIndex={index}
                   onRestoreFromHere={handleRestoreFromHere}
+                  toolMetadataMap={toolMetadataMap}
+                  defaultStepsExpanded={
+                    index === latestAssistantMessageIndex && message.role === 'assistant'
+                  }
                 />
               ))}
-              {(streamingContent || (isLoading && currentTrace.length > 0)) && (
+              {(streamingContent || isLoading) && (
                 <ChatTurn
                   message={{
                     id: 'streaming',
@@ -835,13 +906,10 @@ export function ChatView() {
                   conversationId={conversationId}
                   messageIndex={messages.length}
                   onRestoreFromHere={handleRestoreFromHere}
+                  showStillWorking={showStillWorking}
+                  toolMetadataMap={toolMetadataMap}
+                  defaultStepsExpanded={true}
                 />
-              )}
-              {isLoading && !streamingContent && currentTrace.length === 0 && (
-                <div className="flex items-center gap-2 py-4 text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  <span>Thinking...</span>
-                </div>
               )}
             </ConversationContent>
             <ConversationScrollButton />
@@ -979,12 +1047,18 @@ function ChatTurn({
   conversationId,
   messageIndex,
   onRestoreFromHere,
+  showStillWorking = false,
+  toolMetadataMap,
+  defaultStepsExpanded = false,
 }: {
   message: ChatMessage
   modelList?: ListModelsResult | null
   conversationId: string | null
   messageIndex: number
   onRestoreFromHere: (convId: string, lastOutputMessageIndex: number) => Promise<void>
+  showStillWorking?: boolean
+  toolMetadataMap: Map<string, { displayName?: string; icon?: string }>
+  defaultStepsExpanded?: boolean
 }) {
   const isUser = message.role === 'user'
   const [restoring, setRestoring] = React.useState(false)
@@ -1002,6 +1076,25 @@ function ChatTurn({
     [message.trace]
   )
   const hasTrace = orderedTraceItems.length > 0
+  const showSteps = !isUser && (hasTrace || message.isStreaming)
+
+  const formatTokensUsed = (tokens: {
+    input?: number
+    output?: number
+    thinking?: number
+  }) => {
+    const total = (tokens.input ?? 0) + (tokens.output ?? 0) + (tokens.thinking ?? 0)
+    if (total === 0) return null
+    const fmt = (n: number) => (n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n))
+    if (
+      tokens.input != null &&
+      tokens.output != null &&
+      total === tokens.input + tokens.output
+    ) {
+      return `${fmt(tokens.input)} in / ${fmt(tokens.output)} out`
+    }
+    return `${fmt(total)} tokens`
+  }
 
   const formatTimestamp = (timestamp: number) => {
     const date = new Date(timestamp)
@@ -1059,26 +1152,14 @@ function ChatTurn({
         </div>
       </div>
 
-      {/* Metadata row: top-aligned below the line, right side */}
-      <div className="flex items-start justify-between pt-2">
-        <div className="h-8 w-8 shrink-0" aria-hidden />
-        <div
-          className="
-            flex flex-wrap items-center justify-end gap-2 text-xs text-muted-foreground
-          "
-        >
-          {!isUser && message.model && (
-            <span>{getModelLabel(message.model, modelList)}</span>
-          )}
-          <span>{formatTimestamp(message.timestamp)}</span>
-        </div>
-      </div>
-
       <Message from={message.role} className="mt-2 max-w-full">
-        {hasTrace && (
+        {showSteps && (
           <TraceDisplay
             orderedItems={orderedTraceItems}
             isStreaming={message.isStreaming}
+            showStillWorking={showStillWorking}
+            toolMetadataMap={toolMetadataMap}
+            defaultStepsExpanded={defaultStepsExpanded}
           />
         )}
         <MessageContent
@@ -1110,6 +1191,26 @@ function ChatTurn({
           </MessageActions>
         )}
       </Message>
+
+      {/* Message details below actions: model, tokens, timestamp (both AI and user) */}
+      <div className="flex items-start justify-between pt-1 pb-1">
+        <div className="h-8 w-8 shrink-0" aria-hidden />
+        <div
+          className="
+            flex flex-wrap items-center justify-end gap-2 text-xs text-muted-foreground
+          "
+        >
+          {!isUser && message.model && (
+            <span>{getModelLabel(message.model, modelList)}</span>
+          )}
+          {!isUser &&
+            message.tokensUsed != null &&
+            formatTokensUsed(message.tokensUsed) != null && (
+              <span>{formatTokensUsed(message.tokensUsed)}</span>
+            )}
+          <span>{formatTimestamp(message.timestamp)}</span>
+        </div>
+      </div>
     </div>
   )
 }
@@ -1120,6 +1221,8 @@ function ChatTurn({
 interface GroupedToolExecution {
   toolName: string
   toolCallId?: string
+  displayName?: string
+  icon?: string
   args?: Record<string, unknown>
   result?: string
   duration?: number
@@ -1129,7 +1232,7 @@ interface GroupedToolExecution {
 
 /** Ordered trace item: either reasoning (thinking) or a grouped tool execution. */
 type OrderedTraceItem =
-  | { kind: 'reasoning'; content: string }
+  | { kind: 'reasoning'; content: string; duration?: number }
   | { kind: 'tool'; execution: GroupedToolExecution }
 
 /**
@@ -1142,11 +1245,20 @@ function buildOrderedTraceItems(trace: TraceEntry[]): OrderedTraceItem[] {
 
   for (const entry of trace) {
     if (entry.type === 'reasoning' && entry.content?.trim()) {
-      ordered.push({ kind: 'reasoning', content: entry.content.trim() })
+      const content = entry.content.trim()
+      const last = ordered[ordered.length - 1]
+      if (last?.kind === 'reasoning') {
+        last.content = content
+        last.duration = entry.duration
+      } else {
+        ordered.push({ kind: 'reasoning', content, duration: entry.duration })
+      }
     } else if (entry.type === 'tool_call' && entry.toolName) {
       const group: GroupedToolExecution = {
         toolName: entry.toolName,
         toolCallId: entry.toolCallId,
+        displayName: entry.displayName,
+        icon: entry.icon,
         args: entry.args,
         isComplete: false,
       }
@@ -1179,6 +1291,8 @@ function buildOrderedTraceItems(trace: TraceEntry[]): OrderedTraceItem[] {
           execution: {
             toolName: entry.toolName || 'unknown',
             toolCallId: entry.toolCallId,
+            displayName: entry.displayName,
+            icon: entry.icon,
             result: entry.result,
             duration: entry.duration,
             error: entry.error,
@@ -1205,68 +1319,247 @@ function getToolStatus(
   return 'complete'
 }
 
+/** Format duration in ms for step row (e.g. 1200 -> "1.2s", 80 -> "80ms"). */
+function formatStepDuration(ms: number): string {
+  if (ms >= 1000) return `${(ms / 1000).toFixed(1)}s`
+  return `${ms}ms`
+}
+
+/** Build copyable text for a tool step (args + result/error). */
+function formatToolStepForCopy(exec: GroupedToolExecution): string {
+  const parts: string[] = []
+  if (exec.args && Object.keys(exec.args).length > 0) {
+    parts.push('Arguments:\n' + JSON.stringify(exec.args, null, 2))
+  }
+  if (exec.result && !exec.error) {
+    parts.push('Result:\n' + exec.result)
+  }
+  if (exec.error) {
+    parts.push('Error:\n' + exec.error)
+  }
+  return parts.join('\n\n')
+}
+
+function StepContentWithCopy({
+  copyValue,
+  children,
+}: {
+  copyValue?: string
+  children: React.ReactNode
+}) {
+  const [copied, setCopied] = React.useState(false)
+  const handleCopy = React.useCallback(() => {
+    if (!copyValue?.trim()) return
+    navigator.clipboard.writeText(copyValue).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }, [copyValue])
+  return (
+    <>
+      {copyValue != null && copyValue.trim() !== '' && (
+        <div className="flex justify-end mb-1">
+          <button
+            type="button"
+            onClick={handleCopy}
+            className="
+              flex items-center gap-1 rounded px-1.5 py-0.5 text-xs text-muted-foreground
+              hover:bg-muted hover:text-foreground
+            "
+          >
+            {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+            {copied ? 'Copied' : 'Copy'}
+          </button>
+        </div>
+      )}
+      {children}
+    </>
+  )
+}
+
 /**
  * TraceDisplay Component
  *
- * Displays reasoning (thinking) and tool executions in order using ChainOfThought.
- * Reasoning blocks are collapsible; tool steps use ToolInvocation.
+ * Unified step rows: thinking and tools use the same layout (icon + label + duration + chevron).
+ * Clicking the row expands to show content (thinking text or tool args/result/error).
+ * When streaming with no steps yet, shows a single "Thinking..." placeholder step.
  */
 function TraceDisplay({
   orderedItems,
   isStreaming,
+  showStillWorking = false,
+  toolMetadataMap,
+  defaultStepsExpanded = false,
 }: {
   orderedItems: OrderedTraceItem[]
   isStreaming?: boolean
+  showStillWorking?: boolean
+  toolMetadataMap: Map<string, { displayName?: string; icon?: string }>
+  defaultStepsExpanded?: boolean
 }) {
-  return (
-    <ChainOfThought defaultOpen={true} className="mb-2">
-      <ChainOfThoughtHeader>
-        {orderedItems.length} step{orderedItems.length !== 1 ? 's' : ''}
-      </ChainOfThoughtHeader>
-      <ChainOfThoughtContent>
-        <div className="space-y-2">
-          {orderedItems.map((item, index) =>
-            item.kind === 'reasoning' ? (
-              <Collapsible key={`reasoning-${index}`} defaultOpen={false}>
-                <div className="rounded-lg border border-border bg-muted/30 text-sm">
-                  <CollapsibleTrigger
-                    className="
-                      flex w-full items-center gap-2 px-3 py-2
-                      hover:bg-muted/50
-                      transition-colors
-                    "
-                  >
-                    <Brain className="h-4 w-4 text-muted-foreground" />
-                    <span className="flex-1 text-left font-medium">Thinking</span>
-                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <div
-                      className="
-                        border-t border-border px-3 py-2 text-muted-foreground
-                        whitespace-pre-wrap text-xs font-mono max-h-48 overflow-y-auto
-                      "
-                    >
-                      {item.content}
-                    </div>
-                  </CollapsibleContent>
-                </div>
-              </Collapsible>
-            ) : (
-              <ToolInvocation
-                key={item.execution.toolCallId || index}
-                name={item.execution.toolName}
-                args={item.execution.args}
-                result={item.execution.result}
-                duration={item.execution.duration}
-                error={item.execution.error}
-                status={getToolStatus(item.execution, isStreaming)}
-                defaultOpen={true}
-              />
-            )
+  const total = orderedItems.length
+  const showPlaceholder = total === 0 && isStreaming
+
+  const stepRow = (
+    isLastStep: boolean,
+    Icon: LucideIcon,
+    label: React.ReactNode,
+    durationMs: number | undefined,
+    hasExpandContent: boolean,
+    isActive: boolean,
+    children: React.ReactNode,
+    groupClass: 'group/thinking' | 'group/tool',
+    defaultOpen?: boolean,
+    copyValue?: string
+  ) => {
+    const statusStyles = {
+      complete: 'text-muted-foreground',
+      active: 'text-foreground',
+    }
+    const chevronRotateClass =
+      groupClass === 'group/thinking'
+        ? 'group-data-[state=open]/thinking:rotate-180'
+        : 'group-data-[state=open]/tool:rotate-180'
+    return (
+      <div
+        className={cn(
+          'flex gap-2 text-sm fade-in-0 slide-in-from-top-2 animate-in',
+          statusStyles[isActive ? 'active' : 'complete']
+        )}
+      >
+        <div className="relative mt-0.5">
+          <Icon className="size-4 shrink-0" />
+          {!isLastStep && (
+            <div className="absolute top-7 bottom-0 left-1/2 -mx-px w-px bg-border" />
           )}
         </div>
-      </ChainOfThoughtContent>
-    </ChainOfThought>
+        <div className="flex-1 min-w-0 overflow-hidden">
+          <Collapsible defaultOpen={defaultOpen ?? false} className={groupClass}>
+            <CollapsibleTrigger
+              className="
+                flex w-full items-center gap-2 text-left
+                hover:opacity-80
+                transition-opacity py-0.5
+              "
+              disabled={!hasExpandContent}
+            >
+              {label}
+              {durationMs != null && (
+                <span className="text-xs text-muted-foreground shrink-0">
+                  {formatStepDuration(durationMs)}
+                </span>
+              )}
+              {hasExpandContent && (
+                <ChevronDown
+                  className={cn(
+                    'h-4 w-4 shrink-0 text-muted-foreground transition-transform',
+                    chevronRotateClass
+                  )}
+                />
+              )}
+              {isActive && (
+                <Loader2
+                  className="h-3.5 w-3.5 shrink-0 animate-spin text-muted-foreground"
+                />
+              )}
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <StepContentWithCopy copyValue={copyValue}>{children}</StepContentWithCopy>
+            </CollapsibleContent>
+          </Collapsible>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mb-2 w-full max-w-none bg-muted/10 py-2 pl-1 pr-3">
+      <div className="mt-2 space-y-3">
+        {showPlaceholder && (
+          <div className="flex gap-2 text-sm text-foreground">
+            <div className="relative mt-0.5">
+              <Brain className="size-4 shrink-0" />
+            </div>
+            <div className="flex flex-1 items-center gap-2">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <span>Thinking…</span>
+            </div>
+          </div>
+        )}
+        {orderedItems.map((item, index) => {
+          const isLastStep = index === total - 1
+          const defaultOpen = defaultStepsExpanded
+          if (item.kind === 'reasoning') {
+            return (
+              <React.Fragment key={`reasoning-${index}`}>
+                {stepRow(
+                  isLastStep,
+                  Brain,
+                  <span className="text-xs">Thinking</span>,
+                  item.duration,
+                  true,
+                  false,
+                  <div
+                    className="
+                      mt-1.5 text-muted-foreground whitespace-pre-wrap text-xs font-mono
+                      rounded bg-muted/50 px-2 py-1.5 max-h-48 overflow-y-auto
+                    "
+                  >
+                    {item.content}
+                  </div>,
+                  'group/thinking',
+                  defaultOpen,
+                  item.content?.trim() ?? undefined
+                )}
+              </React.Fragment>
+            )
+          }
+          const exec = item.execution
+          // Prefer current registry; fall back to trace displayName/icon (old messages).
+          const fromMap = toolMetadataMap.get(exec.toolName)
+          const fromTrace =
+            exec.displayName || exec.icon
+              ? { displayName: exec.displayName, icon: exec.icon }
+              : undefined
+          const toolMeta = fromMap ?? fromTrace
+          const toolLabel = toolMeta?.displayName ?? exec.toolName
+          const toolStatus = getToolStatus(exec, isStreaming)
+          const hasDetails = Boolean(
+            (exec.args && Object.keys(exec.args).length > 0) || exec.result || exec.error
+          )
+          const isActive = toolStatus === 'calling'
+          const ToolIcon = getToolIcon(toolMeta?.icon)
+          const toolCopyText = hasDetails ? formatToolStepForCopy(exec) : undefined
+          return (
+            <React.Fragment key={exec.toolCallId ?? index}>
+              {stepRow(
+                isLastStep,
+                ToolIcon,
+                <span className="truncate text-xs">{toolLabel}</span>,
+                exec.duration,
+                hasDetails,
+                isActive,
+                <div className="mt-1.5">
+                  <ToolInvocationDetails
+                    args={exec.args}
+                    result={exec.result}
+                    error={exec.error}
+                  />
+                </div>,
+                'group/tool',
+                defaultOpen,
+                toolCopyText
+              )}
+            </React.Fragment>
+          )
+        })}
+        {showStillWorking && (
+          <div className="flex items-center gap-2 pt-1 text-xs text-muted-foreground">
+            <Loader2 className="h-3.5 w-3.5 animate-spin shrink-0" />
+            <span>Still working…</span>
+          </div>
+        )}
+      </div>
+    </div>
   )
 }

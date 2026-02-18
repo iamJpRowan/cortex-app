@@ -44,6 +44,10 @@ export interface ToolDefinitionMetadata {
   connection?: string
   risk?: 'safe' | 'caution' | 'dangerous'
   permissionExplanation?: string
+  /** Human-friendly label for UI */
+  displayName?: string
+  /** Lucide icon name for UI (e.g. "Database", "Terminal") */
+  icon?: string
 }
 
 /**

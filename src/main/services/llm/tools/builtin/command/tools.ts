@@ -38,6 +38,8 @@ export function getCommandToolDefinitions(): ToolDefinition[] {
       metadata: {
         scope: 'app',
         access: 'write',
+        displayName: 'Invoke command',
+        icon: 'Terminal',
       },
     },
   ]

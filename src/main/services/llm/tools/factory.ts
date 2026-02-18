@@ -57,6 +57,8 @@ export function createToolFromDefinition(
     connection: def.metadata.connection,
     risk: def.metadata.risk,
     permissionExplanation: def.metadata.permissionExplanation,
+    displayName: def.metadata.displayName,
+    icon: def.metadata.icon,
   }
 
   return { tool, metadata }
