@@ -2,6 +2,10 @@ import { DynamicStructuredTool } from '@langchain/core/tools'
 import type { ToolDefinition } from './definition-types'
 import { deriveCategory } from './definition-types'
 import type { ToolMetadata } from './registry'
+import {
+  capToolResult,
+  DEFAULT_MAX_TOOL_RESULT_LENGTH,
+} from '@main/services/llm/content-guardrails'
 
 /**
  * Handler function: receives parsed schema input and returns a string result.
@@ -39,12 +43,19 @@ export function createToolFromDefinition(
   }
 
   const category = deriveCategory(scope, access)
+  const shouldCapResult = def.metadata.capResultLength !== false
 
   const tool = new DynamicStructuredTool({
     name: def.name,
     description: def.description,
     schema: def.schema,
-    func: async (input: unknown) => handler(input),
+    func: async (input: unknown) => {
+      const result = await handler(input)
+      if (shouldCapResult) {
+        return capToolResult(result, DEFAULT_MAX_TOOL_RESULT_LENGTH)
+      }
+      return result
+    },
   })
 
   const metadata: ToolMetadata = {

@@ -1,6 +1,17 @@
 import * as React from 'react'
 import { cn } from '@/lib/utils'
 
+/** Max chars to render for result/error to avoid UI freezes from huge strings. */
+const MAX_DISPLAY_LENGTH = 4096
+
+/** Chars to show initially; rest behind "Show more" to keep first paint light. */
+const INITIAL_RESULT_PREVIEW_LENGTH = 1024
+
+function truncateForDisplay(s: string): string {
+  if (s.length <= MAX_DISPLAY_LENGTH) return s
+  return s.slice(0, MAX_DISPLAY_LENGTH) + '\n\n… (truncated)'
+}
+
 export type ToolInvocationStatus = 'calling' | 'complete' | 'error'
 
 export interface ToolInvocationDetailsProps {
@@ -16,7 +27,7 @@ export interface ToolInvocationDetailsProps {
 
 /**
  * Renders only the args/result/error block for a tool call.
- * Use inside a step or collapsible when the step row is the primary UI.
+ * Long results are collapsed initially (first N chars + "Show more") to avoid UI freezes.
  */
 export const ToolInvocationDetails = React.memo(function ToolInvocationDetails({
   args,
@@ -24,8 +35,20 @@ export const ToolInvocationDetails = React.memo(function ToolInvocationDetails({
   error,
   className,
 }: ToolInvocationDetailsProps) {
+  const [resultExpanded, setResultExpanded] = React.useState(false)
   const hasContent = (args && Object.keys(args).length > 0) || result || error
   if (!hasContent) return null
+
+  const truncatedResult = result ? truncateForDisplay(result) : ''
+  const resultIsLong = truncatedResult.length > INITIAL_RESULT_PREVIEW_LENGTH
+  const resultPreview =
+    resultIsLong && !resultExpanded
+      ? truncatedResult.slice(0, INITIAL_RESULT_PREVIEW_LENGTH) + '\n\n…'
+      : truncatedResult
+  const resultHiddenChars =
+    resultIsLong && !resultExpanded
+      ? truncatedResult.length - INITIAL_RESULT_PREVIEW_LENGTH
+      : 0
 
   return (
     <div className={cn('space-y-2', className)}>
@@ -51,7 +74,20 @@ export const ToolInvocationDetails = React.memo(function ToolInvocationDetails({
               overflow-y-auto
             "
           >
-            {result}
+            {resultPreview}
+            {resultHiddenChars > 0 && (
+              <button
+                type="button"
+                onClick={() => setResultExpanded(true)}
+                className="
+                  mt-1 text-xs text-primary
+                  hover:underline
+                  focus:outline-none focus:underline
+                "
+              >
+                Show more ({resultHiddenChars.toLocaleString()} more chars)
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -64,7 +100,7 @@ export const ToolInvocationDetails = React.memo(function ToolInvocationDetails({
               whitespace-pre-wrap
             "
           >
-            {error}
+            {truncateForDisplay(error)}
           </div>
         </div>
       )}

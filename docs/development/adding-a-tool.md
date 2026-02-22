@@ -14,7 +14,7 @@ In your domain folder under `src/main/services/llm/tools/builtin/<domain>/tools.
 - **description**: For the LLM and UI.
 - **schema**: Zod schema for parameters (use `z.object({ ... })`).
 - **handler**: String key that will match a key in the handler map (e.g. `neo4j_countNodes`).
-- **metadata**: Must include **scope** (`local` | `external` | `app`) and **access** (`read` | `write`). Optional: `connectionType`, `connection`, `risk`, `permissionExplanation`.
+- **metadata**: Must include **scope** (`local` | `external` | `app`) and **access** (`read` | `write`). Optional: `connectionType`, `connection`, `risk`, `permissionExplanation`, **capResultLength** (default `true`; set to `false` only when the tool must return uncapped content—increases risk of UI freezes and “prompt too long” errors; see [Bounded Tool Results](../backlog/bounded-tool-results-and-chat-ui-stability.md)).
 
 Definition files should only use data and Zod—no LangChain or registry imports.
 
@@ -73,6 +73,10 @@ No per-tool `toolRegistry.register()` calls elsewhere—only domain-level loops 
 ## Categories
 
 Category is **derived** from scope + access (e.g. `read external`, `write app`). You don’t set it on the definition; the factory sets it on metadata at registration.
+
+## Result length
+
+By default the **factory** caps every tool's return string to a maximum length before it is stored in the conversation (see `content-guardrails.ts`). This prevents context-window blow-up and UI freezes. To allow uncapped results for a specific tool, set `metadata.capResultLength: false`. Only do this when necessary; document the risk (freezes, "prompt too long" errors). Tools that serialize structured data (e.g. graph nodes) should also cap at source (e.g. per-property length limits in the handler).
 
 ## Reference
 

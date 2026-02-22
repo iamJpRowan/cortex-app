@@ -97,6 +97,26 @@ type TokenUsageShape = {
   thinking?: number
 }
 
+/** Max length for tool result/error in trace (avoids huge IPC payloads and renderer freezes). */
+const MAX_TOOL_RESULT_DISPLAY_LENGTH = 4096
+
+/** Max length for accumulated content in error/cancelled events (avoid sending huge payloads to renderer). */
+const MAX_ACCUMULATED_IN_EVENT_LENGTH = 8192
+
+/** Max length for error message when logging (avoid blocking on huge API JSON). */
+const MAX_ERROR_LOG_LENGTH = 500
+
+/** Max length for error message in stream event (avoid huge payload to renderer). */
+const MAX_ERROR_MESSAGE_IN_EVENT_LENGTH = 2000
+
+function truncateForDisplay(
+  s: string,
+  maxLen: number = MAX_TOOL_RESULT_DISPLAY_LENGTH
+): string {
+  if (s.length <= maxLen) return s
+  return s.slice(0, maxLen) + '\n\n… (truncated)'
+}
+
 /**
  * Merge new usage into existing. Only sets fields present in `next` so providers
  * that send usage in multiple chunks (e.g. Anthropic: input in message_start,
@@ -871,10 +891,10 @@ export class LLMAgentService {
                 type: 'tool_result',
                 toolCallId,
                 toolName,
-                result: content,
+                result: truncateForDisplay(content),
                 timestamp: endTime,
                 duration,
-                error: isError ? content : undefined,
+                error: isError ? truncateForDisplay(content) : undefined,
               }
               trace.push(traceEntry)
               onEvent({
@@ -940,16 +960,32 @@ export class LLMAgentService {
           (error.name === 'AbortError' || error.message === 'The operation was aborted'))
 
       if (isAbort) {
+        const cancelledAccumulated = accumulated.trim()
+        const cancelledForEvent =
+          cancelledAccumulated.length <= MAX_ACCUMULATED_IN_EVENT_LENGTH
+            ? cancelledAccumulated || undefined
+            : cancelledAccumulated.slice(-MAX_ACCUMULATED_IN_EVENT_LENGTH).trimStart() +
+              '\n\n… (earlier content omitted)'
         onEvent({
           type: 'cancelled',
           streamId,
           conversationId: convId,
-          accumulated: accumulated.trim() || undefined,
+          accumulated: cancelledForEvent || undefined,
         })
         return
       }
 
-      console.error('[LLMAgent] Streaming query failed:', error)
+      // Log a short message to avoid blocking the event loop on huge error serialization
+      const rawMessage = error instanceof Error ? error.message : String(error)
+      const shortError =
+        rawMessage.length > MAX_ERROR_LOG_LENGTH
+          ? rawMessage.slice(0, MAX_ERROR_LOG_LENGTH) + '…'
+          : rawMessage
+      console.error(
+        '[LLMAgent] Streaming query failed:',
+        error instanceof Error ? error.name : 'Error',
+        shortError
+      )
 
       let errorMessage = error instanceof Error ? error.message : 'Unknown error'
       let suggestion = 'Check console logs for detailed error information.'
@@ -959,8 +995,11 @@ export class LLMAgentService {
         const errMsg = error.message.toLowerCase()
         const errorWithCause = error as Error & {
           cause?: { code?: string; message?: string }
+          status?: number
+          status_code?: number
         }
         const cause = errorWithCause.cause
+        const status = errorWithCause.status ?? errorWithCause.status_code
 
         if (
           errMsg.includes('fetch failed') ||
@@ -972,24 +1011,56 @@ export class LLMAgentService {
           suggestion = 'Please start the Ollama server with: ollama serve'
         }
 
-        const errorWithStatus = errorWithCause as Error & { status_code?: number }
         if (
           (errMsg.includes('model') &&
             (errMsg.includes('not found') || errMsg.includes('does not exist'))) ||
-          (errorWithStatus.status_code === 404 && errMsg.includes('model'))
+          (status === 404 && errMsg.includes('model'))
         ) {
           errorMessage = `Model not found (${modelId}).`
           const part = modelId.includes(':') ? modelId.split(':')[1] : modelId
           suggestion = `Please pull the model, e.g.: ollama pull ${part}`
         }
+
+        // Rate limit (429) – avoid retries and give clear guidance
+        if (status === 429 || errMsg.includes('rate_limit')) {
+          errorMessage = 'Rate limit exceeded for this model.'
+          suggestion =
+            'Wait a minute and try again, or use a different model (e.g. a smaller one).'
+        }
+
+        // Prompt too long (400) – avoid sending huge accumulated to renderer
+        if (
+          status === 400 ||
+          errMsg.includes('prompt is too long') ||
+          errMsg.includes('too long') ||
+          errMsg.includes('maximum')
+        ) {
+          errorMessage = 'Conversation is too long for this model.'
+          suggestion =
+            'Start a new chat or use "Restore from here" on an earlier message to shorten the context.'
+        }
       }
+
+      const accumulatedTrimmed = accumulated.trim()
+      const accumulatedForEvent =
+        accumulatedTrimmed.length <= MAX_ACCUMULATED_IN_EVENT_LENGTH
+          ? accumulatedTrimmed || undefined
+          : accumulatedTrimmed.slice(-MAX_ACCUMULATED_IN_EVENT_LENGTH).trimStart() +
+            '\n\n… (earlier content omitted)'
+
+      // Keep error message bounded so renderer never receives a huge string
+      const errorForEvent =
+        errorMessage.length <= MAX_ERROR_MESSAGE_IN_EVENT_LENGTH
+          ? errorMessage
+          : errorMessage.slice(0, MAX_ERROR_MESSAGE_IN_EVENT_LENGTH) + '…'
 
       onEvent({
         type: 'error',
         streamId,
         conversationId: convId,
-        error: errorMessage,
+        error: errorForEvent,
         suggestion,
+        accumulated: accumulatedForEvent || undefined,
       })
     }
   }

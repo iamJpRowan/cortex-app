@@ -144,6 +144,14 @@ export function ChatView() {
     React.useState<number>(-1)
   /** Set after appending on stream complete; applied in useEffect to avoid setState inside setState. */
   const nextAssistantIndexRef = React.useRef<number | null>(null)
+  /** Throttle token updates: latest accumulated from token events. */
+  const latestAccumulatedRef = React.useRef<string>('')
+  /** Last time we pushed streaming content to state (ms). */
+  const lastStreamingUpdateRef = React.useRef<number>(0)
+  /** Pending timeout for throttled streaming update. */
+  const streamingThrottleTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  )
 
   React.useEffect(() => {
     if (nextAssistantIndexRef.current !== null) {
@@ -396,6 +404,10 @@ export function ChatView() {
         prev === event.conversationId ? undefined : prev
       )
       setCurrentStreamId(null)
+      if (streamingThrottleTimeoutRef.current) {
+        clearTimeout(streamingThrottleTimeoutRef.current)
+        streamingThrottleTimeoutRef.current = null
+      }
     }
     if (event.type === 'complete') {
       setLastMessageAt(prev => ({
@@ -408,26 +420,54 @@ export function ChatView() {
     if (event.conversationId !== conversationIdRef.current) return
 
     switch (event.type) {
-      case 'start':
+      case 'start': {
         lastEventTimeRef.current = Date.now()
         setShowStillWorking(false)
         setStreamingContent('')
         setCurrentTrace([])
         currentTraceRef.current = []
+        latestAccumulatedRef.current = ''
+        lastStreamingUpdateRef.current = 0
+        if (streamingThrottleTimeoutRef.current) {
+          clearTimeout(streamingThrottleTimeoutRef.current)
+          streamingThrottleTimeoutRef.current = null
+        }
         break
+      }
 
-      case 'token':
+      case 'token': {
         lastEventTimeRef.current = Date.now()
         setShowStillWorking(false)
-        setStreamingContent(event.accumulated || '')
+        const accumulated = event.accumulated || ''
+        latestAccumulatedRef.current = accumulated
+        const now = Date.now()
+        const elapsed = now - lastStreamingUpdateRef.current
+        const STREAMING_THROTTLE_MS = 80
+        if (lastStreamingUpdateRef.current === 0 || elapsed >= STREAMING_THROTTLE_MS) {
+          setStreamingContent(accumulated)
+          lastStreamingUpdateRef.current = now
+        } else if (streamingThrottleTimeoutRef.current === null) {
+          streamingThrottleTimeoutRef.current = setTimeout(() => {
+            streamingThrottleTimeoutRef.current = null
+            const latest = latestAccumulatedRef.current
+            setStreamingContent(latest)
+            lastStreamingUpdateRef.current = Date.now()
+          }, STREAMING_THROTTLE_MS - elapsed)
+        }
         break
+      }
 
-      case 'trace':
+      case 'trace': {
         lastEventTimeRef.current = Date.now()
         setShowStillWorking(false)
-        currentTraceRef.current = [...currentTraceRef.current, event.trace]
-        setCurrentTrace(prev => [...prev, event.trace])
+        const traceEntry = event.trace
+        // Defer trace state update to next frame so IPC handler returns and UI stays responsive
+        requestAnimationFrame(() => {
+          currentTraceRef.current = [...currentTraceRef.current, traceEntry]
+          setCurrentTrace(prev => [...prev, traceEntry])
+        })
         break
+      }
 
       case 'complete': {
         // Clear generating indicator when stream completes (title may have arrived or failed)
@@ -486,24 +526,32 @@ export function ChatView() {
         break
       }
 
-      case 'error':
+      case 'error': {
         console.error('Stream error:', event.error)
         setStreamingContent('')
         setIsLoading(false)
         setGeneratingTitleConversationId(prev =>
           prev === event.conversationId ? null : prev
         )
-        // Add error as a message
+        const errorPartial = event.accumulated?.trim() ?? ''
+        const errorBody = `Error: ${event.error}${event.suggestion ? `\n\n${event.suggestion}` : ''}`
+        const errorContent = errorPartial ? `${errorPartial}\n\n${errorBody}` : errorBody
         setMessages(prev => [
           ...prev,
           {
             id: `msg-${Date.now()}`,
             role: 'assistant',
-            content: `Error: ${event.error}${event.suggestion ? `\n\n${event.suggestion}` : ''}`,
+            content: errorContent,
             timestamp: Date.now(),
+            trace: currentTraceRef.current.length
+              ? [...currentTraceRef.current]
+              : undefined,
           },
         ])
+        currentTraceRef.current = []
+        setCurrentTrace([])
         break
+      }
     }
   }
 
@@ -1040,8 +1088,10 @@ function CopyAction({
 /**
  * ChatTurn: full-width turn with top border, avatar on the line (agent left, user right), lighter background.
  * Uses AI Elements Message / MessageContent / MessageResponse; keeps TraceDisplay and copy/timestamp/model.
+ * Memoized so trace updates only re-render the streaming turn, not the whole list (avoids re-parsing
+ * all message markdown via Streamdown when e.g. a tool result arrives).
  */
-function ChatTurn({
+const ChatTurn = React.memo(function ChatTurn({
   message,
   modelList = null,
   conversationId,
@@ -1213,7 +1263,7 @@ function ChatTurn({
       </div>
     </div>
   )
-}
+})
 
 /**
  * Grouped tool execution - pairs a tool_call with its result.

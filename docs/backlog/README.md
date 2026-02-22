@@ -45,7 +45,10 @@ For items with a **phased approach**, use a phase-per-section structure so each 
 - **[plugin-extensibility-framework.md](./plugin-extensibility-framework.md)** - Plugin system for user-contributed tools and integrations. requires: LangChain Integration, Configuration System, Tool Permission System
 
 ### Chat & AI Interface
+- **[chat-history-load-single-row-and-thinking.md](./chat-history-load-single-row-and-thinking.md)** - After load/refresh: one assistant row per turn and restore thinking in trace (fix multiple rows and missing thinking)
+- **[agent-streaming-llm.md](./agent-streaming-llm.md)** - Stream LLM response and thinking in real time (replace invoke with stream in agent node). requires: Chat Interface (MVP)
 - **[llm-tool-hallucination-guardrails.md](./llm-tool-hallucination-guardrails.md)** - Reduce incorrect tool usage (invoke_command, invalid args). requires: Chat Interface (MVP)
+- **[bounded-tool-results-and-chat-ui-stability.md](./bounded-tool-results-and-chat-ui-stability.md)** - Content length guardrails for UI and agent context: backend (source + factory caps, agent IPC truncation, opt-out) first; then UI fail-safe (display cap, Show more, throttle/memo)
 - **[execution-trace-persistence.md](./execution-trace-persistence.md)** - Persist execution traces (tool calls, durations) for historical viewing. requires: Chat Interface (MVP)
 - **[tool-permission-system.md](./tool-permission-system.md)** - Foundational tool definitions (declarative + factory) and user-controlled tool permissions with modes, runtime approval, and Agents tab
 - **[context-window-and-costs.md](./context-window-and-costs.md)** - Token usage, processing time, optional cost per message, context window (dynamic for Ollama), and UI for tokens/context consumed. requires: Multi-Provider Model Selection (see [archive](./archive/README.md))

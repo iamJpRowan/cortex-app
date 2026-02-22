@@ -422,6 +422,9 @@ export interface StreamErrorEvent extends StreamEventBase {
 
   /** Suggestion for resolving the error */
   suggestion?: string
+
+  /** Accumulated content before the error (for showing partial response) */
+  accumulated?: string
 }
 
 /**

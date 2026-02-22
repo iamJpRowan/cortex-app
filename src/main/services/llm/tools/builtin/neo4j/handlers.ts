@@ -1,14 +1,21 @@
 import { getDriver } from '@main/services/neo4j'
 import type { ToolHandlers } from '@main/services/llm/tools/factory'
+import {
+  capPropertyValue,
+  capToolResult,
+  DEFAULT_MAX_TOOL_RESULT_LENGTH,
+} from '@main/services/llm/content-guardrails'
 
 const MAX_ROWS_RETURNED = 100
 
 /**
  * Convert a Neo4j record value to a JSON-serializable value.
  * Handles Integer, Node, Relationship, and other driver types.
+ * String values are capped at MAX_PROPERTY_VALUE_LENGTH to avoid huge properties (e.g. long transcripts) blowing context.
  */
 function valueToJson(value: unknown): unknown {
   if (value === null || value === undefined) return value
+  if (typeof value === 'string') return capPropertyValue(value)
   if (
     typeof value === 'object' &&
     value !== null &&
@@ -121,7 +128,7 @@ export const neo4jHandlers: ToolHandlers = {
         if (truncated) message += ` Showing first ${MAX_ROWS_RETURNED} rows.`
         message += updates
         message += `\n\nRows:\n${JSON.stringify(rows, null, 2)}`
-        return message
+        return capToolResult(message, DEFAULT_MAX_TOOL_RESULT_LENGTH)
       } finally {
         await session.close()
       }

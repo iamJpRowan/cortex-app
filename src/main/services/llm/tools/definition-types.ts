@@ -48,6 +48,12 @@ export interface ToolDefinitionMetadata {
   displayName?: string
   /** Lucide icon name for UI (e.g. "Database", "Terminal") */
   icon?: string
+  /**
+   * When true (default), the factory caps this tool's result length before it goes into conversation state.
+   * Set to false only when the tool must return uncapped content; this increases risk of UI freezes and
+   * "prompt too long" / context-window errors.
+   */
+  capResultLength?: boolean
 }
 
 /**
