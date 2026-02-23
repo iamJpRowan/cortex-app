@@ -11,6 +11,7 @@ import type {
   CreateConversationOptions,
   UpdateConversationOptions,
   ChatMessage,
+  TurnBlock,
 } from '@shared/types'
 
 export interface API {
@@ -235,4 +236,5 @@ export type {
   CreateConversationOptions,
   UpdateConversationOptions,
   ChatMessage,
+  TurnBlock,
 }

@@ -12,6 +12,7 @@ Each archived item has YAML frontmatter indicating its status and date.
 
 ## Completed
 
+- **[chat-history-load-single-row-and-thinking.md](./chat-history-load-single-row-and-thinking.md)** — After load/refresh: one assistant row per turn and restore thinking in trace. Single block builder, interleave reload blocks, stream/reload data flow doc. Completed 2026-02-23.
 - **[chat-interface-mvp.md](./chat-interface-mvp.md)** — Production chat interface with streaming, traces, conversation management, and AI integration patterns. Completed 2025-01-31.
 - **[multi-provider-model-selection.md](./multi-provider-model-selection.md)** — Multi-provider support (Ollama, Anthropic), model selector, per-conversation and per-message model tracking, reasoning in trace. Remaining work: additional provider adapters and usage/cost/context (see [Context Window and Costs](../context-window-and-costs.md)). Completed 2025-02-09.
 - **[cursor-style-chat-ui.md](./cursor-style-chat-ui.md)** — Full-width chat turns with top border + avatar on line (agent left, user right), container cap, AI Elements Conversation/Message/MessageResponse, copy/timestamp/model. Sticky prompt deferred. Completed 2025-02-11.

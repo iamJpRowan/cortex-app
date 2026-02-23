@@ -16,6 +16,10 @@ This guide covers the development workflow for building Cortex as a native Elect
 - **[feature-development.md](./feature-development.md)** — Adding features: sequence, example, IPC and UI checklists, React lifecycle and IPC cleanup
 - **[electron-guidance.md](./electron-guidance.md)** — Process boundaries, IPC, state, embedded services, AI (main process)
 
+### Architecture
+
+- **[chat-streaming-and-blocks.md](./chat-streaming-and-blocks.md)** — How chat content flows from the LangGraph stream and checkpoint to the UI (blocks, segments, single block builder).
+
 ### Feature guides
 
 How to add specific capabilities:

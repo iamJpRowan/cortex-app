@@ -36,10 +36,7 @@ import {
   MessageActions,
   MessageAction,
 } from '@/components/ai-elements/message'
-import {
-  ToolInvocationDetails,
-  type ToolInvocationStatus,
-} from '@/components/ai-elements/tool-invocation'
+import { ToolInvocationDetails } from '@/components/ai-elements/tool-invocation'
 import {
   Collapsible,
   CollapsibleContent,
@@ -52,7 +49,16 @@ import type {
   StreamEvent,
   TraceEntry,
   ConversationMetadata,
+  TurnBlock,
 } from '@/types/api'
+import {
+  buildDisplayItems,
+  buildOrderedTraceItems,
+  formatStepDuration,
+  formatToolStepForCopy,
+  getToolStatus,
+  type OrderedTraceItem,
+} from '@/lib/chat-blocks'
 import { cn } from '@/lib/utils'
 import {
   CHAT_LAST_ACTIVE_KEY,
@@ -67,6 +73,17 @@ import {
 } from '@/lib/chat-storage'
 import type { ListModelsResult } from '@shared/types'
 import { registerHotkey } from '@/lib/hotkeys'
+
+/**
+ * Streaming blocks debug: set localStorage DEBUG_STREAMING_BLOCKS='1' then run a tool (e.g. Run Cypher).
+ * Console will log:
+ * - [ChatView trace] each trace event: type, toolCallId, toolName, prevBlocksLen.
+ * - [BlockBasedTurn] on each render: blocks, displayItems, and each trace group's groupKey/entriesLen/entryTypes/toolCallIds.
+ * Use to verify tool_call and tool_result share the same toolCallId and that buildDisplayItems produces one group.
+ */
+const isStreamingBlocksDebug = () =>
+  typeof localStorage !== 'undefined' &&
+  localStorage.getItem('DEBUG_STREAMING_BLOCKS') === '1'
 
 /**
  * ChatView Component
@@ -94,6 +111,9 @@ export function ChatView() {
   const [listError, setListError] = React.useState<string | null>(null)
   const [currentTrace, setCurrentTrace] = React.useState<TraceEntry[]>([])
   const [streamingContent, setStreamingContent] = React.useState('')
+  /** Structured blocks (message, tool, message, tool) during streaming; cleared on start/complete. */
+  const [streamingBlocks, setStreamingBlocks] = React.useState<TurnBlock[]>([])
+  const streamingBlocksRef = React.useRef<TurnBlock[]>([])
   const [isEditingTitle, setIsEditingTitle] = React.useState(false)
   const [editingTitleValue, setEditingTitleValue] = React.useState('')
   const [modelList, setModelList] = React.useState<ListModelsResult | null>(null)
@@ -424,6 +444,8 @@ export function ChatView() {
         lastEventTimeRef.current = Date.now()
         setShowStillWorking(false)
         setStreamingContent('')
+        setStreamingBlocks([])
+        streamingBlocksRef.current = []
         setCurrentTrace([])
         currentTraceRef.current = []
         latestAccumulatedRef.current = ''
@@ -438,13 +460,17 @@ export function ChatView() {
       case 'token': {
         lastEventTimeRef.current = Date.now()
         setShowStillWorking(false)
-        const accumulated = event.accumulated || ''
-        latestAccumulatedRef.current = accumulated
+        // Use currentSegment when present (structured streaming); else accumulated for legacy
+        const segmentOrAccumulated =
+          event.currentSegment !== undefined
+            ? event.currentSegment
+            : event.accumulated || ''
+        latestAccumulatedRef.current = segmentOrAccumulated
         const now = Date.now()
         const elapsed = now - lastStreamingUpdateRef.current
         const STREAMING_THROTTLE_MS = 80
         if (lastStreamingUpdateRef.current === 0 || elapsed >= STREAMING_THROTTLE_MS) {
-          setStreamingContent(accumulated)
+          setStreamingContent(segmentOrAccumulated)
           lastStreamingUpdateRef.current = now
         } else if (streamingThrottleTimeoutRef.current === null) {
           streamingThrottleTimeoutRef.current = setTimeout(() => {
@@ -461,30 +487,54 @@ export function ChatView() {
         lastEventTimeRef.current = Date.now()
         setShowStillWorking(false)
         const traceEntry = event.trace
-        // Defer trace state update to next frame so IPC handler returns and UI stays responsive
+        const completedSegment = event.completedSegment
+        if (isStreamingBlocksDebug()) {
+          console.log('[ChatView trace]', {
+            type: traceEntry.type,
+            toolCallId: traceEntry.toolCallId,
+            toolName: traceEntry.toolName,
+            completedSegmentLen: completedSegment?.length ?? 0,
+            prevBlocksLen: streamingBlocksRef.current.length,
+          })
+        }
         requestAnimationFrame(() => {
           currentTraceRef.current = [...currentTraceRef.current, traceEntry]
           setCurrentTrace(prev => [...prev, traceEntry])
+          // Append from ref so we never drop an entry when two trace events are processed in one batch
+          const prevBlocks = streamingBlocksRef.current
+          const next: TurnBlock[] = [
+            ...prevBlocks,
+            ...(completedSegment
+              ? [{ type: 'text' as const, text: completedSegment }]
+              : []),
+            { type: 'trace' as const, entry: traceEntry },
+          ]
+          streamingBlocksRef.current = next
+          if (isStreamingBlocksDebug()) {
+            console.log(
+              '[ChatView trace] next blocks len',
+              next.length,
+              'block types',
+              next.map(b => (b.type === 'text' ? 'text' : b.entry.type))
+            )
+          }
+          setStreamingBlocks(next)
+          setStreamingContent('')
         })
         break
       }
 
       case 'complete': {
-        // Clear generating indicator when stream completes (title may have arrived or failed)
         setGeneratingTitleConversationId(prev =>
           prev === event.conversationId ? null : prev
         )
-        // Merge reasoning (UI-only, from stream) with persisted trace for final message
-        const reasoningEntries = currentTraceRef.current.filter(
-          e => e.type === 'reasoning'
-        )
-        const mergedTrace = [...reasoningEntries, ...event.trace]
         const newMessage: ChatMessage = {
           id: `msg-${Date.now()}`,
           role: 'assistant',
           content: event.response,
           timestamp: Date.now(),
-          trace: mergedTrace,
+          ...(event.blocks && event.blocks.length > 0 ? { blocks: event.blocks } : {}),
+          ...(event.trace?.length ? { trace: event.trace } : {}),
           ...(event.model != null && event.model !== '' ? { model: event.model } : {}),
           ...(event.tokensUsed != null ? { tokensUsed: event.tokensUsed } : {}),
         }
@@ -493,10 +543,11 @@ export function ChatView() {
           return [...prev, newMessage]
         })
         setStreamingContent('')
+        setStreamingBlocks([])
+        streamingBlocksRef.current = []
         currentTraceRef.current = []
         setCurrentTrace([])
         setIsLoading(false)
-        // Update sidebar so this conversation shows the model used
         if (event.conversationId && event.model != null && event.model !== '') {
           conversationListRef.current?.updateCurrentModel?.(
             event.conversationId,
@@ -520,6 +571,8 @@ export function ChatView() {
         }
         setMessages(prev => [...prev, newMessage])
         setStreamingContent('')
+        setStreamingBlocks([])
+        streamingBlocksRef.current = []
         currentTraceRef.current = []
         setCurrentTrace([])
         setIsLoading(false)
@@ -529,6 +582,8 @@ export function ChatView() {
       case 'error': {
         console.error('Stream error:', event.error)
         setStreamingContent('')
+        setStreamingBlocks([])
+        streamingBlocksRef.current = []
         setIsLoading(false)
         setGeneratingTitleConversationId(prev =>
           prev === event.conversationId ? null : prev
@@ -811,6 +866,41 @@ export function ChatView() {
     }
   }
 
+  /** Memoized streaming message so we don't create a new object on every unrelated re-render. */
+  const streamingMessage = React.useMemo((): ChatMessage | null => {
+    if (!streamingContent && !isLoading) return null
+    const content =
+      streamingBlocks.length > 0
+        ? [
+            ...streamingBlocks
+              .filter((b): b is { type: 'text'; text: string } => b.type === 'text')
+              .map(b => b.text),
+            streamingContent,
+          ]
+            .filter(Boolean)
+            .join('\n\n')
+        : streamingContent || ''
+    const blocks =
+      streamingBlocks.length > 0 || streamingContent
+        ? [
+            ...streamingBlocks,
+            ...(streamingContent
+              ? [{ type: 'text' as const, text: streamingContent }]
+              : []),
+          ]
+        : undefined
+    return {
+      id: 'streaming',
+      role: 'assistant',
+      content,
+      timestamp: Date.now(),
+      blocks,
+      trace: currentTrace,
+      isStreaming: true,
+      ...(selectedModelId ? { model: selectedModelId } : {}),
+    }
+  }, [streamingBlocks, streamingContent, currentTrace, selectedModelId, isLoading])
+
   return (
     <div className="flex flex-1 min-h-0 overflow-hidden">
       {/* Conversation Sidebar - resizable */}
@@ -939,17 +1029,9 @@ export function ChatView() {
                   }
                 />
               ))}
-              {(streamingContent || isLoading) && (
+              {streamingMessage && (
                 <ChatTurn
-                  message={{
-                    id: 'streaming',
-                    role: 'assistant',
-                    content: streamingContent || '',
-                    timestamp: Date.now(),
-                    trace: currentTrace,
-                    isStreaming: true,
-                    ...(selectedModelId ? { model: selectedModelId } : {}),
-                  }}
+                  message={streamingMessage}
                   modelList={modelList}
                   conversationId={conversationId}
                   messageIndex={messages.length}
@@ -1086,6 +1168,71 @@ function CopyAction({
 }
 
 /**
+ * Renders blocks as display items: text segments and grouped trace steps (one row per tool execution).
+ * Uses TraceDisplayForGroup so orderedItems are memoized by groupKey and avoid icon flicker.
+ */
+const BlockBasedTurn = React.memo(function BlockBasedTurn({
+  blocks,
+  isStreaming,
+  showStillWorking,
+  toolMetadataMap,
+}: {
+  blocks: TurnBlock[]
+  isStreaming?: boolean
+  showStillWorking?: boolean
+  toolMetadataMap: Map<string, { displayName?: string; icon?: string }>
+}) {
+  const displayItems = React.useMemo(() => buildDisplayItems(blocks), [blocks])
+  const total = displayItems.length
+  if (isStreamingBlocksDebug() && blocks.some(b => b.type === 'trace')) {
+    const traceGroups = displayItems.filter(
+      (i): i is { kind: 'traceGroup'; entries: TraceEntry[]; groupKey: string } =>
+        i.kind === 'traceGroup'
+    )
+    console.log('[BlockBasedTurn]', {
+      blocksLen: blocks.length,
+      blockTypes: blocks.map(b => (b.type === 'text' ? 'text' : b.entry.type)),
+      displayItemCount: displayItems.length,
+      traceGroups: traceGroups.map(t => ({
+        groupKey: t.groupKey,
+        entriesLen: t.entries.length,
+        entryTypes: t.entries.map(e => e.type),
+        toolCallIds: t.entries.map(e => e.toolCallId),
+      })),
+    })
+  }
+  return (
+    <div className="flex flex-col gap-3">
+      {displayItems.map((item, idx) =>
+        item.kind === 'text' ? (
+          item.text.trim() ? (
+            <MessageContent
+              key={`text-${idx}`}
+              className="
+                group-[.is-assistant]:bg-transparent group-[.is-assistant]:p-0
+                group-[.is-user]:bg-transparent group-[.is-user]:p-0
+              "
+            >
+              <MessageResponse>{item.text}</MessageResponse>
+            </MessageContent>
+          ) : null
+        ) : (
+          <TraceDisplayForGroup
+            key={`trace-${item.groupKey}`}
+            entries={item.entries}
+            groupKey={item.groupKey}
+            isStreaming={isStreaming}
+            showStillWorking={showStillWorking && idx === total - 1}
+            toolMetadataMap={toolMetadataMap}
+            defaultStepsExpanded={false}
+          />
+        )
+      )}
+    </div>
+  )
+})
+
+/**
  * ChatTurn: full-width turn with top border, avatar on the line (agent left, user right), lighter background.
  * Uses AI Elements Message / MessageContent / MessageResponse; keeps TraceDisplay and copy/timestamp/model.
  * Memoized so trace updates only re-render the streaming turn, not the whole list (avoids re-parsing
@@ -1126,7 +1273,9 @@ const ChatTurn = React.memo(function ChatTurn({
     [message.trace]
   )
   const hasTrace = orderedTraceItems.length > 0
-  const showSteps = !isUser && (hasTrace || message.isStreaming)
+  const hasBlocksWithTrace =
+    message.blocks != null && message.blocks.some(b => b.type === 'trace')
+  const showSteps = !isUser && (hasTrace || hasBlocksWithTrace || message.isStreaming)
 
   const formatTokensUsed = (tokens: {
     input?: number
@@ -1171,8 +1320,8 @@ const ChatTurn = React.memo(function ChatTurn({
     <div
       className={cn(
         `
-          relative border-t px-4 pb-12
-          last:pb-4
+          relative border-t px-4 pt-5 pb-6
+          last:pb-3
         `,
         isUser ? 'border-bg-secondary bg-bg-secondary' : 'border-border bg-background'
       )}
@@ -1202,24 +1351,35 @@ const ChatTurn = React.memo(function ChatTurn({
         </div>
       </div>
 
-      <Message from={message.role} className="mt-2 max-w-full">
-        {showSteps && (
-          <TraceDisplay
-            orderedItems={orderedTraceItems}
+      <Message from={message.role} className="mt-1 max-w-full">
+        {message.blocks && message.blocks.length > 0 ? (
+          <BlockBasedTurn
+            blocks={message.blocks}
             isStreaming={message.isStreaming}
             showStillWorking={showStillWorking}
             toolMetadataMap={toolMetadataMap}
-            defaultStepsExpanded={defaultStepsExpanded}
           />
+        ) : (
+          <>
+            {showSteps && (
+              <TraceDisplay
+                orderedItems={orderedTraceItems}
+                isStreaming={message.isStreaming}
+                showStillWorking={showStillWorking}
+                toolMetadataMap={toolMetadataMap}
+                defaultStepsExpanded={defaultStepsExpanded}
+              />
+            )}
+            <MessageContent
+              className="
+                group-[.is-assistant]:bg-transparent group-[.is-assistant]:p-0
+                group-[.is-user]:bg-transparent group-[.is-user]:p-0
+              "
+            >
+              <MessageResponse>{message.content}</MessageResponse>
+            </MessageContent>
+          </>
         )}
-        <MessageContent
-          className="
-            group-[.is-assistant]:bg-transparent group-[.is-assistant]:p-0
-            group-[.is-user]:bg-transparent group-[.is-user]:p-0
-          "
-        >
-          <MessageResponse>{message.content}</MessageResponse>
-        </MessageContent>
         {!message.isStreaming && message.content && (
           <MessageActions className="mt-2 w-full justify-end">
             {!isUser && conversationId && (
@@ -1243,8 +1403,8 @@ const ChatTurn = React.memo(function ChatTurn({
       </Message>
 
       {/* Message details below actions: model, tokens, timestamp (both AI and user) */}
-      <div className="flex items-start justify-between pt-1 pb-1">
-        <div className="h-8 w-8 shrink-0" aria-hidden />
+      <div className="flex items-start justify-between pt-0.5 pb-0.5">
+        <div className="w-8 shrink-0" aria-hidden />
         <div
           className="
             flex flex-wrap items-center justify-end gap-2 text-xs text-muted-foreground
@@ -1264,131 +1424,6 @@ const ChatTurn = React.memo(function ChatTurn({
     </div>
   )
 })
-
-/**
- * Grouped tool execution - pairs a tool_call with its result.
- */
-interface GroupedToolExecution {
-  toolName: string
-  toolCallId?: string
-  displayName?: string
-  icon?: string
-  args?: Record<string, unknown>
-  result?: string
-  duration?: number
-  error?: string
-  isComplete: boolean
-}
-
-/** Ordered trace item: either reasoning (thinking) or a grouped tool execution. */
-type OrderedTraceItem =
-  | { kind: 'reasoning'; content: string; duration?: number }
-  | { kind: 'tool'; execution: GroupedToolExecution }
-
-/**
- * Build an ordered list of trace items (reasoning + tool steps) for display.
- */
-function buildOrderedTraceItems(trace: TraceEntry[]): OrderedTraceItem[] {
-  const ordered: OrderedTraceItem[] = []
-  const pendingById = new Map<string, GroupedToolExecution>()
-  const pendingByName = new Map<string, GroupedToolExecution[]>()
-
-  for (const entry of trace) {
-    if (entry.type === 'reasoning' && entry.content?.trim()) {
-      const content = entry.content.trim()
-      const last = ordered[ordered.length - 1]
-      if (last?.kind === 'reasoning') {
-        last.content = content
-        last.duration = entry.duration
-      } else {
-        ordered.push({ kind: 'reasoning', content, duration: entry.duration })
-      }
-    } else if (entry.type === 'tool_call' && entry.toolName) {
-      const group: GroupedToolExecution = {
-        toolName: entry.toolName,
-        toolCallId: entry.toolCallId,
-        displayName: entry.displayName,
-        icon: entry.icon,
-        args: entry.args,
-        isComplete: false,
-      }
-      ordered.push({ kind: 'tool', execution: group })
-      if (entry.toolCallId) {
-        pendingById.set(entry.toolCallId, group)
-      } else {
-        if (!pendingByName.has(entry.toolName)) {
-          pendingByName.set(entry.toolName, [])
-        }
-        pendingByName.get(entry.toolName)!.push(group)
-      }
-    } else if (entry.type === 'tool_result') {
-      let group: GroupedToolExecution | undefined
-      if (entry.toolCallId && pendingById.has(entry.toolCallId)) {
-        group = pendingById.get(entry.toolCallId)!
-        pendingById.delete(entry.toolCallId)
-      } else if (entry.toolName) {
-        const pending = pendingByName.get(entry.toolName)
-        if (pending?.length) group = pending.shift()!
-      }
-      if (group) {
-        group.result = entry.result
-        group.duration = entry.duration
-        group.error = entry.error
-        group.isComplete = true
-      } else {
-        ordered.push({
-          kind: 'tool',
-          execution: {
-            toolName: entry.toolName || 'unknown',
-            toolCallId: entry.toolCallId,
-            displayName: entry.displayName,
-            icon: entry.icon,
-            result: entry.result,
-            duration: entry.duration,
-            error: entry.error,
-            isComplete: true,
-          },
-        })
-      }
-    }
-  }
-
-  return ordered
-}
-
-/**
- * Determine ToolInvocation status from execution state.
- */
-function getToolStatus(
-  execution: GroupedToolExecution,
-  isStreaming?: boolean
-): ToolInvocationStatus {
-  if (execution.error) return 'error'
-  if (execution.isComplete) return 'complete'
-  if (isStreaming) return 'calling'
-  return 'complete'
-}
-
-/** Format duration in ms for step row (e.g. 1200 -> "1.2s", 80 -> "80ms"). */
-function formatStepDuration(ms: number): string {
-  if (ms >= 1000) return `${(ms / 1000).toFixed(1)}s`
-  return `${ms}ms`
-}
-
-/** Build copyable text for a tool step (args + result/error). */
-function formatToolStepForCopy(exec: GroupedToolExecution): string {
-  const parts: string[] = []
-  if (exec.args && Object.keys(exec.args).length > 0) {
-    parts.push('Arguments:\n' + JSON.stringify(exec.args, null, 2))
-  }
-  if (exec.result && !exec.error) {
-    parts.push('Result:\n' + exec.result)
-  }
-  if (exec.error) {
-    parts.push('Error:\n' + exec.error)
-  }
-  return parts.join('\n\n')
-}
 
 function StepContentWithCopy({
   copyValue,
@@ -1426,6 +1461,41 @@ function StepContentWithCopy({
     </>
   )
 }
+
+/**
+ * Memoized wrapper that builds orderedItems from entries only when groupKey changes.
+ * Reduces re-renders and icon flicker when only the streaming segment updates.
+ */
+const TraceDisplayForGroup = React.memo(function TraceDisplayForGroup({
+  entries,
+  groupKey,
+  isStreaming,
+  showStillWorking,
+  toolMetadataMap,
+  defaultStepsExpanded = false,
+}: {
+  entries: TraceEntry[]
+  groupKey: string
+  isStreaming?: boolean
+  showStillWorking?: boolean
+  toolMetadataMap: Map<string, { displayName?: string; icon?: string }>
+  defaultStepsExpanded?: boolean
+}) {
+  // Recompute when entries change (e.g. tool_result added) so loading → complete updates; groupKey stays stable to avoid remount
+  const orderedItems = React.useMemo(
+    () => buildOrderedTraceItems(entries),
+    [groupKey, entries.length]
+  )
+  return (
+    <TraceDisplay
+      orderedItems={orderedItems}
+      isStreaming={isStreaming}
+      showStillWorking={showStillWorking}
+      toolMetadataMap={toolMetadataMap}
+      defaultStepsExpanded={defaultStepsExpanded}
+    />
+  )
+})
 
 /**
  * TraceDisplay Component
@@ -1508,9 +1578,9 @@ function TraceDisplay({
                 />
               )}
               {isActive && (
-                <Loader2
-                  className="h-3.5 w-3.5 shrink-0 animate-spin text-muted-foreground"
-                />
+                <Loader2 className="
+                  h-3.5 w-3.5 shrink-0 animate-spin text-muted-foreground
+                " />
               )}
             </CollapsibleTrigger>
             <CollapsibleContent>

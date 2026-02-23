@@ -141,10 +141,22 @@ export interface LLMQueryResult {
 export type ChatMessageRole = 'user' | 'assistant' | 'system'
 
 /**
+ * A single block in an assistant turn: either a text segment or a trace step.
+ * Enables "message, tool, message, tool" ordering in the UI.
+ */
+export type TurnBlock =
+  | { type: 'text'; text: string }
+  | { type: 'trace'; entry: TraceEntry }
+
+/**
  * A chat message for UI display.
  *
  * Represents a single message in a conversation, extracted from
  * the LangGraph checkpointer for display in the chat UI.
+ *
+ * Assistant messages may use structured `blocks` (ordered text + trace) for
+ * "message, tool, message, tool" display. When `blocks` is present, `content`
+ * is derived for copy/fallback; legacy messages have only `content` and `trace`.
  */
 export interface ChatMessage {
   /** Unique message ID */
@@ -153,13 +165,24 @@ export interface ChatMessage {
   /** Role of the message sender */
   role: ChatMessageRole
 
-  /** Message content (may contain markdown) */
+  /**
+   * Message content (plain or markdown).
+   * When `blocks` is set, derived as concatenation of text blocks (with \n\n).
+   * Required for user messages; optional for assistant when `blocks` is present.
+   */
   content: string
+
+  /**
+   * Ordered list of text segments and trace steps for this turn.
+   * When present, UI renders in order (message, tool, message, tool).
+   * Omitted for legacy messages (use content + trace instead).
+   */
+  blocks?: TurnBlock[]
 
   /** Timestamp when the message was created */
   timestamp: number
 
-  /** Execution trace for this message (for assistant messages) */
+  /** Execution trace for this message (legacy; use blocks when present) */
   trace?: TraceEntry[]
 
   /** Whether this message is currently streaming */
@@ -372,6 +395,12 @@ export interface StreamTokenEvent extends StreamEventBase {
 
   /** Accumulated content so far (optional, for convenience) */
   accumulated?: string
+
+  /**
+   * Content of the current segment only (text since last trace).
+   * When present, use for building structured blocks during streaming.
+   */
+  currentSegment?: string
 }
 
 /**
@@ -382,6 +411,12 @@ export interface StreamTraceEvent extends StreamEventBase {
 
   /** The trace entry */
   trace: TraceEntry
+
+  /**
+   * Text segment that just ended before this trace (e.g. pre-tool commentary).
+   * When present, frontend pushes this as a text block then the trace block.
+   */
+  completedSegment?: string
 }
 
 /**
@@ -398,11 +433,17 @@ export interface TokenUsage {
 export interface StreamCompleteEvent extends StreamEventBase {
   type: 'complete'
 
-  /** Final complete response */
+  /** Final complete response (all text segments joined with \n\n) */
   response: string
 
   /** Complete execution trace */
   trace: TraceEntry[]
+
+  /**
+   * Ordered blocks (text segments + trace steps) for this turn.
+   * When present, use for "message, tool, message, tool" display.
+   */
+  blocks?: TurnBlock[]
 
   /** Model that was used for this response (for conversation/message tracking) */
   model?: string

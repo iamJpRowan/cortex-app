@@ -15,7 +15,9 @@ import type {
   TraceEntry,
   StreamEventHandler,
   ChatMessage,
+  TurnBlock,
 } from '@shared/types'
+import { interleaveToolCallsWithResults } from '@shared/lib/chat-blocks'
 import type { PrefixedModelId } from './providers/types'
 import { parseModelId } from './providers/types'
 import { providerRegistry, getModelsWithMetadata } from './providers'
@@ -634,8 +636,9 @@ export class LLMAgentService {
     })
 
     const trace: TraceEntry[] = []
+    const blocks: TurnBlock[] = []
+    let currentSegment = ''
     let finalResponse = ''
-    let accumulated = ''
     let lastMessageCount = -1
     const processedToolCalls = new Set<string>()
     const toolCallStartTimes = new Map<string, number>()
@@ -651,6 +654,40 @@ export class LLMAgentService {
     /** Token usage from stream metadata when provided by the provider. */
     let lastTokenUsage: { input?: number; output?: number; thinking?: number } | undefined
 
+    /** Full text so far (all segments + current segment) for token events and final response. */
+    const getAccumulated = (): string => {
+      const textParts = blocks
+        .filter((b): b is { type: 'text'; text: string } => b.type === 'text')
+        .map(b => b.text)
+      if (currentSegment) {
+        textParts.push(currentSegment)
+      }
+      return textParts.join('\n\n')
+    }
+
+    /**
+     * Flush current segment to blocks, push trace entry, emit trace event with completedSegment.
+     * For tool_result: clear segment but do not add to blocks or send completedSegment, so echoed
+     * tool output in the stream never appears as response text (tool result is shown in trace only).
+     */
+    const emitTraceEntry = (entry: TraceEntry): void => {
+      const completedSegment = currentSegment
+      currentSegment = ''
+      const isToolResult = entry.type === 'tool_result'
+      if (completedSegment && !isToolResult) {
+        blocks.push({ type: 'text', text: completedSegment })
+      }
+      blocks.push({ type: 'trace', entry })
+      trace.push(entry)
+      onEvent({
+        type: 'trace',
+        streamId,
+        conversationId: convId,
+        trace: entry,
+        completedSegment: !isToolResult ? completedSegment || undefined : undefined,
+      })
+    }
+
     /** Emit current accumulated reasoning as one trace entry (does not clear or set final flag). */
     const emitReasoningSoFar = () => {
       if (reasoningByIndex.size === 0 || reasoningEmittedFromMessages) return
@@ -664,16 +701,11 @@ export class LLMAgentService {
       if (!merged) return
       const now = Date.now()
       const duration = reasoningStartTime != null ? now - reasoningStartTime : undefined
-      onEvent({
-        type: 'trace',
-        streamId,
-        conversationId: convId,
-        trace: {
-          type: 'reasoning',
-          content: merged,
-          timestamp: now,
-          duration,
-        },
+      emitTraceEntry({
+        type: 'reasoning',
+        content: merged,
+        timestamp: now,
+        duration,
       })
       lastReasoningEmitTime = now
     }
@@ -692,16 +724,11 @@ export class LLMAgentService {
         if (text) {
           const duration =
             reasoningStartTime != null ? now - reasoningStartTime : undefined
-          onEvent({
-            type: 'trace',
-            streamId,
-            conversationId: convId,
-            trace: {
-              type: 'reasoning',
-              content: text,
-              timestamp: now,
-              duration,
-            },
+          emitTraceEntry({
+            type: 'reasoning',
+            content: text,
+            timestamp: now,
+            duration,
           })
         }
       }
@@ -776,13 +803,15 @@ export class LLMAgentService {
           }
           const token = messageContentToString(content)
           if (token) {
-            accumulated += token
+            currentSegment += token
+            const accumulated = getAccumulated()
             onEvent({
               type: 'token',
               streamId,
               conversationId: convId,
               token,
               accumulated,
+              currentSegment,
             })
           }
         } else if (mode === 'values') {
@@ -827,13 +856,7 @@ export class LLMAgentService {
                     args: toolCall.args as Record<string, unknown>,
                     timestamp: startTime,
                   }
-                  trace.push(traceEntry)
-                  onEvent({
-                    type: 'trace',
-                    streamId,
-                    conversationId: convId,
-                    trace: traceEntry,
-                  })
+                  emitTraceEntry(traceEntry)
                   console.log(`[LLMAgent] Tool call: ${toolCall.name} (${toolCallId})`)
                 }
               }
@@ -843,16 +866,10 @@ export class LLMAgentService {
               if (!reasoningEmittedFromMessages) {
                 for (const thinking of parsed.thinkingBlocks) {
                   if (thinking.trim()) {
-                    const reasoningEntry: TraceEntry = {
+                    emitTraceEntry({
                       type: 'reasoning',
                       content: thinking.trim(),
                       timestamp: Date.now(),
-                    }
-                    onEvent({
-                      type: 'trace',
-                      streamId,
-                      conversationId: convId,
-                      trace: reasoningEntry,
                     })
                   }
                 }
@@ -896,13 +913,7 @@ export class LLMAgentService {
                 duration,
                 error: isError ? truncateForDisplay(content) : undefined,
               }
-              trace.push(traceEntry)
-              onEvent({
-                type: 'trace',
-                streamId,
-                conversationId: convId,
-                trace: traceEntry,
-              })
+              emitTraceEntry(traceEntry)
               const durationStr = duration ? ` (${duration}ms)` : ''
               if (isError) {
                 console.error(
@@ -912,8 +923,6 @@ export class LLMAgentService {
               } else {
                 console.log(`[LLMAgent] Tool result from ${toolName}${durationStr}`)
               }
-              // Reset accumulated for next LLM response after tool
-              accumulated = ''
             }
           }
 
@@ -924,13 +933,14 @@ export class LLMAgentService {
       // Flush any reasoning left in buffer (e.g. stream ended before text chunk)
       flushReasoningFromChunks()
 
-      // Use accumulated tokens as final response if we have them
-      if (accumulated.trim()) {
-        finalResponse = accumulated
+      // Flush final segment and set response from full accumulated text
+      if (currentSegment.trim()) {
+        blocks.push({ type: 'text', text: currentSegment.trim() })
       }
+      finalResponse = getAccumulated().trim()
 
       // Add final assistant message to trace
-      if (finalResponse.trim()) {
+      if (finalResponse) {
         trace.push({
           type: 'assistant_message',
           content: finalResponse,
@@ -945,6 +955,7 @@ export class LLMAgentService {
         conversationId: convId,
         response: finalResponse || 'No response',
         trace,
+        blocks: blocks.length > 0 ? blocks : undefined,
         model: modelId,
         tokensUsed: lastTokenUsage,
       })
@@ -960,7 +971,7 @@ export class LLMAgentService {
           (error.name === 'AbortError' || error.message === 'The operation was aborted'))
 
       if (isAbort) {
-        const cancelledAccumulated = accumulated.trim()
+        const cancelledAccumulated = getAccumulated().trim()
         const cancelledForEvent =
           cancelledAccumulated.length <= MAX_ACCUMULATED_IN_EVENT_LENGTH
             ? cancelledAccumulated || undefined
@@ -1041,7 +1052,7 @@ export class LLMAgentService {
         }
       }
 
-      const accumulatedTrimmed = accumulated.trim()
+      const accumulatedTrimmed = getAccumulated().trim()
       const accumulatedForEvent =
         accumulatedTrimmed.length <= MAX_ACCUMULATED_IN_EVENT_LENGTH
           ? accumulatedTrimmed || undefined
@@ -1233,23 +1244,45 @@ export class LLMAgentService {
       let assistantIndex = 0
       let outputIndex = 0
 
-      // Track pending trace entries for current assistant turn
-      let pendingTrace: TraceEntry[] = []
+      let turnBlocks: TurnBlock[] = []
+      const turnTextSegments: string[] = []
+      let turnModel: string | undefined
+      let turnTokensUsed: ChatMessage['tokensUsed']
+
+      const pushAssistantTurn = () => {
+        if (turnBlocks.length === 0) return
+        const content = turnTextSegments.join('\n\n')
+        const model =
+          messageModels && assistantIndex < messageModels.length
+            ? messageModels[assistantIndex]
+            : turnModel
+        assistantIndex += 1
+        const ts = timestampMap.get(outputIndex) ?? fallbackTs
+        const blocks = interleaveToolCallsWithResults(turnBlocks)
+        messages.push({
+          id: `msg-${conversationId}-${messageIndex++}`,
+          role: 'assistant',
+          content: content || ' ',
+          timestamp: ts,
+          blocks: [...blocks],
+          ...(model ? { model } : {}),
+          ...(turnTokensUsed ? { tokensUsed: turnTokensUsed } : {}),
+        })
+        outputIndex++
+        turnBlocks = []
+        turnTextSegments.length = 0
+        turnModel = undefined
+        turnTokensUsed = undefined
+      }
 
       for (const msg of channelValues.messages) {
         const msgType = this.getMessageType(msg)
 
-        // Skip system messages (they're internal context)
-        if (msgType === 'system') {
-          continue
-        }
+        if (msgType === 'system') continue
 
         if (msgType === 'human') {
-          // New user message - reset pending trace
-          pendingTrace = []
-
+          pushAssistantTurn()
           const content = messageContentToString(msg.content)
-
           messages.push({
             id: `msg-${conversationId}-${messageIndex++}`,
             role: 'user',
@@ -1258,64 +1291,66 @@ export class LLMAgentService {
           })
           outputIndex++
         } else if (msgType === 'ai') {
-          const aiMsg = msg as AIMessage
-          const toolCalls = aiMsg.tool_calls
-
-          // If this AI message has tool calls, add them to pending trace
-          if (toolCalls && toolCalls.length > 0) {
-            for (const toolCall of toolCalls) {
-              pendingTrace.push({
-                type: 'tool_call',
-                toolCallId: toolCall.id,
-                toolName: toolCall.name,
-                args: toolCall.args as Record<string, unknown>,
-                timestamp: Date.now(),
+          const aiMsg = msg as AIMessage & {
+            usage_metadata?: Record<string, unknown>
+            response_metadata?: Record<string, unknown>
+          }
+          const parsed = parseAIContent(aiMsg.content)
+          const tokensUsed = extractTokenUsage(aiMsg)
+          if (tokensUsed) turnTokensUsed = tokensUsed
+          if (messageModels && assistantIndex < messageModels.length) {
+            turnModel = messageModels[assistantIndex]
+          }
+          // Reasoning first (from thinking blocks)
+          for (const thinking of parsed.thinkingBlocks) {
+            if (thinking.trim()) {
+              turnBlocks.push({
+                type: 'trace',
+                entry: {
+                  type: 'reasoning',
+                  content: thinking.trim(),
+                  timestamp: Date.now(),
+                },
               })
             }
           }
-
-          // If this AI message has content (final response), add it with trace
-          const content = messageContentToString(aiMsg.content)
-
-          if (content && content.trim()) {
-            const model =
-              messageModels && assistantIndex < messageModels.length
-                ? messageModels[assistantIndex]
-                : undefined
-            const tokensUsed = extractTokenUsage(
-              aiMsg as AIMessage & {
-                usage_metadata?: Record<string, unknown>
-                response_metadata?: Record<string, unknown>
-              }
-            )
-            assistantIndex += 1
-            messages.push({
-              id: `msg-${conversationId}-${messageIndex++}`,
-              role: 'assistant',
-              content,
-              timestamp: timestampMap.get(outputIndex) ?? fallbackTs,
-              trace: pendingTrace.length > 0 ? [...pendingTrace] : undefined,
-              ...(model ? { model } : {}),
-              ...(tokensUsed ? { tokensUsed } : {}),
-            })
-            outputIndex++
-            // Reset trace after attaching to response
-            pendingTrace = []
+          // Then text segment
+          if (parsed.textContent.trim()) {
+            turnBlocks.push({ type: 'text', text: parsed.textContent.trim() })
+            turnTextSegments.push(parsed.textContent.trim())
+          }
+          // Then tool calls
+          if (aiMsg.tool_calls?.length) {
+            for (const toolCall of aiMsg.tool_calls) {
+              turnBlocks.push({
+                type: 'trace',
+                entry: {
+                  type: 'tool_call',
+                  toolCallId: toolCall.id,
+                  toolName: toolCall.name,
+                  args: toolCall.args as Record<string, unknown>,
+                  timestamp: Date.now(),
+                },
+              })
+            }
           }
         } else if (msgType === 'tool') {
-          // Tool result - add to pending trace
           const toolMsg = msg as ToolMessage
           const content = messageContentToString(toolMsg.content)
-
-          pendingTrace.push({
-            type: 'tool_result',
-            toolCallId: toolMsg.tool_call_id,
-            toolName: toolMsg.name || 'unknown',
-            result: content,
-            timestamp: Date.now(),
+          turnBlocks.push({
+            type: 'trace',
+            entry: {
+              type: 'tool_result',
+              toolCallId: toolMsg.tool_call_id,
+              toolName: toolMsg.name || 'unknown',
+              result: truncateForDisplay(content),
+              timestamp: Date.now(),
+            },
           })
         }
       }
+
+      pushAssistantTurn()
 
       console.log(
         `[LLMAgent] Retrieved ${messages.length} messages for: ${conversationId}`

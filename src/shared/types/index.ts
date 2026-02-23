@@ -30,6 +30,7 @@ export type {
   // Chat message types
   ChatMessageRole,
   ChatMessage,
+  TurnBlock,
   // Conversation types
   ConversationMetadata,
   ListConversationsOptions,
