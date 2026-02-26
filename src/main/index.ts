@@ -6,6 +6,7 @@ import { initializeSettings } from './services/settings'
 import { registerTestHandlers } from './ipc/test'
 import { registerLLMHandlers } from './ipc/llm'
 import { registerConversationHandlers } from './ipc/conversations'
+import { registerModeHandlers } from './ipc/modes'
 import { registerWindowHandlers, setMainWindow, setupWindowListeners } from './ipc/window'
 import {
   registerSettingsHandlers,
@@ -67,6 +68,7 @@ app.whenReady().then(async () => {
     registerTestHandlers()
     registerLLMHandlers()
     registerConversationHandlers()
+    registerModeHandlers()
     registerWindowHandlers()
     registerSettingsHandlers()
 

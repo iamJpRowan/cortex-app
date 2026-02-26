@@ -43,6 +43,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
 import { ModelSelector } from './ModelSelector'
+import { ModeSelector } from './ModeSelector'
 import { ProviderIcon, getProviderIdFromModelId } from './ProviderIcon'
 import type {
   ChatMessage,
@@ -71,7 +72,7 @@ import {
   CHAT_COMPOSER_HEIGHT_MIN,
   CHAT_COMPOSER_HEIGHT_MAX_VH,
 } from '@/lib/chat-storage'
-import type { ListModelsResult } from '@shared/types'
+import type { ListModelsResult, PermissionMode } from '@shared/types'
 import { registerHotkey } from '@/lib/hotkeys'
 
 /**
@@ -122,6 +123,10 @@ export function ChatView() {
   const [selectedModelId, setSelectedModelId] = React.useState<string>('')
   /** Per-conversation last message time (for unread indicator when stream completes). */
   const [lastMessageAt, setLastMessageAt] = React.useState<Record<string, number>>({})
+  /** Permission modes (from modes.list()); used for mode selector. */
+  const [modeList, setModeList] = React.useState<PermissionMode[] | null>(null)
+  /** Default permission mode for new chats (from settings). */
+  const [defaultModeId, setDefaultModeId] = React.useState<string>('full')
   /** Conversation currently receiving a stream (for sidebar indicator, persists when switching away). */
   const [streamingConversationId, setStreamingConversationId] = React.useState<
     string | undefined
@@ -341,6 +346,40 @@ export function ChatView() {
       cancelled = true
     }
   }, [])
+
+  // Load permission modes (enabled only) and default mode for selector
+  const loadModeList = React.useCallback(() => {
+    window.api.modes.list().then(listRes => {
+      if (listRes?.success && listRes.modes) {
+        setModeList(listRes.modes)
+      }
+    })
+  }, [])
+
+  React.useEffect(() => {
+    let cancelled = false
+    Promise.all([
+      window.api.modes.list(),
+      window.api.settings
+        .get('agents.defaultModeId')
+        .then(r => (r.success && typeof r.data === 'string' ? r.data : 'full')),
+    ]).then(([listRes, defaultMode]) => {
+      if (!cancelled && listRes?.success && listRes.modes) {
+        setModeList(listRes.modes)
+        setDefaultModeId(defaultMode)
+      }
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  // Refetch enabled-only mode list on window focus (e.g. after changing modes in Settings)
+  React.useEffect(() => {
+    const onFocus = () => loadModeList()
+    window.addEventListener('focus', onFocus)
+    return () => window.removeEventListener('focus', onFocus)
+  }, [loadModeList])
 
   // For new chat (no conversation), set selected model from default or first in list
   React.useEffect(() => {
@@ -866,6 +905,18 @@ export function ChatView() {
     }
   }
 
+  const handleModeChange = async (modeId: string) => {
+    if (!conversationId) return
+    try {
+      await window.api.conversations.update(conversationId, { modeId })
+      setConversations(prev =>
+        prev.map(c => (c.id === conversationId ? { ...c, modeId } : c))
+      )
+    } catch (err) {
+      console.error('Failed to update conversation mode:', err)
+    }
+  }
+
   /** Memoized streaming message so we don't create a new object on every unrelated re-render. */
   const streamingMessage = React.useMemo((): ChatMessage | null => {
     if (!streamingContent && !isLoading) return null
@@ -1080,6 +1131,25 @@ export function ChatView() {
               containerHeightMaxVh={CHAT_COMPOSER_HEIGHT_MAX_VH}
               footer={
                 <>
+                  {conversationId ? (
+                    <ModeSelector
+                      value={
+                        conversations.find(c => c.id === conversationId)?.modeId ??
+                        defaultModeId ??
+                        'full'
+                      }
+                      onValueChange={handleModeChange}
+                      modeList={modeList}
+                      disabled={isLoading}
+                      placeholder="Permission mode"
+                      className="flex-1 max-w-[11rem]"
+                    />
+                  ) : (
+                    <span className="text-sm text-muted-foreground px-2 py-1.5">
+                      New chats:{' '}
+                      {modeList?.find(m => m.id === defaultModeId)?.name ?? defaultModeId}
+                    </span>
+                  )}
                   <ModelSelector
                     value={selectedModelId}
                     onValueChange={handleModelChange}

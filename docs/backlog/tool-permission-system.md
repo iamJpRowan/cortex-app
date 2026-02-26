@@ -179,26 +179,59 @@ Tool registry requires permission metadata per tool as specified in **Part I: To
 3. No per-tool `toolRegistry.register()` calls; only domain-level loops. Document the definition shape and “adding a new tool” guide (add definition, add handler, register the domain). **Done:** [docs/development/adding-a-tool.md](../development/adding-a-tool.md).
 
 ## Phase 4: Mode Storage & Permission Service
-1. Permission/mode service (e.g. `src/main/services/permissions.ts` or mode registry). **Main settings**: single key for default mode (e.g. `agents.defaultModeId`). No other permission data in main settings.
-2. **Mode definitions**: One file per mode in dedicated directory (e.g. `userData/modes/`); dot notation, explicit overrides. Load built-in modes (Local Read Only, Read Only, Local Only, Full) + user mode files.
-3. Mode registry API: list, get, save, duplicate, reset prebuilt, disable. Add `modeId` to conversation metadata (set on create from default, update when user changes mode).
+**Status:** Done.
+1. Permission/mode service (e.g. `src/main/services/permissions.ts` or mode registry). **Main settings**: single key for default mode (e.g. `agents.defaultModeId`). No other permission data in main settings. **Done:** `src/main/services/modes/` (registry, builtins, types); settings `agents.defaultModeId`, `agents.disabledModeIds`.
+2. **Mode definitions**: One file per mode in dedicated directory (e.g. `userData/modes/`); dot notation, explicit overrides. Load built-in modes (Local Read Only, Read Only, Local Only, Full) + user mode files. **Done.**
+3. Mode registry API: list, get, save, duplicate, reset prebuilt, disable. Add `modeId` to conversation metadata (set on create from default, update when user changes mode). **Done.** Conversation create uses default from settings; backfill modeId on write when null.
+4. **UI for current API:** Chat mode selector (near model selector); Settings > Agents tab: default mode for new chats, mode list (Duplicate, Reset, Disable), hidden modes (Enable), mode editor (name + six category allow/ask/deny, Save). **Done.**
 
-## Phase 5: Enhance `getToolsForAgent()` Function
+## Phase 5: Chat Mode Selector & Persistence
+**Status:** Done (backend sets modeId on create; Phase 8 will wire mode into `getToolsForAgent()`).
+1. Add mode selector to chat UI, placed near the agent selector. **Done.**
+2. On new conversation: set conversation `modeId` from default chat mode (settings). **Done** (backend).
+3. When user changes mode in chat: update conversation's `modeId` and persist. **Done.**
+4. When loading a conversation: restore and display its stored mode; use it in `getToolsForAgent()`. **Done** (display + persist); tool filtering in Phase 8.
+
+## Phase 6: Agents Tab & Permission UI
+**Status:** Done. Implementation order below. Remaining phases: 7 (next), then 8, 9, 10, 11.
+
+**Completed (in order of implementation):**
+1. Rename settings tab to **Agents**; two sections: LLM Providers (default model, Ollama, Anthropic) and Agent Permission (modes). **Done.**
+2. Mode registry: built-in modes as file-shaped content (id, name, description, categories.*), user mode files in `userData/modes/`. API: getMode, listModes, listAllModes, saveMode, duplicateMode, resetMode, setModeDisabled. **Done.**
+3. IPC: modes:list, listAll, get, save, duplicate, reset, setDisabled; preload and api.d.ts. **Done.**
+4. Mode editor UI: category-level defaults (six categories), load/save from registry. **Done.** Overrides by connection type, connection, tool (future).
+5. Default mode selector for new chats; `agents.defaultModeId` and `agents.disabledModeIds` in main settings. **Done.**
+6. ModeSelector in chat; conversation `modeId` on create (from default), on user change, and on load. **Done.**
+7. Mode file path: getModeFilePath, modes:getFilePath; expanded mode card shows path in footer. **Open in Editor:** modes:openInEditor (creates file if missing, opens in system editor). **Done.**
+8. Mode description: optional `description` in mode type and file shape; built-ins use same file-shaped content; editor and card show description; user overrides without description get built-in default. **Done.**
+9. getBuiltinDefault, modes:getBuiltinDefault; Reset action only when mode differs from built-in default (collapsed and expanded); builtinDefaults loaded for comparison. **Done.**
+10. deleteMode (non–built-in only: unlink file, clear from disabled list); modes:delete; Delete first in actions for custom modes; confirm before delete; clear agents.defaultModeId if deleted mode was default. **Done.**
+11. Shared **SettingsExpandableCard**: title, description, actionIcons, chevron, collapsible body; provider and mode cards use it; expand/collapse animation (CSS grid 0fr/1fr, always-mounted content). Action order: Delete (custom only), Reset (built-in when differs), Copy, Disable. **Done.**
+
+## Phase 7: Shared user-config / file watcher (next)
+
+**Goal:** Mode configuration (and future user-managed config such as custom agents) should listen to file updates the same way the settings view does, so external edits to mode JSON files are reflected without switching tabs or triggering an in-app action.
+
+**Scope:**
+
+1. **Shared pattern:** Settings today uses a file watcher inside `SettingsService` (watch directory, debounce, emit `change`, IPC forwards to renderer, renderer subscribes and reloads). There is no shared "user config watcher" service. Implement one of:
+   - **Option A (minimal):** Add a directory watcher in the modes layer; emit a generic "modes changed" event; IPC sends to renderer; renderer subscribes and calls `loadModes()`. Same pattern as settings but no shared abstraction.
+   - **Option B (reusable):** Introduce a small shared service (e.g. `UserConfigWatcher` or `FileBackedConfigService`) that can watch a path per "domain" (file or directory), debounce, and emit a domain-level event. Consumers (modes, future custom agents) register their path and subscribe; IPC forwards domain events to renderer; each feature subscribes and refetches. Enables consistent behavior for modes, custom agents, and other file-backed user config.
+2. **Modes:** Use the chosen approach so that when `userData/modes/*.json` (or the modes directory) changes on disk, the Settings mode list and any open mode editor state refresh (e.g. reload list, refresh builtin defaults; if a mode file was edited externally, show updated data).
+3. **Documentation:** Document the pattern so future additions (e.g. custom agents in a directory) can reuse it.
+
+**Depends on:** Phase 6 done. No dependency on Phase 8/9.
+
+## Phase 8: Enhance `getToolsForAgent()` Function
 1. Extend signature to accept conversation context so the chat's mode can be applied. (When Custom Agents exist, callers will also pass agent; see [Custom Agents](./custom-agents.md).)
 2. Load conversation's mode from mode registry.
 3. Resolve effective permissions per tool using the mode's hierarchy: category → connection type → connection → tool. No global permission store.
 4. Filter tools: remove "deny", mark "ask" for runtime approval; pass only allowed tools to agent.
 5. **Single touch point**: Callers pass conversation; executor cache key includes `modeId`. (When Custom Agents affect tool sets, cache key will include `agentId`; see Custom Agents backlog.)
 
-## Phase 5b: Chat Mode Selector & Persistence
-1. Add mode selector to chat UI, placed near the agent selector.
-2. On new conversation: set conversation `modeId` from default chat mode (settings).
-3. When user changes mode in chat: update conversation's `modeId` and persist.
-4. When loading a conversation: restore and display its stored mode; use it in `getToolsForAgent()`.
+## Phase 9: Runtime Approval Flow
 
-## Phase 6: Runtime Approval Flow
-
-**Depends on:** Minimal [Deep Agents](./deep-agents-adoption.md) adoption—harness plus `interrupt_on` for tool calls. Phase 6 does not implement custom interrupt logic; it uses Deep Agents' human-in-the-loop so one implementation path applies.
+**Depends on:** Minimal [Deep Agents](./deep-agents-adoption.md) adoption—harness plus `interrupt_on` for tool calls. Phase 9 does not implement custom interrupt logic; it uses Deep Agents' human-in-the-loop so one implementation path applies.
 
 1. Adopt Deep Agents harness to the extent needed to support `interrupt_on` for tools (see Deep Agents backlog: MVP slice for this use case).
 2. When LLM requests "ask" tool, Deep Agents pauses; show approval modal with tool details and arguments.
@@ -206,22 +239,16 @@ Tool registry requires permission metadata per tool as specified in **Part I: To
 4. Optionally save decision to settings ("remember this decision").
 5. Return result to LLM (allow tool use or block).
 
-### Phase 6 (future): Content and token guardrail confirmations
+### Phase 9 (future): Content and token guardrail confirmations
 
 The same interrupt → modal → approve/deny pattern can be reused for **content-length and token-limit** confirmations. These are part of the remaining work once [Bounded Tool Results and Chat UI Stability](./bounded-tool-results-and-chat-ui-stability.md) default caps and [Context Window and Costs](./context-window-and-costs.md) token estimation are in place:
 
-- **Allow full tool result:** When the tool factory would **cap** a result (because it exceeds the default max length), optionally **interrupt** and show a modal: “This result is large and will be truncated for context. Include full result anyway?” If the user approves, skip the cap for that invocation only (the ToolMessage gets the uncapped string). If denied, use the capped result. “Remember” can apply per tool or per conversation. Requires the bounded-tool-results factory cap (1.2) and opt-out metadata (1.4) to be implemented so the factory is the single place that can offer this choice.
-- **Confirm oversized prompt:** Before calling the LLM, **estimate input token count** (conversation + system + current prompt). If the estimate exceeds a threshold (e.g. 80% of the model’s context window or a configurable “expensive” limit), interrupt and show: “This request will use approximately X tokens (or $Y if cost is available). Continue?” Approve/deny; optional “remember for this conversation.” Depends on [Context Window and Costs](./context-window-and-costs.md) (token estimation and context window display) so the app has an estimate and the model’s limit before prompting.
+- **Allow full tool result:** When the tool factory would **cap** a result (because it exceeds the default max length), optionally **interrupt** and show a modal: "This result is large and will be truncated for context. Include full result anyway?" If the user approves, skip the cap for that invocation only (the ToolMessage gets the uncapped string). If denied, use the capped result. "Remember" can apply per tool or per conversation. Requires the bounded-tool-results factory cap (1.2) and opt-out metadata (1.4) to be implemented so the factory is the single place that can offer this choice.
+- **Confirm oversized prompt:** Before calling the LLM, **estimate input token count** (conversation + system + current prompt). If the estimate exceeds a threshold (e.g. 80% of the model's context window or a configurable "expensive" limit), interrupt and show: "This request will use approximately X tokens (or $Y if cost is available). Continue?" Approve/deny; optional "remember for this conversation." Depends on [Context Window and Costs](./context-window-and-costs.md) (token estimation and context window display) so the app has an estimate and the model's limit before prompting.
 
-Implement both as additional **interrupt reasons** in the same runtime-approval pipeline (e.g. same modal component, different copy and payload). No separate “content guardrail” interrupt stack—one human-in-the-loop flow for tool permission, full-result allowance, and oversized-prompt confirmation.
+Implement both as additional **interrupt reasons** in the same runtime-approval pipeline (e.g. same modal component, different copy and payload). No separate "content guardrail" interrupt stack—one human-in-the-loop flow for tool permission, full-result allowance, and oversized-prompt confirmation.
 
-## Phase 7: Agents Tab & Permission UI
-1. Rename settings tab to **Agents**. LLM providers at top; **Agent Permission** (modes) below. (Custom Agents will be added to this tab later.)
-2. Mode list: prebuilt (Local Read Only, Read Only, Local Only, Full) + user modes. Duplicate, rename (unique), reset prebuilt to default, disable.
-3. Mode editor: category-level defaults (six categories: read local, write local, read external, write external, read app, write app), then overrides by connection type, connection, tool. Dot notation, explicit overrides. One file per mode; save to mode directory.
-4. Default mode selector for new chats (reads/writes `agents.defaultModeId` in main settings).
-
-## Phase 8: Audit & History
+## Phase 10: Audit & History
 1. Log tool invocations to database or file
 2. Create audit log viewer UI
 3. Display tool usage history
@@ -229,7 +256,7 @@ Implement both as additional **interrupt reasons** in the same runtime-approval 
 5. Export functionality
 6. Clear history actions
 
-## Phase 9 (Future): User and Plugin Tools
+## Phase 11 (Future): User and Plugin Tools
 - When [Plugin Extensibility Framework](./plugin-extensibility-framework.md) or user-defined tools are implemented, load definitions (and optionally handlers) from plugin manifests or user directories.
 - Use the same factory to produce tools; register them with a distinct category (e.g. `plugin`, `user`). Permission system treats user/plugin tools with appropriate defaults (e.g. ask or deny until explicitly allowed in a mode).
 
@@ -273,7 +300,7 @@ The "ask" permission level (runtime approval) maps directly to LangChain Deep Ag
 **Depends on (recommended):**
 - [Chat Interface (MVP)](./archive/chat-interface-mvp.md) - Includes `getToolsForAgent()` helper function
 - [Configuration System](./configuration-system.md) - Settings storage for permissions
-- [Deep Agents Adoption](./deep-agents-adoption.md) - Phase 6 (runtime approval) requires a minimal Deep Agents slice: harness + `interrupt_on` for tool calls. Implement this MVP for the single use case rather than custom interrupt logic.
+- [Deep Agents Adoption](./deep-agents-adoption.md) - Phase 9 (runtime approval) requires a minimal Deep Agents slice: harness + `interrupt_on` for tool calls. Implement this MVP for the single use case rather than custom interrupt logic.
 
 **Prerequisite for:**
 - [Plugin Extensibility Framework](./plugin-extensibility-framework.md) - Permission system critical before community tools
@@ -281,8 +308,8 @@ The "ask" permission level (runtime approval) maps directly to LangChain Deep Ag
 **Related:**
 - [Custom Agents](./custom-agents.md) - When implemented, per-agent permissions (mode or custom set) are defined there and combined with the conversation's mode. Agent editor gets tool list from registry (same source as permission UI).
 - [Configuration System](./configuration-system.md) - Per-tool or per-plugin config can be keyed by tool name from definitions.
-- [Bounded Tool Results and Chat UI Stability](./bounded-tool-results-and-chat-ui-stability.md) - Default tool result caps (factory + at-source); “allow full result” confirmation is implemented in Phase 6 (runtime approval) as an additional interrupt type.
-- [Context Window and Costs](./context-window-and-costs.md) - Token estimation and “used / limit” display; “confirm oversized prompt” uses the same Phase 6 interrupt/modal and depends on this item for estimates.
+- [Bounded Tool Results and Chat UI Stability](./bounded-tool-results-and-chat-ui-stability.md) - Default tool result caps (factory + at-source); “allow full result” confirmation is implemented in Phase 9 (runtime approval) as an additional interrupt type.
+- [Context Window and Costs](./context-window-and-costs.md) - Token estimation and “used / limit” display; “confirm oversized prompt” uses the same Phase 9 interrupt/modal and depends on this item for estimates.
 
 ## Notes
 
@@ -313,7 +340,7 @@ Users need confidence that:
 
 ### Content and token guardrail confirmations
 
-The runtime approval flow (Phase 6) is the single place for **all** “pause and ask the user” decisions: (1) “ask” tool permission, (2) “allow full tool result” when a result would be capped by the bounded-tool-results factory, and (3) “confirm oversized prompt” when estimated input tokens exceed a threshold. Same interrupt → modal → approve/deny (and optional “remember”) for each; only the trigger and copy differ. Bounded Tool Results and Context Window and Costs provide the default caps and token estimates; this system provides the override UX.
+The runtime approval flow (Phase 9) is the single place for **all** “pause and ask the user” decisions: (1) “ask” tool permission, (2) “allow full tool result” when a result would be capped by the bounded-tool-results factory, and (3) “confirm oversized prompt” when estimated input tokens exceed a threshold. Same interrupt → modal → approve/deny (and optional “remember”) for each; only the trigger and copy differ. Bounded Tool Results and Context Window and Costs provide the default caps and token estimates; this system provides the override UX.
 
 ### Permission Scope
 

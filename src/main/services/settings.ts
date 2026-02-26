@@ -25,6 +25,10 @@ export interface SettingsDefaults {
   'llm.defaultModel': string
   /** Per-provider config (baseUrl, apiKeyEncrypted, etc.). */
   'llm.providers': LLMProvidersConfig
+  /** Default permission mode for new chats (canonical id: full, local-only, read-only, local-read-only). */
+  'agents.defaultModeId': string
+  /** Mode ids hidden from selector (cannot be chosen as default). */
+  'agents.disabledModeIds': string[]
 }
 
 /**
@@ -39,6 +43,8 @@ const DEFAULTS: SettingsDefaults = {
     process.platform === 'darwin' ? 'Cmd+Alt+E' : 'Ctrl+Alt+E',
   'llm.defaultModel': '',
   'llm.providers': {},
+  'agents.defaultModeId': 'full',
+  'agents.disabledModeIds': [],
 }
 
 /**

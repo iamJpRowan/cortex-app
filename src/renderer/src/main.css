@@ -544,6 +544,53 @@ textarea:focus-visible,
     @apply border border-border bg-bg-secondary text-text-primary;
   }
 
+  /**
+   * Disabled state for SettingsExpandableCard (e.g. hidden permission modes).
+   * Muted border and header row text only; expanded content stays readable. Reusable.
+   */
+  .settings-expandable-card--disabled {
+    border-color: var(--color-border-secondary);
+  }
+  .settings-expandable-card--disabled > div:first-of-type .font-medium,
+  .settings-expandable-card--disabled > div:first-of-type [class*='text-text-primary'] {
+    color: var(--color-text-secondary) !important;
+  }
+  .settings-expandable-card--disabled > div:first-of-type .text-muted-foreground {
+    color: var(--color-text-tertiary) !important;
+  }
+  .settings-expandable-card--disabled > div:first-of-type [class*='text-text-secondary'] {
+    color: var(--color-text-tertiary) !important;
+  }
+
+  /**
+   * Expand/collapse animation for SettingsExpandableCard.
+   * Content is always mounted; we animate grid-template-rows so both open and close transition.
+   * When closed, hide content so no form labels (e.g. "Name") leak into the header.
+   */
+  .settings-expandable-card__content {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows var(--transition-duration-base)
+      var(--transition-easing-ease-out);
+  }
+  .settings-expandable-card__content[data-state='closed'] {
+    visibility: hidden;
+    pointer-events: none;
+  }
+  .settings-expandable-card__content[data-state='open'] {
+    grid-template-rows: 1fr;
+    visibility: visible;
+    pointer-events: auto;
+  }
+  .settings-expandable-card__body-inner {
+    min-height: 0;
+    overflow: hidden;
+  }
+  .settings-expandable-card__content[data-state='open']
+    .settings-expandable-card__body-inner {
+    padding-bottom: 1rem;
+  }
+
   /* TipTap / ProseMirror prompt input (rich editor) - placeholder + content styles */
   .ProseMirror .is-editor-empty::before,
   .ProseMirror .is-empty.is-editor-empty::before {

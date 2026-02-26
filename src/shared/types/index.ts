@@ -36,6 +36,9 @@ export type {
   ListConversationsOptions,
   CreateConversationOptions,
   UpdateConversationOptions,
+  // Permission modes (Tool Permission System)
+  PermissionLevel,
+  PermissionMode,
   // Streaming types
   StreamEventType,
   StreamEventBase,

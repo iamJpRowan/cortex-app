@@ -176,4 +176,20 @@ contextBridge.exposeInMainWorld('api', {
       return () => ipcRenderer.removeListener('conversations:titleGenerating', handler)
     },
   },
+  modes: {
+    list: () => ipcRenderer.invoke('modes:list'),
+    listAll: () => ipcRenderer.invoke('modes:listAll'),
+    get: (id: string) => ipcRenderer.invoke('modes:get', id),
+    save: (id: string, content: Record<string, string | undefined>) =>
+      ipcRenderer.invoke('modes:save', id, content),
+    duplicate: (sourceId: string, newId: string) =>
+      ipcRenderer.invoke('modes:duplicate', sourceId, newId),
+    reset: (id: string) => ipcRenderer.invoke('modes:reset', id),
+    delete: (id: string) => ipcRenderer.invoke('modes:delete', id),
+    getBuiltinDefault: (id: string) => ipcRenderer.invoke('modes:getBuiltinDefault', id),
+    setDisabled: (id: string, disabled: boolean) =>
+      ipcRenderer.invoke('modes:setDisabled', id, disabled),
+    getFilePath: (id: string) => ipcRenderer.invoke('modes:getFilePath', id),
+    openInEditor: (id: string) => ipcRenderer.invoke('modes:openInEditor', id),
+  },
 })

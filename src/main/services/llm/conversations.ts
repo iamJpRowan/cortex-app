@@ -22,6 +22,8 @@ export interface ConversationRecord {
   title: string
   agentId: string | null
   currentModel: string | null
+  /** Permission mode id (e.g. full, local-only). Null treated as Full until backfilled. */
+  modeId: string | null
   /** Model id per assistant message (by order); used for per-message attribution. */
   messageModels: string[]
   createdAt: number
@@ -52,6 +54,7 @@ export interface CreateConversationOptions {
   title?: string
   agentId?: string
   currentModel?: string
+  modeId?: string | null
 }
 
 /**
@@ -61,6 +64,7 @@ export interface UpdateConversationOptions {
   title?: string
   agentId?: string
   currentModel?: string
+  modeId?: string | null
   /** Full list of model ids per assistant message (by order). */
   messageModels?: string[]
   messageCount?: number
@@ -135,6 +139,13 @@ export class ConversationService {
       // Column already exists
     }
 
+    // Migration: add mode_id for Tool Permission System (Phase 4)
+    try {
+      this.db.exec(`ALTER TABLE conversations ADD COLUMN mode_id TEXT`)
+    } catch {
+      // Column already exists
+    }
+
     console.log('[ConversationService] Initialized with database:', this.dbPath)
   }
 
@@ -188,7 +199,7 @@ export class ConversationService {
     const orderDirection = orderDir.toUpperCase()
 
     const query = `
-      SELECT id, title, agent_id, current_model, message_models, created_at, updated_at, message_count, head_checkpoint_id
+      SELECT id, title, agent_id, current_model, mode_id, message_models, created_at, updated_at, message_count, head_checkpoint_id
       FROM conversations
       ${whereClause}
       ORDER BY ${orderColumn} ${orderDirection}
@@ -202,6 +213,7 @@ export class ConversationService {
       title: string
       agent_id: string | null
       current_model: string | null
+      mode_id: string | null
       message_models: string | null
       created_at: number
       updated_at: number
@@ -214,6 +226,7 @@ export class ConversationService {
       title: row.title,
       agentId: row.agent_id,
       currentModel: row.current_model,
+      modeId: row.mode_id ?? null,
       messageModels: parseMessageModels(row.message_models),
       createdAt: row.created_at,
       updatedAt: row.updated_at,
@@ -230,7 +243,7 @@ export class ConversationService {
 
     const row = db
       .prepare(
-        `SELECT id, title, agent_id, current_model, message_models, created_at, updated_at, message_count, head_checkpoint_id
+        `SELECT id, title, agent_id, current_model, mode_id, message_models, created_at, updated_at, message_count, head_checkpoint_id
          FROM conversations WHERE id = ?`
       )
       .get(id) as
@@ -239,6 +252,7 @@ export class ConversationService {
           title: string
           agent_id: string | null
           current_model: string | null
+          mode_id: string | null
           message_models: string | null
           created_at: number
           updated_at: number
@@ -254,6 +268,7 @@ export class ConversationService {
       title: row.title,
       agentId: row.agent_id,
       currentModel: row.current_model,
+      modeId: row.mode_id ?? null,
       messageModels: parseMessageModels(row.message_models),
       createdAt: row.created_at,
       updatedAt: row.updated_at,
@@ -273,9 +288,17 @@ export class ConversationService {
     const title = options?.title || 'New Chat'
 
     db.prepare(
-      `INSERT INTO conversations (id, title, agent_id, current_model, created_at, updated_at, message_count, head_checkpoint_id)
-       VALUES (?, ?, ?, ?, ?, ?, 0, NULL)`
-    ).run(id, title, options?.agentId || null, options?.currentModel || null, now, now)
+      `INSERT INTO conversations (id, title, agent_id, current_model, mode_id, created_at, updated_at, message_count, head_checkpoint_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 0, NULL)`
+    ).run(
+      id,
+      title,
+      options?.agentId || null,
+      options?.currentModel || null,
+      options?.modeId ?? null,
+      now,
+      now
+    )
 
     console.log(`[ConversationService] Created conversation: ${id}`)
 
@@ -284,6 +307,7 @@ export class ConversationService {
       title,
       agentId: options?.agentId || null,
       currentModel: options?.currentModel || null,
+      modeId: options?.modeId ?? null,
       messageModels: [],
       createdAt: now,
       updatedAt: now,
@@ -314,6 +338,18 @@ export class ConversationService {
     if (updates.currentModel !== undefined) {
       setClauses.push('current_model = ?')
       params.push(updates.currentModel)
+    }
+
+    if (updates.modeId !== undefined) {
+      setClauses.push('mode_id = ?')
+      params.push(updates.modeId)
+    } else {
+      // Backfill: if conversation has no mode_id, set to full on write
+      const existing = this.get(id)
+      if (existing && existing.modeId == null) {
+        setClauses.push('mode_id = ?')
+        params.push('full')
+      }
     }
 
     if (updates.messageModels !== undefined) {

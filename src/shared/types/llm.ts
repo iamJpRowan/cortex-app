@@ -233,6 +233,9 @@ export interface ConversationMetadata {
   /** Current agent ID for the conversation */
   agentId?: string | null
 
+  /** Permission mode id (e.g. full, local-only). Null treated as Full until backfilled. */
+  modeId?: string | null
+
   /** When the conversation was created */
   createdAt: number
 
@@ -289,6 +292,24 @@ export interface ListModelsResult {
 }
 
 /**
+ * Permission level for a tool or category (Tool Permission System).
+ * @see docs/backlog/tool-permission-system.md
+ */
+export type PermissionLevel = 'allow' | 'ask' | 'deny'
+
+/**
+ * Permission mode (built-in or user) for Agent Permission / mode selector.
+ */
+export interface PermissionMode {
+  id: string
+  name: string
+  /** Short description shown in the mode card when collapsed. */
+  description?: string
+  builtin: boolean
+  categories: Record<string, PermissionLevel>
+}
+
+/**
  * Options for listing conversations.
  */
 export interface ListConversationsOptions {
@@ -329,6 +350,9 @@ export interface CreateConversationOptions {
 
   /** Optional model */
   currentModel?: string
+
+  /** Permission mode id for new chats (default from settings if omitted). */
+  modeId?: string
 }
 
 /**
@@ -343,6 +367,9 @@ export interface UpdateConversationOptions {
 
   /** New model */
   currentModel?: string
+
+  /** New permission mode id */
+  modeId?: string
 
   /** Update message count */
   messageCount?: number

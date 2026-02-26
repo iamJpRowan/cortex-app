@@ -12,6 +12,7 @@ import type {
   UpdateConversationOptions,
   ChatMessage,
   TurnBlock,
+  PermissionMode,
 } from '@shared/types'
 
 export interface API {
@@ -214,6 +215,64 @@ export interface API {
       callback: (data: { conversationId: string }) => void
     ) => () => void
   }
+  modes: {
+    list: () => Promise<{
+      success: boolean
+      modes?: PermissionMode[]
+      error?: string
+    }>
+    /** List all modes including disabled (for Settings). */
+    listAll: () => Promise<{
+      success: boolean
+      modes?: PermissionMode[]
+      error?: string
+    }>
+    get: (id: string) => Promise<{
+      success: boolean
+      mode?: PermissionMode
+      error?: string
+    }>
+    save: (
+      id: string,
+      content: Record<string, string | undefined>
+    ) => Promise<{
+      success: boolean
+      mode?: PermissionMode
+      error?: string
+    }>
+    duplicate: (
+      sourceId: string,
+      newId: string
+    ) => Promise<{
+      success: boolean
+      mode?: PermissionMode
+      error?: string
+    }>
+    reset: (id: string) => Promise<{
+      success: boolean
+      mode?: PermissionMode
+      error?: string
+    }>
+    delete: (id: string) => Promise<{ success: boolean; error?: string }>
+    getBuiltinDefault: (id: string) => Promise<{
+      success: boolean
+      mode?: PermissionMode
+      error?: string
+    }>
+    setDisabled: (
+      id: string,
+      disabled: boolean
+    ) => Promise<{ success: boolean; error?: string }>
+    getFilePath: (id: string) => Promise<{
+      success: boolean
+      data?: string
+      error?: string
+    }>
+    openInEditor: (id: string) => Promise<{
+      success: boolean
+      error?: string
+    }>
+  }
 }
 
 declare global {
@@ -237,4 +296,5 @@ export type {
   UpdateConversationOptions,
   ChatMessage,
   TurnBlock,
+  PermissionMode,
 }

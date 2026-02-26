@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron'
 import { getConversationService } from '@main/services/llm/conversations'
 import { getLLMAgentService } from '@main/services/llm/agent'
+import { getSettingsService } from '@main/services/settings'
 import type {
   ListConversationsOptions,
   CreateConversationOptions,
@@ -65,13 +66,19 @@ export function registerConversationHandlers() {
 
   /**
    * Create a new conversation.
+   * Default modeId comes from agents.defaultModeId when not provided.
    */
   ipcMain.handle(
     'conversations:create',
     async (_event, options?: CreateConversationOptions) => {
       try {
         const service = getConversationService()
-        const conversation = service.create(options)
+        const defaultModeId = getSettingsService().get('agents.defaultModeId') as string
+        const opts: CreateConversationOptions = {
+          ...options,
+          modeId: options?.modeId ?? defaultModeId,
+        }
+        const conversation = service.create(opts)
 
         return {
           success: true,
