@@ -5,6 +5,7 @@ Welcome to the Cortex documentation. This directory contains all documentation f
 ## Quick Navigation
 
 - [Getting Started](#getting-started)
+- [User documentation](./user/vision.md) — What is Cortex?, Getting Started (also in-app under Help)
 - [Architecture](./architecture/README.md)
 - [Development](./development/README.md)
 - [Agents](./agents/README.md)
@@ -14,7 +15,7 @@ Welcome to the Cortex documentation. This directory contains all documentation f
 ## Where to Start
 
 **New to Cortex?**
-1. Start with [VISION.md](./VISION.md) to understand what Cortex is
+1. Start with [What is Cortex?](./user/vision.md) (user docs; also in-app under Help)
 2. Read [Architecture](./architecture/README.md) for high-level design
 3. Follow [Development Setup](./development/setup.md) to get running
 4. Review [Feature Development](./development/feature-development.md) and [Development Guide](./development/README.md) for coding patterns

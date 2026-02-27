@@ -7,7 +7,8 @@ These are hard constraints that keep development aligned with Cortex's long-term
 ## Technical Constraints (Always Follow)
 
 ### TypeScript Everywhere
-- All code must be TypeScript, no plain JavaScript exceptions
+- All application and renderer code must be TypeScript
+- Build and tooling scripts in `scripts/` may be plain Node.js JavaScript
 - Enables code reuse and type safety during rapid iteration
 - Provides better tooling and refactoring support
 

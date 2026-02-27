@@ -3,15 +3,17 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
 } from '@/components/ui/sidebar'
-import { Home, Settings, MessageSquare } from 'lucide-react'
+import { Home, HelpCircle, Settings, MessageSquare } from 'lucide-react'
+import { LAYOUT_LAST_VIEW_KEY } from '@/lib/layout-storage'
+import { Separator } from './ui/separator'
 
 /**
  * AppSidebar Component
@@ -39,6 +41,8 @@ export function AppSidebar() {
     if (path === '/') {
       return location.pathname === '/' || location.pathname === ''
     }
+    if (path === '/help')
+      return location.pathname === '/help' || location.pathname.startsWith('/help/')
     return location.pathname === path
   }
 
@@ -76,25 +80,36 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
-        <SidebarGroup>
-          <SidebarGroupLabel>Settings</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  tooltip="Settings"
-                  isActive={isActive('/settings')}
-                  onClick={() => navigate('/settings')}
-                >
-                  <Settings />
-                  <span>Settings</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter>
+        <Separator />
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              tooltip="Settings"
+              isActive={isActive('/settings')}
+              onClick={() => navigate('/settings')}
+            >
+              <Settings />
+              <span>Settings</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              tooltip="Help"
+              isActive={isActive('/help')}
+              onClick={() => {
+                const last = localStorage.getItem(LAYOUT_LAST_VIEW_KEY)
+                const helpPath = last?.startsWith('/help') ? last : '/help'
+                navigate(helpPath)
+              }}
+            >
+              <HelpCircle />
+              <span>Help</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarFooter>
     </Sidebar>
   )
 }

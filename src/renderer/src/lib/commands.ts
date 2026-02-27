@@ -1,4 +1,5 @@
 import type { Action } from 'kbar'
+import { LAYOUT_LAST_VIEW_KEY } from './layout-storage'
 import { toggleTheme } from './theme'
 
 /**
@@ -40,6 +41,16 @@ export function getCommands(deps: CommandDependencies): Action[] {
       keywords: 'settings preferences config configuration',
       section: 'Navigation',
       perform: () => navigate('/settings'),
+    },
+    {
+      id: 'nav-help',
+      name: 'Open Help',
+      keywords: 'help docs documentation user guide',
+      section: 'Navigation',
+      perform: () => {
+        const last = localStorage.getItem(LAYOUT_LAST_VIEW_KEY)
+        navigate(last?.startsWith('/help') ? last : '/help')
+      },
     },
 
     // Theme Section

@@ -4,7 +4,9 @@
   "description": "Cortex - A native Electron application for knowledge management",
   "main": "dist-electron/main/index.js",
   "scripts": {
+    "predev": "node scripts/build-user-docs.js",
     "dev": "electron-vite dev",
+    "prebuild": "node scripts/build-user-docs.js",
     "build": "electron-vite build",
     "preview": "electron-vite preview",
     "type-check": "tsc --noEmit",

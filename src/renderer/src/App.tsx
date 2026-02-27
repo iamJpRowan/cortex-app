@@ -6,14 +6,17 @@ import { MainHeader } from './components/MainHeader'
 import { HomeView } from './components/HomeView'
 import { SettingsView } from './components/SettingsView'
 import { ChatView } from './components/ChatView'
+import { HelpView } from './components/HelpView'
 import { CommandPalette } from './components/CommandPalette'
 import { SidebarInset, SidebarProvider, useSidebar } from '@/components/ui/sidebar'
 import { cn } from '@/lib/utils'
 import { initHotkeys } from '@/lib/hotkeys'
 import { usePersistedState } from '@/hooks/use-persisted-state'
 import { LAYOUT_SIDEBAR_COLLAPSED_KEY, LAYOUT_LAST_VIEW_KEY } from '@/lib/layout-storage'
+import { userDocsManifest } from '@/lib/user-docs'
+import type { BreadcrumbSegment } from './components/MainHeader'
 
-const VALID_ROUTES = ['/', '/chat', '/settings'] as const
+const VALID_ROUTES = ['/', '/chat', '/settings', '/help'] as const
 
 /**
  * AppContent Component
@@ -28,29 +31,45 @@ function AppContent() {
     false
   )
 
-  // Restore last view on mount
+  // Restore last view on mount (including last Help doc e.g. /help/vision)
   React.useEffect(() => {
     const stored = localStorage.getItem(LAYOUT_LAST_VIEW_KEY)
-    if (stored && VALID_ROUTES.includes(stored as (typeof VALID_ROUTES)[number])) {
-      const path = stored as (typeof VALID_ROUTES)[number]
-      const current = location.pathname === '' ? '/' : location.pathname
-      if (path !== current) navigate(path)
-    }
+    if (!stored) return
+    const isValid =
+      VALID_ROUTES.includes(stored as (typeof VALID_ROUTES)[number]) ||
+      (stored.startsWith('/help') && stored.length <= 50)
+    if (!isValid) return
+    const current = location.pathname === '' ? '/' : location.pathname
+    if (stored !== current) navigate(stored)
   }, [])
 
-  // Persist current view on route change
+  // Persist current view on route change (persist full Help path so active doc is restored)
   React.useEffect(() => {
     const path = location.pathname === '' ? '/' : location.pathname
-    if (VALID_ROUTES.includes(path as (typeof VALID_ROUTES)[number])) {
-      localStorage.setItem(LAYOUT_LAST_VIEW_KEY, path)
-    }
+    const shouldPersist =
+      VALID_ROUTES.includes(path as (typeof VALID_ROUTES)[number]) ||
+      (path.startsWith('/help') && path.length <= 50)
+    if (shouldPersist) localStorage.setItem(LAYOUT_LAST_VIEW_KEY, path)
   }, [location.pathname])
 
-  // Get title based on current route
+  // Title or breadcrumbs based on current route
   const getTitle = () => {
     if (location.pathname === '/settings') return 'Settings'
     if (location.pathname === '/chat') return 'Chat'
+    if (location.pathname.startsWith('/help')) return 'Help'
     return 'Cortex'
+  }
+
+  const getBreadcrumbs = (): BreadcrumbSegment[] | undefined => {
+    if (!location.pathname.startsWith('/help')) return undefined
+    const slug = location.pathname.slice('/help'.length).replace(/^\//, '') || null
+    if (!slug) return [{ label: 'Help', to: null }]
+    const entry = userDocsManifest[slug]
+    const docTitle = entry?.title ?? slug
+    return [
+      { label: 'Help', to: '/help' },
+      { label: docTitle, to: null, scrollToTop: true },
+    ]
   }
 
   return (
@@ -93,7 +112,7 @@ function AppContent() {
             )}
             style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
           >
-            <MainHeader title={getTitle()} />
+            <MainHeader title={getTitle()} breadcrumbs={getBreadcrumbs()} />
             {/* Content area - flex-1 to fill remaining space */}
             <div className="flex flex-1 flex-col min-h-0 overflow-hidden">
               <Routes>
@@ -108,6 +127,8 @@ function AppContent() {
                   }
                 />
                 <Route path="/chat" element={<ChatView />} />
+                <Route path="/help" element={<HelpView />} />
+                <Route path="/help/:slug" element={<HelpView />} />
                 <Route
                   path="/settings"
                   element={

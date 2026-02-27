@@ -13,3 +13,7 @@ export const LAYOUT_LAST_VIEW_KEY = 'cortex.layout.lastView'
 export const SETTINGS_TAB_KEY = 'cortex.settings.tab'
 export const SETTINGS_PROVIDER_EXPANDED_KEY = 'cortex.settings.providerExpanded'
 export const SETTINGS_SCROLL_KEY = 'cortex.settings.scrollPosition'
+
+/** Help view state */
+export const HELP_EXPANDED_KEY = 'cortex.help.expanded'
+export const HELP_SCROLL_KEY = 'cortex.help.scroll'

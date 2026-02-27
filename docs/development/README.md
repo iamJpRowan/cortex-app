@@ -29,6 +29,7 @@ How to add specific capabilities:
 - **[commands-and-hotkeys.md](./commands-and-hotkeys.md)** — Register a command and hotkey
 - **[settings.md](./settings.md)** — Create a new setting
 - **[ui-state-persistence.md](./ui-state-persistence.md)** — Persist UI state across restarts
+- **[user-docs.md](./user-docs.md)** — Create and build in-app user docs (Help)
 
 ### Quality and release
 
