@@ -381,6 +381,15 @@ export function ChatView() {
     return () => window.removeEventListener('focus', onFocus)
   }, [loadModeList])
 
+  // When mode files change on disk, refresh mode list
+  React.useEffect(() => {
+    if (!window.api?.userConfig?.onChange) return
+    const unsubscribe = window.api.userConfig.onChange((data: { domain: string }) => {
+      if (data.domain === 'modes') loadModeList()
+    })
+    return unsubscribe
+  }, [loadModeList])
+
   // For new chat (no conversation), set selected model from default or first in list
   React.useEffect(() => {
     if (conversationId) return

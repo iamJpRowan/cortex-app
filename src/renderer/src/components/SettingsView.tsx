@@ -312,6 +312,38 @@ export function SettingsView() {
     if (activeTab === 'agents') loadModes()
   }, [activeTab, loadModes])
 
+  // When mode files change on disk (e.g. edited externally), refresh list and open editor state
+  React.useEffect(() => {
+    if (!window.api?.userConfig?.onChange) return
+    const unsubscribe = window.api.userConfig.onChange((data: { domain: string }) => {
+      if (data.domain !== 'modes') return
+      loadModes()
+      if (editingModeId) {
+        window.api.modes.get(editingModeId).then(res => {
+          if (res?.success && res.mode) {
+            const { name, description, categories } = res.mode
+            setEditorName(name)
+            setEditorDescription(description ?? '')
+            setEditorCategories({ ...categories })
+            setInitialEditorName(name)
+            setInitialEditorDescription(description ?? '')
+            setInitialEditorCategories({ ...categories })
+            if (res.mode.builtin) {
+              window.api.modes.getBuiltinDefault(editingModeId).then(defaultRes => {
+                setBuiltinDefaultForEditor(
+                  defaultRes?.success && defaultRes.mode ? defaultRes.mode : null
+                )
+              })
+            } else {
+              setBuiltinDefaultForEditor(null)
+            }
+          }
+        })
+      }
+    })
+    return unsubscribe
+  }, [loadModes, editingModeId])
+
   // Load built-in defaults so we can show "differs from default" when cards are collapsed
   React.useEffect(() => {
     const builtinIds = modeList.filter(m => m.builtin).map(m => m.id)

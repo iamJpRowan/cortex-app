@@ -19,6 +19,7 @@ This guide covers the development workflow for building Cortex as a native Elect
 ### Architecture
 
 - **[chat-streaming-and-blocks.md](./chat-streaming-and-blocks.md)** — How chat content flows from the LangGraph stream and checkpoint to the UI (blocks, segments, single block builder).
+- **[file-backed-config-watcher.md](./file-backed-config-watcher.md)** — Shared watcher for settings, modes, and other file-based config; how to add a new domain.
 
 ### Feature guides
 

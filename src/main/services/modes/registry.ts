@@ -20,7 +20,8 @@ import {
 
 const MODES_DIR = 'modes'
 
-function getModesDir(): string {
+/** Path to user mode files directory (userData/modes). Used by UserConfigWatcher. */
+export function getModesDir(): string {
   return path.join(app.getPath('userData'), MODES_DIR)
 }
 

@@ -3,6 +3,8 @@ import path from 'path'
 import { startNeo4j, stopNeo4j } from './services/neo4j'
 import { initializeOllama } from './services/ollama'
 import { initializeSettings } from './services/settings'
+import { getUserConfigWatcher } from './services/user-config-watcher'
+import { getModesDir } from './services/modes'
 import { registerTestHandlers } from './ipc/test'
 import { registerLLMHandlers } from './ipc/llm'
 import { registerConversationHandlers } from './ipc/conversations'
@@ -46,8 +48,18 @@ function createWindow() {
 app.whenReady().then(async () => {
   try {
     // Initialize settings service (must be early, before other services)
-    initializeSettings()
+    const settingsService = initializeSettings()
     console.log('[App] Settings service initialized')
+
+    // Register file-backed config domains and wire settings reload
+    const userConfigWatcher = getUserConfigWatcher()
+    userConfigWatcher.register('settings', settingsService.getFilePath())
+    userConfigWatcher.register('modes', getModesDir())
+    userConfigWatcher.on('changed', (data: { domain: string }) => {
+      if (data.domain === 'settings') {
+        settingsService.reloadFromFile()
+      }
+    })
 
     // Start Neo4j
     await startNeo4j()

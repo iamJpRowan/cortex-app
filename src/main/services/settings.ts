@@ -125,17 +125,16 @@ function writeSettingsFile(overrides: SettingsOverrides): void {
 
 /**
  * Settings Service
- * Manages settings with defaults, file overrides, and change notifications
+ * Manages settings with defaults, file overrides, and change notifications.
+ * File watching is handled by the shared UserConfigWatcher; when it emits
+ * changed('settings'), the process calls reloadFromFile().
  */
 class SettingsService extends EventEmitter {
-  private fileWatcher: fs.FSWatcher | null = null
-  private watchDebounceTimer: NodeJS.Timeout | null = null
   private currentOverrides: SettingsOverrides = {}
 
   constructor() {
     super()
     this.currentOverrides = readSettingsFile()
-    this.startFileWatcher()
   }
 
   /**
@@ -179,73 +178,35 @@ class SettingsService extends EventEmitter {
   }
 
   /**
-   * Start watching settings file for external changes
+   * Reload overrides from disk and emit change events for any changed keys.
+   * Called by the shared UserConfigWatcher when the settings file changes externally.
    */
-  private startFileWatcher(): void {
-    const filePath = getSettingsPath()
-
-    // Watch directory (more reliable than watching file directly)
-    const dir = path.dirname(filePath)
-    const fileName = path.basename(filePath)
-
+  reloadFromFile(): void {
     try {
-      this.fileWatcher = fs.watch(dir, (eventType, changedFileName) => {
-        // Only process changes to settings.json
-        if (changedFileName === fileName && eventType === 'change') {
-          // Debounce file changes (file editors often trigger multiple events)
-          if (this.watchDebounceTimer) {
-            clearTimeout(this.watchDebounceTimer)
-          }
+      const newOverrides = readSettingsFile()
+      const oldOverrides = { ...this.currentOverrides }
 
-          this.watchDebounceTimer = setTimeout(() => {
-            try {
-              const newOverrides = readSettingsFile()
-              const oldOverrides = { ...this.currentOverrides }
+      this.currentOverrides = newOverrides
 
-              // Update current overrides
-              this.currentOverrides = newOverrides
+      const allKeys = new Set([
+        ...Object.keys(oldOverrides),
+        ...Object.keys(newOverrides),
+      ])
+      for (const key of allKeys) {
+        const typedKey = key as keyof SettingsDefaults
+        const oldValue = oldOverrides[typedKey]
+        const newValue = newOverrides[typedKey]
 
-              // Emit change events for any changed keys
-              const allKeys = new Set([
-                ...Object.keys(oldOverrides),
-                ...Object.keys(newOverrides),
-              ])
-              for (const key of allKeys) {
-                const typedKey = key as keyof SettingsDefaults
-                const oldValue = oldOverrides[typedKey]
-                const newValue = newOverrides[typedKey]
-
-                if (oldValue !== newValue) {
-                  this.emit('change', {
-                    key: typedKey,
-                    value: newValue ?? DEFAULTS[typedKey],
-                    previous: oldValue ?? DEFAULTS[typedKey],
-                  })
-                }
-              }
-            } catch (error) {
-              console.error('[Settings] Error processing file change:', error)
-            }
-          }, 500) // 500ms debounce
+        if (oldValue !== newValue) {
+          this.emit('change', {
+            key: typedKey,
+            value: newValue ?? DEFAULTS[typedKey],
+            previous: oldValue ?? DEFAULTS[typedKey],
+          })
         }
-      })
+      }
     } catch (error) {
-      console.error('[Settings] Failed to start file watcher:', error)
-    }
-  }
-
-  /**
-   * Stop watching settings file
-   */
-  stopFileWatcher(): void {
-    if (this.watchDebounceTimer) {
-      clearTimeout(this.watchDebounceTimer)
-      this.watchDebounceTimer = null
-    }
-
-    if (this.fileWatcher) {
-      this.fileWatcher.close()
-      this.fileWatcher = null
+      console.error('[Settings] Error reloading from file:', error)
     }
   }
 }

@@ -6,6 +6,7 @@
 export {
   getMode,
   getModeFilePath,
+  getModesDir,
   listModes,
   listAllModes,
   saveMode,

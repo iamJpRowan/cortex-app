@@ -1,5 +1,6 @@
 import { ipcMain, BrowserWindow, shell } from 'electron'
 import { getSettingsService } from '@main/services/settings'
+import { getUserConfigWatcher } from '@main/services/user-config-watcher'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -15,6 +16,13 @@ export function setMainWindow(window: BrowserWindow | null) {
  */
 export function registerSettingsHandlers() {
   const settingsService = getSettingsService()
+
+  // Forward file-backed config change events to renderer (modes, future domains)
+  getUserConfigWatcher().on('changed', (data: { domain: string }) => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('user-config:changed', data)
+    }
+  })
 
   // Set up change listener to forward events to renderer
   settingsService.on(

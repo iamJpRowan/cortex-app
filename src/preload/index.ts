@@ -192,4 +192,13 @@ contextBridge.exposeInMainWorld('api', {
     getFilePath: (id: string) => ipcRenderer.invoke('modes:getFilePath', id),
     openInEditor: (id: string) => ipcRenderer.invoke('modes:openInEditor', id),
   },
+  /** Subscribe to file-backed config changes (e.g. modes dir edited externally). */
+  userConfig: {
+    onChange: (callback: (data: { domain: string }) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, data: { domain: string }) =>
+        callback(data)
+      ipcRenderer.on('user-config:changed', handler)
+      return () => ipcRenderer.removeListener('user-config:changed', handler)
+    },
+  },
 })

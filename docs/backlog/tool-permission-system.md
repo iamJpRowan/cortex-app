@@ -210,6 +210,8 @@ Tool registry requires permission metadata per tool as specified in **Part I: To
 
 ## Phase 7: Shared user-config / file watcher (next)
 
+**Status:** Done. Shared `UserConfigWatcher` service; settings and modes use it; renderer subscribes via `user-config:changed` and refetches; see [File-backed config watcher](../development/file-backed-config-watcher.md).
+
 **Goal:** Mode configuration (and future user-managed config such as custom agents) should listen to file updates the same way the settings view does, so external edits to mode JSON files are reflected without switching tabs or triggering an in-app action.
 
 **Scope:**

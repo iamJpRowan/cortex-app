@@ -273,6 +273,10 @@ export interface API {
       error?: string
     }>
   }
+  /** File-backed config change notifications (e.g. modes dir edited externally). */
+  userConfig: {
+    onChange: (callback: (data: { domain: string }) => void) => () => void
+  }
 }
 
 declare global {
