@@ -2,17 +2,21 @@
 
 This document provides guidelines for developers and AI agents working on Cortex.
 
+## How development works
+
+Development follows a consistent loop: **concepts** (define how the product works → doc trickle-down) → **roadmap** (you sequence and set current focus) → **implementation** (agent works current-focus item until **ready to test**) → **you test and refine** (via UI, and/or refine requirements) → **complete** (you mark done and archive). For the full picture, see [how we work](docs/development/agents/how-we-work.md) and the [agents guide](docs/development/agents/README.md).
+
 ## AI Agents
 
-If you're an AI agent (Cursor, Claude, GitHub Copilot, etc.), see the [agents guide](docs/agents/README.md) for:
-- Structured conversation workflow (Goal → Steps → Propose → Discuss → Implement → Test → Commit)
-- Communication principles and pacing guidelines
+If you're an AI agent (Cursor, Claude, GitHub Copilot, etc.), see the [agents guide](docs/development/agents/README.md) for:
+- [How we work](docs/development/agents/how-we-work.md) — Intended development loop and who does what
+- Workflow-based conversations (work backlog item, design features, roadmap review, backlog grooming, docs cleanup, define core concepts, prepare to commit)
 - When to pause vs proceed
-- Agent-specific patterns for different tools
+- Implementation reference (development guide, guardrails)
 
 ## Feature Development
 
-When implementing new features, follow the workflow defined in [feature-development.md](docs/development/feature-development.md).
+When implementing new features, follow the workflow defined in [feature-development.md](docs/development/development-patterns/feature-development.md).
 
 **Quick summary:**
 1. Pick ONE specific example from a use case document
@@ -22,7 +26,7 @@ When implementing new features, follow the workflow defined in [feature-developm
 
 ## Development Guardrails
 
-These are hard constraints that keep development aligned with Cortex's long-term vision. See [guardrails.md](docs/development/guardrails.md) for:
+These are hard constraints that keep development aligned with Cortex's long-term vision. See [guardrails.md](docs/development/quality-and-release/guardrails.md) for:
 - Technical constraints (TypeScript everywhere, desktop-compatible, preserve formatting, comprehensive logging)
 - Decision shortcuts (choose simpler, local-first, colocate code, manual before automated)
 - Red flags (don't patch graph, don't use proprietary formats, don't assume preferences, don't skip artifacts)
@@ -32,7 +36,7 @@ These are hard constraints that keep development aligned with Cortex's long-term
 
 When working on significant features or solving complex problems, create a development log to document decisions and solutions for future reference.
 
-Use the template at [devlogs/TEMPLATE.md](docs/devlogs/TEMPLATE.md) to create new entries with format: `YYYY-MM-DD-descriptive-title.md`
+Use the template at [devlogs/TEMPLATE.md](docs/product/devlogs/TEMPLATE.md) to create new entries with format: `YYYY-MM-DD-descriptive-title.md`
 
 Development logs help:
 - Preserve context about technical decisions
@@ -43,7 +47,7 @@ Development logs help:
 
 ## Code Style and Conventions
 
-Follow the conventions defined in [code-style.md](docs/development/code-style.md):
+Follow the conventions defined in [code-style.md](docs/development/quality-and-release/code-style.md):
 - **File naming**: Components (PascalCase), utilities (camelCase), constants (SCREAMING_SNAKE)
 - **Directory naming**: kebab-case
 - **Component organization**: Colocated tests and GraphQL queries
@@ -67,8 +71,8 @@ Examples: `feat: implement command palette`, `fix: keep new conversation selecte
 ## Questions or Unclear Requirements?
 
 When in doubt:
-- Reference [architecture documentation](docs/architecture/README.md) for principles and decisions
-- Check [feature-development.md](docs/development/feature-development.md) for feature development patterns
+- Reference [architecture documentation](docs/development/architecture/README.md) for principles and decisions
+- Check [feature-development.md](docs/development/development-patterns/feature-development.md) for feature development patterns
 - Pause and ask clarifying questions rather than making assumptions
 - Default to simpler approaches when multiple valid options exist
 

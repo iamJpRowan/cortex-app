@@ -1,6 +1,6 @@
 /**
  * Permission mode types for the Tool Permission System.
- * @see docs/backlog/tool-permission-system.md
+ * @see docs/product/backlog/tool-permission-system.md
  */
 
 /** Permission level for a tool or category. */

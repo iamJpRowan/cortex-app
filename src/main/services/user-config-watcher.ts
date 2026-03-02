@@ -2,7 +2,7 @@
  * Shared file-backed config watcher for settings, modes, and future file-based config.
  * Registers paths (file or directory), debounces disk events, and emits a single
  * "changed" event per domain so consumers can refetch. No config content is sent.
- * @see docs/development/file-backed-config-watcher.md
+ * @see docs/development/architecture/file-backed-config-watcher.md
  */
 
 import fs from 'fs'

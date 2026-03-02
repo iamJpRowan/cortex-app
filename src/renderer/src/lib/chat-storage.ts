@@ -2,7 +2,7 @@
  * localStorage keys for chat view persistence.
  * Namespace: cortex.chat.*
  *
- * @see docs/development/ui-state-persistence.md
+ * @see docs/development/feature-guides/ui-state-persistence.md
  */
 export const CHAT_LAST_ACTIVE_KEY = 'cortex.chat.lastActiveConversationId'
 export const CHAT_DRAFT_KEY_PREFIX = 'cortex.chat.draft.'

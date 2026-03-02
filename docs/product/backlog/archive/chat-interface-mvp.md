@@ -1,0 +1,204 @@
+---
+status: completed
+date_archived: 2025-01-31
+summary: Production chat interface with streaming, traces, conversation management, and AI integration patterns.
+devlogs: [2025-01-27-chat-interface-scoping, 2025-01-31-chat-interface-mvp]
+---
+
+[Docs](../../../README.md) / [Product](../../README.md) / [Backlog](../README.md) / Archive / Chat Interface (MVP)
+
+# Chat Interface (MVP)
+
+## Implementation Status
+
+All phases complete. See **[2025-01-31-chat-interface-mvp.md](../../devlogs/2025-01-31-chat-interface-mvp.md)** devlog for implementation details.
+
+## Goal
+
+Implement production-quality chat interface for conversing with the LLM agent. Provide intuitive UI for asking questions, viewing responses with streaming and execution traces, managing conversations, and establishing patterns that make it easy to build AI into all future features. This is the primary user-facing interface for Cortex's AI capabilities.
+
+## Prerequisites
+
+None. LangChain Integration is complete and provides the backend infrastructure (agent, tools, state persistence, IPC API).
+
+## Key Capabilities
+
+### AI Integration Patterns (Framework Setting)
+- **App context for AI contract**: Define contract interface for views to contribute context (`getContextForAI()`)
+- **Context collector**: Define collector/registry mechanism (implementation in Chat Sidebar Integration)
+- **LLM actions via commands**: LLM invokes app commands (theme toggle as concrete example)
+- **Single AI surface pattern**: Chat is the one AI UI; future features integrate via context + commands
+- **Prep work for future features**:
+  - Optional `context` parameter in IPC/agent (for future sidebar integration)
+  - `getToolsForAgent()` helper function (for future tool permissions)
+  - `Agent` type definitions + optional agent parameter (for future custom agents)
+  - Optional `model` parameter in IPC/agent (for future multi-provider model selection)
+  - Message storage includes `model` field (tracks which model generated each message)
+  - Conversation storage includes `currentModel` field (tracks default/last-used model)
+
+### Chat View
+- Standalone chat view (`/chat` route) in center content area
+- Location-agnostic component design (can move to sidebar later)
+- KBar "Open Chat" navigation command
+
+### Conversation Management
+- List all conversations (sidebar or panel)
+- Create new conversation
+- Switch between conversations
+- Delete conversations
+- Rename conversations (auto-generated or user-defined)
+- Search/filter conversations by content, title, or date
+- Persist across app restarts
+
+### Message Display & Interaction
+- Message input field with markdown support
+- Streaming response display (real-time token generation)
+- Rich content rendering (markdown, code blocks, tables, images)
+- Copy message content
+- Message timestamps
+
+### Execution Trace Display
+- Polished trace visualization using shadcn AI components
+- Display all trace elements:
+  - Tool invocations (name, arguments, results)
+  - Reasoning/thinking steps
+  - Intermediate outputs
+  - Timing/duration
+  - Errors/retries
+- Auto-expand during execution, auto-collapse when complete
+- Manual toggle to expand/collapse completed traces
+- Components: Chain of Thought, Tool, Reasoning
+
+### Streaming Support
+- IPC streaming mechanism (event-based, async iterator, or chunked responses)
+- Wire LangChain/LangGraph streaming to IPC
+- Leverage Ollama native streaming
+- Stream tokens, trace updates, and intermediate results
+- shadcn AI components handle streaming UI
+
+### UI Framework
+- shadcn AI chatbot components as foundation
+- Components: Chatbot, Message, Prompt Input, Chain of Thought, Tool, Reasoning
+- Consistent with existing shadcn/ui usage throughout app
+
+## Relation to LangChain Integration
+
+The LangChain integration provides:
+- Agent with tool support
+- Conversation state persistence (LangGraph checkpointer)
+- IPC API: `llm:query(message, conversationId?, context?, agent?, model?)`
+- Tool registry with `getToolsForAgent()` helper
+- Execution trace format structured for chat UI rendering
+
+This backlog item builds the chat UI that consumes that backend infrastructure.
+
+## Implementation Approach
+
+### Phase 1: AI Integration Patterns & Prep Work
+1. Define `AppContext` type interface (`{ viewId?, summary?, details? }`)
+2. Define `getContextForAI()` contract interface for views
+3. Define context collector/registry mechanism interface (no implementation yet)
+4. Add optional `context` parameter to IPC handler and agent service
+5. Define `Agent` type interface (`{ id, name, instructions?, ... }`)
+6. Add optional `agent` parameter to agent query
+7. Add optional `model` parameter to IPC handler and agent service
+8. Create `getToolsForAgent()` helper function (initially passthrough to `toolRegistry.getAll()`)
+9. Implement one LLM-invokable command (theme toggle via command registry)
+10. Update agent to accept and use command invocations
+
+Note: Context implementation (views implementing `getContextForAI()` and context collector gathering from active view) is deferred to Chat Sidebar Integration where it has demonstrable value.
+
+### Phase 2: Backend Streaming Support
+1. Implement IPC streaming mechanism (choose: event-based, async iterator, or chunked)
+2. Wire LangChain/LangGraph streaming to IPC layer
+3. Stream tokens as they're generated
+4. Stream trace updates as they occur
+5. Handle completion and error states
+6. Test streaming with Ollama
+
+### Phase 3: Conversation Storage & Management
+1. Leverage LangGraph checkpointer for conversation persistence
+2. Add conversation metadata storage (title, agentId, currentModel, timestamps)
+3. Add message metadata storage (model used for each message)
+4. Implement conversation CRUD operations
+5. Create conversation list/sidebar UI
+6. Add search/filter functionality
+7. Implement "New Chat" action
+
+### Phase 4: Chat UI Components (shadcn AI)
+1. Install shadcn AI components
+2. Set up Chatbot component structure
+3. Implement Message component with markdown rendering
+4. Create Prompt Input with submission handling
+5. Wire streaming UI to IPC streaming
+6. Add loading/typing indicators
+7. Implement rich content rendering
+
+### Phase 5: Execution Trace Display
+1. Implement Chain of Thought component for reasoning flow
+2. Add Tool component for tool execution display
+3. Integrate Reasoning component for thinking steps
+4. Wire trace data from backend to UI components
+5. Implement auto-expand during execution
+6. Implement auto-collapse on completion
+7. Add manual toggle for completed traces
+8. Display timing, errors, and all trace elements
+
+### Phase 6: Navigation & Integration
+1. Add `/chat` route to app routing
+2. Create sidebar navigation button for chat
+3. Add "Open Chat" command to KBar
+4. Implement conversation switching
+5. Handle loading states and errors
+6. Test full flow end-to-end
+
+## Success Criteria
+
+- [x] User can navigate to chat view via sidebar or KBar
+- [x] User can create, rename, delete, and switch between conversations
+- [x] User can search/filter conversations
+- [x] Messages stream in real-time as LLM generates response
+- [x] Execution traces display with all tool calls, reasoning, timing
+- [x] Traces auto-expand during execution, auto-collapse when complete
+- [x] User can manually expand collapsed traces
+- [x] LLM can invoke app commands (theme toggle works)
+- [x] `AppContext` type and `getContextForAI()` contract defined
+- [x] Context collector interface defined (implementation in sidebar item)
+- [x] Optional `context` parameter added to IPC/agent
+- [x] Conversations persist across app restarts
+- [x] Rich content (markdown, code blocks) renders correctly
+- [x] UI is polished and uses shadcn AI components consistently
+- [x] Prep work in place for future features (context, agent, permissions parameters)
+
+## Related Backlog Items
+
+**Enables:**
+- [Chat Sidebar Integration](../chat-sidebar-integration.md) - Move chat to right sidebar, add context injection
+- [KBar Smart Chat Detection](../kbar-smart-chat-detection.md) - Long-form text in KBar → start chat
+- [Chat Quick Launcher](../chat-quick-launcher.md) - Dedicated hotkey + overlay with controls
+- [Custom Agents](../custom-agents.md) - Agent management and switching
+- [Multi-Provider Model Selection](./multi-provider-model-selection.md) - Support for multiple LLM providers and models
+- [Tool Permission System](../tool-permission-system.md) - Per-tool permissions (uses `getToolsForAgent()`)
+- [Deep Agents Adoption](../deep-agents-adoption.md) - Enhanced context management, filesystem tools (optional upgrade)
+
+## Notes
+
+This is the foundational chat implementation that establishes patterns for AI integration throughout the app. Focus is on production quality (streaming, polished traces, full conversation management) while including prep work that makes future enhancements non-breaking.
+
+The "AI integration patterns" objective means this item defines:
+1. How views expose context to AI (contract + collector)
+2. How AI takes actions (via command registry)
+3. How AI surfaces integrate (single chat UI, others open it with context)
+
+These patterns make it easy to add AI to future features without rebuilding infrastructure.
+
+### Future: Deep Agents Enhancement
+
+Chat MVP can be implemented with standard LangGraph agents. When [Deep Agents Adoption](../deep-agents-adoption.md) is complete, the chat experience gains:
+
+- **Automatic context management**: Conversation summarization prevents context overflow
+- **Large result handling**: Tool outputs auto-offloaded to filesystem
+- **Enhanced streaming**: Built-in streaming with agent metadata
+- **Filesystem tools**: Agents can save/read files for intermediate work
+
+This is additive—Chat MVP works without Deep Agents, but gains these capabilities when Deep Agents is adopted.

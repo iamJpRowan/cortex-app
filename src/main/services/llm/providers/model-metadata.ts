@@ -2,7 +2,7 @@
  * Static model metadata for discovery (Phase 3).
  * Keyed by provider then model id (no prefix). Merged with discovered model ids.
  * Costs in USD per token; context window in tokens.
- * @see docs/backlog/multi-provider-model-selection.md Phase 3
+ * @see docs/product/backlog/multi-provider-model-selection.md Phase 3
  */
 
 import type { ModelMetadata, ModelCapabilities } from '@shared/types'

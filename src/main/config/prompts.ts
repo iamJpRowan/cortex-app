@@ -6,7 +6,7 @@
  * - Base system prompt: Always applied, not user-editable (tool usage, formatting)
  * - Agent instructions: Editable, will become per-agent in custom-agents feature
  *
- * @see docs/backlog/custom-agents.md - Layered prompts architecture
+ * @see docs/product/backlog/custom-agents.md - Layered prompts architecture
  */
 
 import { readFileSync } from 'fs'

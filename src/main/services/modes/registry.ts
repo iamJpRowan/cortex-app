@@ -1,7 +1,7 @@
 /**
  * Mode registry: built-in defaults + user mode files.
  * User files override built-in definitions for the same id; reset deletes the user file.
- * @see docs/backlog/tool-permission-system.md
+ * @see docs/product/backlog/tool-permission-system.md
  */
 
 import { app } from 'electron'

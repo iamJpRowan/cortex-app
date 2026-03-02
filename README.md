@@ -4,11 +4,11 @@ AI-powered personal knowledge management system that integrates all your data—
 
 ## Quick Links
 
-- [Vision & User Guide](docs/VISION.md) - What Cortex is and why it exists
-- [Architecture](docs/architecture/README.md) - Technical principles and design decisions
+- [Vision & User Guide](docs/user/vision.md) - What Cortex is and why it exists
+- [Architecture](docs/development/architecture/README.md) - Technical principles and design decisions
 - [Development Setup](docs/development/README.md) - How to get started and run locally
-- [Feature Development](docs/development/feature-development.md) - How to implement features incrementally
-- [AI Agents](docs/agents/README.md) - Collaboration workflow for AI agents
+- [Feature Development](docs/development/development-patterns/feature-development.md) - How to implement features incrementally
+- [AI Agents](docs/development/agents/README.md) - Collaboration workflow for AI agents
 - [Contributing](CONTRIBUTING.md) - Guidelines for developers and AI agents
 
 ## Quick Start
@@ -37,7 +37,7 @@ AI-powered personal knowledge management system that integrates all your data—
    npm run dev
    ```
 
-See [Development Setup](docs/development/setup.md) for detailed setup instructions.
+See [Development Setup](docs/development/getting-started/setup.md) for detailed setup instructions.
 
 ## What Makes Cortex Different
 
@@ -59,11 +59,11 @@ See [Development Setup](docs/development/README.md) for current status and next 
 
 ## Documentation Overview
 
-- **[VISION.md](docs/VISION.md)**: End-user perspective - what you get from Cortex
-- **[Architecture](docs/architecture/README.md)**: Core principles guiding all technical decisions
+- **[User vision](docs/user/vision.md)**: End-user perspective - what you get from Cortex
+- **[Architecture](docs/development/architecture/README.md)**: Core principles guiding all technical decisions
 - **[Development](docs/development/README.md)**: Practical setup, tooling, and conventions
-- **[Feature Development](docs/development/feature-development.md)**: Step-by-step guide for implementing features
-- **[AI Agents](docs/agents/README.md)**: How AI agents should collaborate with developers
+- **[Feature Development](docs/development/development-patterns/feature-development.md)**: Step-by-step guide for implementing features
+- **[AI Agents](docs/development/agents/README.md)**: How AI agents should collaborate with developers
 - **[Contributing](CONTRIBUTING.md)**: How to work on Cortex (humans and AI agents)
 
 For a complete overview of all documentation, see [docs/README.md](docs/README.md).

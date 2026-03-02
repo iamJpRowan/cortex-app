@@ -17,5 +17,5 @@ Start the app from your terminal or by opening the application. The first time y
 
 ## Next steps
 
-- Read [What is Cortex?](vision) for the big picture.
+- Read [What is Cortex?](vision.md) for the big picture.
 - Open **Settings** to add a provider and pick a model, then try **Chat**.

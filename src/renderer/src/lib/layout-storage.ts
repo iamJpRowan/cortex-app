@@ -2,7 +2,7 @@
  * localStorage keys for app-wide layout and view state persistence.
  * All keys use cortex. prefix with namespace organization.
  *
- * @see docs/development/ui-state-persistence.md
+ * @see docs/development/feature-guides/ui-state-persistence.md
  */
 
 /** App-wide layout state */

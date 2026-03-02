@@ -4,7 +4,7 @@
   "description": "Cortex - A native Electron application for knowledge management",
   "main": "dist-electron/main/index.js",
   "scripts": {
-    "predev": "node scripts/build-user-docs.js",
+    "predev": "node scripts/build-user-docs.js && node scripts/build-product-docs.js",
     "dev": "electron-vite dev",
     "prebuild": "node scripts/build-user-docs.js",
     "build": "electron-vite build",
@@ -16,6 +16,8 @@
     "lint:fix": "eslint src --ext .ts,.tsx --fix",
     "lint:css": "stylelint \"src/renderer/src/**/*.css\"",
     "lint:css:fix": "stylelint \"src/renderer/src/**/*.css\" --fix",
+    "build:product-docs": "node scripts/build-product-docs.js",
+    "check:docs-links": "node scripts/check-docs-links.js",
     "validate:tokens": "node scripts/validate-design-tokens.js",
     "validate:accessibility": "node scripts/validate-accessibility.js",
     "precommit": "npm run type-check",

@@ -1,7 +1,7 @@
 /**
  * Model list service: aggregated discovery with metadata, cached and invalidated on config change.
  * Only models in the provider's enabledModelIds are returned; default is none (user must enable).
- * @see docs/backlog/multi-provider-model-selection.md Phase 3
+ * @see docs/product/backlog/multi-provider-model-selection.md Phase 3
  */
 
 import type { ListModelsResult, ModelMetadata } from '@shared/types'

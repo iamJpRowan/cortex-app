@@ -7,7 +7,7 @@
  * mistral-small3.2, granite4, devstral, deepseek-v3.1, etc. Everything else is blocked.
  *
  * When adding a new provider (Phase 2+), validate which of its models do not support
- * tools and add them here. See docs/backlog/multi-provider-model-selection.md.
+ * tools and add them here. See docs/product/backlog/multi-provider-model-selection.md.
  */
 
 /** Per-provider: list of model base names (or ids) that do NOT support tools. */

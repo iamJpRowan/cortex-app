@@ -9,8 +9,8 @@
  * - Custom Agents (agent parameter)
  * - Chat Sidebar Integration (context parameter)
  *
- * @see docs/backlog/chat-interface-mvp.md
- * @see docs/backlog/multi-provider-model-selection.md
+ * @see docs/product/backlog/chat-interface-mvp.md
+ * @see docs/product/backlog/multi-provider-model-selection.md
  */
 
 import type { Agent } from './agent'
@@ -293,7 +293,7 @@ export interface ListModelsResult {
 
 /**
  * Permission level for a tool or category (Tool Permission System).
- * @see docs/backlog/tool-permission-system.md
+ * @see docs/product/backlog/tool-permission-system.md
  */
 export type PermissionLevel = 'allow' | 'ask' | 'deny'
 

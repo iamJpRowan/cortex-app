@@ -3,7 +3,7 @@
  * Used by the tool factory (default cap for all tools), Neo4j serialization
  * (per-property cap), and optionally by the agent for IPC truncation.
  *
- * @see docs/backlog/bounded-tool-results-and-chat-ui-stability.md
+ * @see docs/product/backlog/bounded-tool-results-and-chat-ui-stability.md
  */
 
 /** Default max length for a single tool result string that goes into conversation state (context). */

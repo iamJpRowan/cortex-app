@@ -2,7 +2,7 @@
  * Built-in permission mode definitions.
  * Same structure as user mode .json files (id, name, description, categories.*).
  * Users can override by saving a mode file with the same id; reset restores this default.
- * @see docs/backlog/tool-permission-system.md
+ * @see docs/product/backlog/tool-permission-system.md
  */
 
 import type { Mode, ModeFileContent } from './types'

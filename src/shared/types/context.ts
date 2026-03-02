@@ -8,8 +8,8 @@
  * Implementation of context collection is deferred to Chat Sidebar Integration
  * where it has demonstrable value. This file defines the interfaces only.
  *
- * @see docs/backlog/chat-interface-mvp.md
- * @see docs/backlog/chat-sidebar-integration.md
+ * @see docs/product/backlog/chat-interface-mvp.md
+ * @see docs/product/backlog/chat-sidebar-integration.md
  */
 
 /**

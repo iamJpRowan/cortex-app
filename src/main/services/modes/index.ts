@@ -1,6 +1,6 @@
 /**
  * Permission mode service: built-in modes + user mode files.
- * @see docs/backlog/tool-permission-system.md
+ * @see docs/product/backlog/tool-permission-system.md
  */
 
 export {

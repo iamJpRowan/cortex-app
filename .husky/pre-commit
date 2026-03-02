@@ -1,4 +1,11 @@
 #!/usr/bin/env sh
 . "$(dirname -- "$0")/_/husky.sh"
 
+node scripts/build-product-docs.js && git add docs/product/backlog/README.md docs/product/README.md docs/product/themes/README.md
+
+# If any staged file is under docs/, verify all doc links resolve
+if git diff --cached --name-only | grep -q '^docs/'; then
+  node scripts/check-docs-links.js
+fi
+
 npx lint-staged

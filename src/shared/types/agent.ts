@@ -5,7 +5,7 @@
  * This type is designed to be forward-compatible with the Custom Agents
  * backlog item, matching the frontmatter schema defined there.
  *
- * @see docs/backlog/custom-agents.md
+ * @see docs/product/backlog/custom-agents.md
  */
 
 /**

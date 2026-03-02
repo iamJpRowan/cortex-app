@@ -1,0 +1,53 @@
+[Docs](../../README.md) / [Development](../README.md) / Architecture
+
+# Architecture
+
+This directory contains documentation about Cortex's architecture, design principles, and technical decisions.
+
+## Overview
+
+Cortex is a **native desktop application** built on Electron that provides a truly self-contained, local-first experience. The application manages Neo4j as a subprocess for knowledge graph capabilities, uses SQLite for conversation state and audit logs, and connects to locally installed Ollama for AI processing, requiring no Docker containers or cloud services.
+
+The architecture follows **local-first data sovereignty** principles with an **ELT (Extract-Load-Transform)** approach where the graph database serves as a disposable, intelligent index over your source data stored in open formats.
+
+## Application Structure
+
+### Native Desktop Architecture
+
+```
+Cortex Desktop App
+├── Main Process (Node.js/TypeScript)
+│   ├── Neo4j Server (subprocess)
+│   ├── SQLite (conversation state & audit logs)
+│   ├── Ollama Connection (system installation)
+│   ├── Filesystem Access (user-configured locations)
+│   ├── Application State Management
+│   └── IPC Handlers (API for renderer)
+│
+└── Renderer Process (Chromium/TypeScript)
+    ├── UI Layer (React + shadcn/ui + Tailwind)
+    ├── Component System (React)
+    └── IPC Client (calls main process)
+```
+
+**Key Characteristics:**
+- **Single packaged application**: Initial download ~500MB-1GB
+- **Minimal external dependencies**: Auto-detects or installs Ollama on first launch
+- **Managed services**: Neo4j runs as subprocess, Ollama uses system installation
+- **Two databases**: Neo4j (knowledge graph) + SQLite (conversation state)
+- **Direct access**: Main process has native filesystem and database access
+- **Secure by default**: Renderer process sandboxed, only accesses data via IPC
+
+## Documentation
+
+- **[principles.md](./principles.md)** - Core architectural principles and development philosophy
+- **[technical-stack.md](./technical-stack.md)** - Technology choices and stack details
+- **[process-architecture.md](./process-architecture.md)** - Main and renderer process responsibilities
+- **[data-flow.md](./data-flow.md)** - ELT architecture, storage formats, and data flow patterns
+- **[security.md](./security.md)** - Security model and sandboxing
+- **[deployment.md](./deployment.md)** - Distribution and deployment model
+- **[connections.md](./connections.md)** - Connections (data sources), Types, and path to graph; shared definition for refinement
+
+---
+
+*This architecture is designed to evolve. As capabilities are proven through use, the system will adapt its structure to better serve the vision of transparent, local-first personal knowledge management.*

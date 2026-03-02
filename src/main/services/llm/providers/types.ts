@@ -3,7 +3,7 @@ import type { BaseChatModel } from '@langchain/core/language_models/chat_models'
 /**
  * Prefixed model identifier: "providerId:modelId"
  * e.g. "ollama:llama3.2:3b", "openai:gpt-4"
- * @see docs/backlog/multi-provider-model-selection.md Decision Record
+ * @see docs/product/backlog/multi-provider-model-selection.md Decision Record
  */
 export type PrefixedModelId = string
 
