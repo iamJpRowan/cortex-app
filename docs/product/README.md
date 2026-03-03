@@ -44,7 +44,7 @@ Order of delivery, grouped by theme. Reorder and edit to match your priorities. 
 3. component-composition-system
 4. chat-sidebar-integration *(depends on chat + UI layout)*
 
-#### database-knowledge-graphs
+#### knowledge-graphs
 
 1. multi-knowledge-graphs
 2. neo4j-enterprise-upgrade
@@ -63,7 +63,9 @@ When you run [roadmap-review](../development/agents/roadmap-review.md), update `
 
 - **[chat-ai](./themes/chat-ai.md)** — Chat interface, AI/LLM features, agents, tools, and related UX.
 - **[configuration-extensibility](./themes/configuration-extensibility.md)** — User configuration, file loading, UI, hot reload, and plugin system for tools and integrations.
-- **[database-knowledge-graphs](./themes/database-knowledge-graphs.md)** — Neo4j, multiple knowledge graphs, and enterprise upgrade.
+- **[connections](./themes/connections.md)** — Data sources (connections), connection types, instances, permissions, and loading data into the graph.
+- **[extensions](./themes/extensions.md)** — Extensibility: custom connection types, plugins, marketplace, and user-defined integrations.
+- **[knowledge-graphs](./themes/knowledge-graphs.md)** — Neo4j, multiple knowledge graphs, and enterprise upgrade.
 - **[ui-features](./themes/ui-features.md)** — Layout system, sidebars, tabs, panels, drag-and-drop, and component composition.
 
 

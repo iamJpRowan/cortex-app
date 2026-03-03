@@ -16,10 +16,12 @@ In your domain folder under `src/main/services/llm/tools/builtin/<domain>/tools.
 - **handler**: String key that will match a key in the handler map (e.g. `neo4j_countNodes`).
 - **metadata**: Must include **scope** (`local` | `external` | `app`) and **access** (`read` | `write`). Optional: `connectionType`, `connection`, `risk`, `permissionExplanation`, **capResultLength** (default `true`; set to `false` only when the tool must return uncapped content—increases risk of UI freezes and “prompt too long” errors; see [Bounded Tool Results](../../product/backlog/bounded-tool-results-and-chat-ui-stability.md)).
 
+**Connection type and connection:** Use `connectionType` and `connection` only for tools that operate on **data-source connections** (e.g. Folder, Slack, Google Drive). See [Connections](../../development/architecture/connections.md). Tools that query or modify the graph are governed by **graph access**; do not set `connectionType` for those tools.
+
 Definition files should only use data and Zod—no LangChain or registry imports.
 
 ```ts
-// builtin/neo4j/tools.ts
+// builtin/neo4j/tools.ts — graph tools: no connectionType (graph access applies)
 import { z } from 'zod'
 import type { ToolDefinition } from '@main/services/llm/tools/definition-types'
 
@@ -29,10 +31,12 @@ export const neo4jToolDefinitions: ToolDefinition[] = [
     description: 'Counts the total number of nodes in the Neo4j graph database.',
     schema: z.object({}),
     handler: 'neo4j_countNodes',
-    metadata: { scope: 'external', access: 'read', connectionType: 'Neo4j' },
+    metadata: { scope: 'external', access: 'read' },
   },
 ]
 ```
+
+For a tool that operates on a **connection** (e.g. Local Folder), set `connectionType` and optionally `connection`: e.g. `metadata: { scope: 'local', access: 'read', connectionType: 'Folder' }`.
 
 For tools with **dynamic schema** (e.g. enum of current commands), export a **function** that returns definitions (see `builtin/command/tools.ts`).
 
@@ -80,6 +84,7 @@ By default the **factory** caps every tool's return string to a maximum length b
 
 ## Reference
 
+- **Connections** (connection type vs graph access): [architecture/connections.md](../../development/architecture/connections.md)
 - **Types**: `src/main/services/llm/tools/definition-types.ts`
 - **Factory**: `src/main/services/llm/tools/factory.ts`
 - **Examples**: `builtin/neo4j/`, `builtin/command/`

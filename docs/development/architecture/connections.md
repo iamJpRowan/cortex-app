@@ -2,7 +2,7 @@
 
 # Connections
 
-This document defines **Connections** and related concepts as the shared reference for current state. It will be refined through discussion before we update the rest of the docs. See **Doc updates (after refinement)** at the bottom for follow-up changes.
+This document defines **Connections** and related concepts as the shared reference for current state. Implementation backlog is grouped under the **connections** theme; see **Backlog and theme** and **Doc updates** below.
 
 **Primary goals:** Give agents safe, scoped read and write access to connection data, and enable bringing data from disparate sources into knowledge graphs so both the user and the agent can reason across those sources.
 
@@ -36,32 +36,15 @@ Getting data from a connection into the graph is governed by **Types**.
   - **Property mapping** (connection fields → node properties).
   - A **source reference** on each node (connection id + path or id) so the agent can fetch long-form content from the connection when permitted.
 
-So: **Connection** (data source, read/write) → **Type** (node shape + optional sources) → **Source** (connection + import rule + property mapping) → **Graph**. A Type can source data from multiple connections; the Type and its sources define how that becomes graph nodes.
-
----
-
-## What is not a connection
-
-- **Neo4j** is the **built-in graph database**. It is where graph data lives inside the app, not an external “source” in the connection sense. It does **not** fit the definition of a connection.
-- **Which graphs (Neo4j DBs) an agent can use** is a **separate concept**: graph-level or knowledge-graph-level access control. That should be documented and designed alongside the permission system but under a different heading (e.g. “Graph access” or “Knowledge graph access”), not under “Connections.”
-
----
-
-## Graph read vs connection access (two permission paths)
-
-**Graph read** is a **separate permission path** from connection access. The user can create multiple knowledge graphs and choose which graphs each agent is allowed to read from.
-
-- **What the graph holds**: The graph stores **relationship and property data** (structure, metadata, links). **Long-form content remains in the source** (the connection). So the graph is the place to reason over structure and connections; the actual document body, file content, etc. live in the connection.
-- **Getting content for a node**: If the agent finds a node and wants the full content, it must read from the **source** via **connection tools** (e.g. read file, get message). That access is gated by **connection permission** (which connections the agent can use). So both gates apply: **graph read** to query the graph; **connection permission** to read or write the underlying source content.
-- **Source reference on nodes**: Nodes that represent connection-sourced items carry a **source reference** (connection id + path or id within that connection) so the agent (or the tool it calls) knows where to fetch content. The connection tool then enforces the connection permission.
+So: **Connection** (data source, read/write) → **Type** (node shape + optional sources) → **Source** (connection + import rule + property mapping) → **Graph**. A Type can source data from multiple connections; the Type and its sources define how that becomes graph nodes. How graph and connection permissions interact: [Knowledge graphs](./knowledge-graphs.md).
 
 ---
 
 ## Permission system
 
-- **Connection type**: The kind of data source (e.g. Folder, Slack, Google Drive). Not Neo4j.
+- **Connection type**: The kind of data source (e.g. Folder, Slack, Google Drive).
 - **Connection**: A specific instance (e.g. “My Project Folder”, “Slack #general”, “Drive – Work”).
-- **Tools** that operate on a connection are associated with a **connection type** and optionally a **connection** (instance). Permission hierarchy (in modes) remains: **category** → **connection type** → **connection** → **tool**, but only for tools that act on connections (data sources). Neo4j/graph tools are governed by **graph access** (and category), not by connection type/connection.
+- **Tools** that operate on a connection are associated with a **connection type** and optionally a **connection** (instance). Permission hierarchy (in modes) remains: **category** → **connection type** → **connection** → **tool**, for tools that act on connections (data sources). For tools that query or modify the graph, see [Knowledge graphs](./knowledge-graphs.md) (graph access).
 
 ---
 
@@ -164,22 +147,20 @@ Decisions below are grouped into **Requirements-ready** (clear enough to write i
 
 ## Summary
 
-- **Connections** = data sources (folder, app, cloud). Read: from source into graph (local or cloud); cloud can load directly or (later) localize. Path to graph is via **Types** and **Source**. Write: sync back to the connection (source).
-- **Neo4j** = built-in graph DB; not a connection. **Graph access** (which knowledge graphs agents can use) is a separate concept.
-- **Graph read vs connection access**: Two permission paths. Graph holds relationship/property data; long-form content stays in the source. Nodes carry a source reference so the agent can fetch content via connection tools (connection permission). Graph read and connection permission are independent.
+- **Connections** = data sources (folder, app, cloud). Read: from source into graph (local or cloud); cloud can load directly or (later) localize. Path to graph is via **Types** and **Source**. Write: sync back to the connection (source). How permissions apply to graphs vs connections: [Knowledge graphs](./knowledge-graphs.md).
 - **Design areas** for implementation: (1) **Registration** of connection types (built-in, user, marketplace) so instances can be created; (2) **Data structure** for a connection (predetermined or discovered by scanning); (3) **Tools** per connection type (read/write abilities for agents, permission-scoped). Local first; cloud can load directly; optional localization is a later feature. **Built-in vs user/marketplace**: Option A (manifest + bundled code) for v1; same manifest shape for later. Options B–D (sandboxed in-process, subprocess runner, remote service) and trade-offs are documented for planning user/marketplace loading.
 - **First connection type (Local Folder)**: **Requirements-ready** decisions are recorded (registration, Local Folder path = all subfolders/files, format-agnostic v1, tool set, mode extension for per-connection-instance overrides, permission type+instance, runtime resolution from mode; tool-call time connection context confirmed; custom agents will further scope mode later). **Data structure** (formal scan, structure for Type/source) deferred to the **defining graph node types** backlog item. No other open clarifications for the first connection type at this time.
 
 ---
 
+## Backlog and theme
+
+Backlog items that implement or extend this concept are grouped under the **connections** theme. See [Themes](../../product/themes/README.md) (theme: `connections`); the theme doc lists those items and is kept in sync via frontmatter.
+
+---
+
 ## Doc updates (after refinement)
 
-Once this definition is finalized, apply the following updates:
+Updates applied: tool-permission-system, adding-a-tool, custom-agents, and multi-knowledge-graphs now align with this concept; connection-type examples use data sources only. Graph access is in [Knowledge graphs](./knowledge-graphs.md). The developer guide for adding a connection type is a **success criterion** of the connections foundation item (written after the code is in place), not a standalone doc. Backlog items are in the **connections** theme.
 
-- **`docs/product/backlog/tool-permission-system.md`**: Remove Neo4j from connection-type examples; add explicit note that Neo4j is the built-in graph DB and not a connection; graph access is a separate concept. Update all “Categories and connections” examples and Notes to use only data-source connection types (Folder, Slack, Google Drive, etc.).
-- **`docs/development/feature-guides/adding-a-tool.md`**: Clarify that `connectionType`/`connection` are for tools that operate on data-source connections only; Neo4j tools should not use `connectionType: 'Neo4j'` and are governed by graph-access controls. Add pointer to this architecture doc.
-- **`docs/product/backlog/custom-agents.md`**: Add a brief note that “connection” in the permission hierarchy means data-source connections only; graph access is a separate axis.
-- **`docs/product/backlog/multi-knowledge-graphs.md`**: Add one sentence that Knowledge Graphs (Neo4j) are the built-in graph store; connections (data sources for ingest/update) are a separate concept, with a link to this doc (or the connections backlog).
-- **Code**: Neo4j tool definitions currently use `connectionType: 'Neo4j'`. After doc finalization, update so Neo4j tools are not tagged as a connection type (e.g. use a different optional field or graph-scope concept) and are documented as subject to graph access, not connections.
-- **Backlog**: Create a backlog item for **loading custom connection types** (or "plugin connection types" / "user-defined connection types") to cover future support for user-created and marketplace connection types—including how plugin code is executed (Options B/C/D), manifest contract, and required extensibility points. Defer detailed design until we have more experience with built-in connection types.
-- **Backlog**: Create a backlog item for **defining graph node types** (Type definitions: node label structures with properties, indexes, constraints; Source binding connection + import rule + property mapping). Include in that item the requirements for **connection data structure**: when and how to expose a formal scan/result shape for a connection (e.g. list of items with inferred format), how that feeds into Type/source mapping, and impact on permission boundaries and UI ("what's in this connection"). Until that work is done, the first connection type remains format-agnostic and tools-only.
+**Remaining:** Code — Neo4j tool definitions currently use `connectionType: 'Neo4j'`. Update so graph tools are not tagged as a connection type and are documented as subject to graph access, not connections.

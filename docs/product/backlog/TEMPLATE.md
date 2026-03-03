@@ -16,7 +16,7 @@ What the feature aims to achieve.
 
 ## Prerequisites / Dependencies
 
-In body (e.g. "requires: X") and optionally `depends_on` in frontmatter.
+In body (e.g. "requires: X") and if any backlog items are included they must also be included in the frontmatter `depends_on` property.
 
 ## Requirements and constraints
 
@@ -36,23 +36,23 @@ Or use frontmatter `references`. Link to architecture, development, design docs 
 
 **Current (active) items:**
 
-| Key | Required | Description |
-|-----|----------|-------------|
-| `status` | Yes | One of: **active** `designing`, `in progress`, `ready to test`; **inactive** `next`, `soon`, `considering`. See status groups below. |
-| `summary` | Yes | One short line for backlog view tables. |
-| `themes` | No | List of theme IDs (e.g. `[chat-ai, ui-features]`). Theme ID = theme file name (no `.md`) in [docs/product/themes/](../themes/README.md). |
-| `implements` | No | Path to concept doc (e.g. `architecture/connections.md`). |
-| `depends_on` | No | List of backlog item slugs this item depends on. |
-| `devlogs` | No | List of **devlog IDs** (e.g. `[2026-02-17-chat-trace-token-usage-and-cleanup]`). Devlog ID = devlog file name without `.md` in `docs/product/devlogs/`. Bi-directional with devlog's `related_backlog`. |
-| `references` | No | List of paths to docs implementers should read. |
+| Key          | Required | Description                                                                                                                                                                                             |
+| ------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `status`     | Yes      | One of: **active** `designing`, `in progress`, `ready to test`; **inactive** `next`, `soon`, `considering`. See status groups below.                                                                    |
+| `summary`    | Yes      | One short line for backlog view tables.                                                                                                                                                                 |
+| `themes`     | No       | List of theme IDs (e.g. `[chat-ai, ui-features]`). Theme ID = theme file name (no `.md`) in [docs/product/themes/](../themes/README.md).                                                                |
+| `implements` | No       | Path to concept doc (e.g. `architecture/connections.md`).                                                                                                                                               |
+| `depends_on` | No       | List of backlog item slugs this item depends on.                                                                                                                                                        |
+| `devlogs`    | No       | List of **devlog IDs** (e.g. `[2026-02-17-chat-trace-token-usage-and-cleanup]`). Devlog ID = devlog file name without `.md` in `docs/product/devlogs/`. Bi-directional with devlog's `related_backlog`. |
+| `references` | No       | List of paths to docs implementers should read.                                                                                                                                                         |
 
 **Archived items** (in `docs/product/backlog/archive/`): only these in frontmatter.
 
-| Key | Required | Description |
-|-----|----------|-------------|
-| `status` | Yes | One of: `completed`, `decomposed`, `merged`, `abandoned` |
-| `date_archived` | Yes | ISO date (YYYY-MM-DD) when moved to archive. All archive items sort by this. |
-| `summary` | Yes | One short line for backlog view. |
+| Key             | Required | Description                                                                  |
+| --------------- | -------- | ---------------------------------------------------------------------------- |
+| `status`        | Yes      | One of: `completed`, `decomposed`, `merged`, `abandoned`                     |
+| `date_archived` | Yes      | ISO date (YYYY-MM-DD) when moved to archive. All archive items sort by this. |
+| `summary`       | Yes      | One short line for backlog view.                                             |
 
 **Do not put in frontmatter:** "Why archived", "Merged into", "Abandoned reason" — put those as a short paragraph at the top of the body (e.g. **Merged into:** [Other Item](../other-item.md). **Why archived:** …).
 

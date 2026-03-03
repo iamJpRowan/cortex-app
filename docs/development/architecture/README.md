@@ -47,6 +47,7 @@ Cortex Desktop App
 - **[security.md](./security.md)** - Security model and sandboxing
 - **[deployment.md](./deployment.md)** - Distribution and deployment model
 - **[connections.md](./connections.md)** - Connections (data sources), Types, and path to graph; shared definition for refinement
+- **[knowledge-graphs.md](./knowledge-graphs.md)** - Knowledge graphs and how permissions (graph access) apply
 
 ---
 

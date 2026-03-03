@@ -42,12 +42,32 @@ User configuration, file loading, UI, hot reload, and plugin system for tools an
 | [Configuration System](../backlog/configuration-system.md) | User configuration via config files, preferences UI, and runtime overrides; control LLM, tools, and plugin settings. | considering |
 | [Plugin Extensibility Framework](../backlog/plugin-extensibility-framework.md) | Plugin system for custom tools, data integrations, UI components, and workflows; marketplace-ready. | considering |
 
-### database-knowledge-graphs
+### connections
+
+Data sources (connections), connection types, instances, permissions, and loading data into the graph.
+
+| Item | Summary | Status |
+|------|--------|--------|
+| [Connections Foundation](../backlog/connections-foundation.md) | Registration, connection instance store, and wiring so modes and agents can use connection-scoped tools. | next |
+| [Defining Graph Node Types](../backlog/defining-graph-node-types.md) | User-defined graph node types (labels, properties, indexes, constraints) and Source (connection + import rule + property mapping); connection data structure. | considering |
+| [Loading Custom Connection Types](../backlog/loading-custom-connection-types.md) | Future: load user-created and marketplace connection types; plugin execution, manifest contract, extensibility points. | considering |
+| [Local Folder Connection Type](../backlog/local-folder-connection-type.md) | First connection type: Local Folder (path = all subfolders/files); agent tools list_directory, read_file, write_file. | considering |
+
+### extensions
+
+Extensibility: custom connection types, plugins, marketplace, and user-defined integrations.
+
+| Item | Summary | Status |
+|------|--------|--------|
+| [Loading Custom Connection Types](../backlog/loading-custom-connection-types.md) | Future: load user-created and marketplace connection types; plugin execution, manifest contract, extensibility points. | considering |
+
+### knowledge-graphs
 
 Neo4j, multiple knowledge graphs, and enterprise upgrade.
 
 | Item | Summary | Status |
 |------|--------|--------|
+| [Defining Graph Node Types](../backlog/defining-graph-node-types.md) | User-defined graph node types (labels, properties, indexes, constraints) and Source (connection + import rule + property mapping); connection data structure. | considering |
 | [Multi Knowledge Graphs](../backlog/multi-knowledge-graphs.md) | Create and manage multiple Neo4j Knowledge Graphs; switch between them; app reopens last active on startup. | considering |
 | [Neo4j Enterprise Upgrade](../backlog/neo4j-enterprise-upgrade.md) | Upgrade to Neo4j Enterprise for native multi-database support; no data dir switching or restarts. | considering |
 

@@ -1,6 +1,6 @@
 ---
 status: considering
-themes: [database-knowledge-graphs]
+themes: [knowledge-graphs]
 summary: Upgrade to Neo4j Enterprise for native multi-database support; no data dir switching or restarts.
 ---
 

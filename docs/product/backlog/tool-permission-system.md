@@ -42,7 +42,7 @@ A **tool definition** is a declarative object (no LangChain types at definition 
 - **description**: string (for the LLM and for UI/documentation).
 - **schema**: Zod schema (parameters the tool accepts).
 - **handler**: string key that maps to an implementation function (or, for plugins, a loadable module path).
-- **metadata**: **scope** (required)—`local` | `external` | `app`. **access** (required)—`read` | `write`. Category for permission resolution is derived (e.g. `"read local"`, `"write app"`). All tools, including App tools, must specify both. Optional: **connectionType** and **connection** (e.g. "Neo4j", "production"); **risk** (`safe` | `caution` | `dangerous`); **permissionExplanation** (short text for the permission UI). The factory derives category from scope + access and copies into `ToolMetadata` at registration. Tools missing scope or access are **rejected at registration**; no runtime fallback.
+- **metadata**: **scope** (required)—`local` | `external` | `app`. **access** (required)—`read` | `write`. Category for permission resolution is derived (e.g. `"read local"`, `"write app"`). All tools, including App tools, must specify both. Optional: **connectionType** and **connection** for tools that operate on **data-source connections** (e.g. "Folder", "Slack", "Google Drive"—see [Connections](../../development/architecture/connections.md)). Graph tools are governed by **graph access**. Optional: **risk** (`safe` | `caution` | `dangerous`); **permissionExplanation** (short text for the permission UI). The factory derives category from scope + access and copies into `ToolMetadata` at registration. Tools missing scope or access are **rejected at registration**; no runtime fallback.
 
 Definitions live in **definition files** (e.g. per-domain: `neo4j/tools.ts`, `command/tools.ts`) or in a single registry file for small sets. No `DynamicStructuredTool` or `toolRegistry` imports in definition files—only data and Zod schemas.
 
@@ -75,7 +75,7 @@ Definitions live in **definition files** (e.g. per-domain: `neo4j/tools.ts`, `co
 ### Categories and Connections
 
 - **Categories** (six): Derived from **scope** × **access**. Each tool definition has required **scope** (`local` | `external` | `app`) and **access** (`read` | `write`). Category = e.g. `"read local"`, `"write external"`, `"read app"`, `"write app"`. Every tool belongs to exactly one category. App tools follow the same convention (e.g. `invoke_command` → scope `app`, access `write`). The tool registry **requires** scope and access for every tool; tools missing either are **rejected at registration** (no runtime fallback).
-- **Connection type**: The kind of resource—e.g. "Folder", "Slack", "Neo4j". Connection types can have multiple **connections** (instances), e.g. "My Project Folder", "Slack #general", "Neo4j production". Most tools are associated with a connection type and optionally a specific connection; app-scope tools typically are not.
+- **Connection type**: The kind of **data source** (e.g. "Folder", "Slack", "Google Drive"). Connection types can have multiple **connections** (instances), e.g. "My Project Folder", "Slack #general", "Drive – Work". Most tools that act on data sources are associated with a connection type and optionally a specific connection; app-scope tools typically are not. Which graphs an agent can read from is a separate concept (**graph access**).
 - **Permission hierarchy** (within a mode): **category** (default allow/ask/deny for the category) → **connection type** (override for that type) → **connection** (override for that instance) → **tool** (override for that tool). Resolution: tool override ?? connection override ?? connection type override ?? category default.
 
 ### Permission Modes
@@ -365,7 +365,7 @@ The LLM executor is created with a fixed set of tools and is cached to avoid reb
 
 - **Main settings**: Only **default mode** for new chats (e.g. `agents.defaultModeId`). Permission data is not stored in the main settings file.
 - **Mode definitions**: **One file per mode** in a dedicated directory; same convention as settings (dot notation, explicit overrides). Enables sharing, extensibility, and plugin-contributed modes.
-- **Categories and connections**: Six categories derived from **scope** × **access** (scope: local | external | app; access: read | write). Hierarchy: category → connection type → connection → tool. All tools must have scope and access; rejected at registration if missing. Connection type = e.g. Folder, Slack, Neo4j; connection = instance.
+- **Categories and connections**: Six categories derived from **scope** × **access** (scope: local | external | app; access: read | write). Hierarchy: category → connection type → connection → tool. All tools must have scope and access; rejected at registration if missing. Connection type = e.g. Folder, Slack, Google Drive (data sources). Connection = instance. Graph access is separate.
 
 ### Tool definitions (foundation)
 
