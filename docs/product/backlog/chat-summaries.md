@@ -84,7 +84,6 @@ Make past chats more useful to both users and AIs by maintaining a **summary doc
 **Related:**
 - [Chat Sidebar Integration](./chat-sidebar-integration.md) - Summary toggle and list must work in sidebar layout.
 - [Chat Attachments and Context Visibility](./chat-attachments-and-context.md) - User can attach a past summary to another chat; artifact list may include link to this conversation's summary.
-- [Chat Features (Future)](./chat-features-future.md) - Context Window Management describes internal summarization; In-Conversation Search may overlap with summary index. Chat Summaries is the user-facing summary document and cross-chat discovery.
 
 ## Notes
 

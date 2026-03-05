@@ -4,8 +4,8 @@ developer: Jp Rowan
 agent: Auto (Cursor)
 model: claude-sonnet-4.5
 tags: [react, shadcn-ui, migration, electron, typescript, eslint, frameless-window, ui-components]
+related_backlog: [react-shadcn-migration]
 related_files:
-  - docs/product/backlog/react-shadcn-migration.md
   - src/renderer/src/App.tsx
   - src/renderer/src/components/TitleBar.tsx
   - src/renderer/src/components/ui/button.tsx

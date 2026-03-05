@@ -4,7 +4,7 @@ themes: [chat-ai]
 summary: Token usage, cost, processing time, and context window visibility (past and before send).
 ---
 
-[Docs](../../README.md) / [Product](../README.md) / [Backlog](./README.md) / Chat Context Window and Costs
+[Docs](../../README.md) / [Product](../README.md) / [Backlog](./README.md) / Context Window and Costs
 
 # Context Window and Costs
 

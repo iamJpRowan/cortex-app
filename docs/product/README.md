@@ -57,7 +57,7 @@ When you run [roadmap-review](../development/agents/roadmap-review.md), update `
 
 | ready to test | in progress | designing |
 |--------|--------|--------|
-| **[Chat Rich Markdown Input](./backlog/chat-rich-markdown-input.md)** — Rich markdown editing in chat composer with paste-to-render, plaintext/preview toggle; content sent as markdown. [Feb 16 Chat Rich Markdown Input](./devlogs/2026-02-16-chat-rich-markdown-input.md) | **[Bounded Tool Results And Chat Ui Stability](./backlog/bounded-tool-results-and-chat-ui-stability.md)** — Content length guardrails for UI and agent context; prevent freezes and context blow-up from large tool results. [Feb 22 Bounded Tool Results](./devlogs/2026-02-22-bounded-tool-results.md)<br><br>**[Tool Permission System](./backlog/tool-permission-system.md)** — Foundational tool definitions and user-controlled permissions (modes, runtime approval). Critical for trust and extensibility. [Feb 16 Tool Permission System Phase 1](./devlogs/2026-02-16-tool-permission-system-phase-1.md)<br>[Feb 23 Tool Permission Modes Ui And Shared Config](./devlogs/2026-02-23-tool-permission-modes-ui-and-shared-config.md) | — |
+| — | **[Tool Permission System](./backlog/tool-permission-system.md)** — Foundational tool definitions and user-controlled permissions (modes, runtime approval). Critical for trust and extensibility. [Feb 16 Tool Permission System Phase 1](./devlogs/2026-02-16-tool-permission-system-phase-1.md)<br>[Feb 23 Tool Permission Modes Ui And Shared Config](./devlogs/2026-02-23-tool-permission-modes-ui-and-shared-config.md) | — |
 
 ## Themes
 

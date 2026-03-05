@@ -16,7 +16,7 @@ Generated from frontmatter `themes: [chat-ai, ...]`. Do not edit by hand.
 
 | ready to test | in progress | designing |
 |--------|--------|--------|
-| [Chat Rich Markdown Input](../backlog/chat-rich-markdown-input.md) — Rich markdown editing in chat composer with paste-to-render, plaintext/preview toggle; content sent as markdown. | [Bounded Tool Results And Chat Ui Stability](../backlog/bounded-tool-results-and-chat-ui-stability.md) — Content length guardrails for UI and agent context; prevent freezes and context blow-up from large tool results.<br><br>[Tool Permission System](../backlog/tool-permission-system.md) — Foundational tool definitions and user-controlled permissions (modes, runtime approval). Critical for trust and extensibility. | — |
+| — | [Tool Permission System](../backlog/tool-permission-system.md) — Foundational tool definitions and user-controlled permissions (modes, runtime approval). Critical for trust and extensibility. | — |
 
 ## Considering
 
@@ -24,9 +24,7 @@ Generated from frontmatter `themes: [chat-ai, ...]`. Do not edit by hand.
 |------|--------|
 | [Chat Attachments And Context](../backlog/chat-attachments-and-context.md) | Attach items (e.g. past summaries) to a chat; visualize what is in context (graph nodes, files, view context). |
 | [Chat Attachments](../backlog/chat-attachments.md) | File and image attachments in chat prompt (drag-drop, paste); backend sends attachments with the message. |
-| [Chat Context Window And Costs](../backlog/chat-context-window-and-costs.md) | Token usage, cost, processing time, and context window visibility (past and before send). |
 | [Chat Conversation Threads](../backlog/chat-conversation-threads.md) | Threads on messages for clarifying questions without sending thread content to the main conversation. |
-| [Chat Features Future](../backlog/chat-features-future.md) | Future chat ideas (memory, RAG, attachments, feedback, branching) for consideration. |
 | [Chat Quick Launcher](../backlog/chat-quick-launcher.md) | Hotkey + overlay to start a chat with input, model, and agent selection without opening chat view. |
 | [Chat Sidebar Integration](../backlog/chat-sidebar-integration.md) | Add chat to right sidebar; context injection from views; chat about what I |
 | [Chat Summaries](../backlog/chat-summaries.md) | One Markdown summary per conversation; review past chats; agent can discover and use other summaries. |

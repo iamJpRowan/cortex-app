@@ -2,7 +2,7 @@
 
 # Roadmap review
 
-**Intent:** Review and update the [roadmap](../../product/README.md#roadmap) so current focus and sequence reflect the user's priorities. The roadmap is the **single source of order**. No record of when the review occurred is required—just update the roadmap.
+**Intent:** Review and update the [roadmap](../../product/README.md#roadmap) so current focus and sequence reflect the user's priorities. The roadmap is the
 
 ## Process
 

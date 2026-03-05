@@ -2,7 +2,6 @@
 status: considering
 themes: [chat-ai]
 summary: Reduce incorrect tool usage (unwanted invokes, wrong commands, invalid args); only use tools when intent warrants.
-devlogs: [2025-01-31-chat-interface-mvp]
 ---
 
 [Docs](../../README.md) / [Product](../README.md) / [Backlog](./README.md) / LLM Tool Hallucination Guardrails

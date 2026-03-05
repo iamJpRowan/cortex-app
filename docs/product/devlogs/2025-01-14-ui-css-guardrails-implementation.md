@@ -4,8 +4,8 @@ developer: Jp Rowan
 agent: Auto (Cursor)
 model: claude-sonnet-4.5
 tags: [ui, css, design-system, accessibility, theme-system, guardrails, phase-0]
+related_backlog: [ui-css-guardrails]
 related_files:
-  - docs/product/backlog/ui-css-guardrails.md
   - docs/development/design/design-tokens.md
   - docs/development/design/ui-guide.md
   - docs/development/design/accessibility.md

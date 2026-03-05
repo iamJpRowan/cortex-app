@@ -4,14 +4,11 @@ developer: jprowan
 agent: Claude (Cursor)
 model: claude-sonnet-4-20250514
 tags: [design, planning, chat, agents, terminology, backlog]
-related_files:
-  - docs/product/backlog/custom-agents.md
-  - docs/product/backlog/sub-agent-delegation.md
-  - docs/product/backlog/deep-agents-adoption.md
-  - docs/product/backlog/chat-features-future.md
+related_backlog: [custom-agents, sub-agent-delegation, deep-agents-adoption]
+related_files: []
 related_issues: []
 related_devlogs:
-  - docs/product/devlogs/2025-01-27-chat-interface-scoping.md
+  - 2025-01-27-chat-interface-scoping
 session_duration: ~1.5 hours
 iterations: collaborative discussion with iterative refinement
 outcome: success
@@ -84,14 +81,11 @@ Identified and documented additional chat features not yet in backlog:
 - Scheduled / Triggered Conversations
 - And more...
 
-Created `chat-features-future.md` as a holding document for future consideration.
-
 ## Outcome
 
 **Created:**
 - `docs/product/backlog/custom-agents.md` — Full specification for custom agents feature
 - `docs/product/backlog/sub-agent-delegation.md` — Specification for agents delegating to other agents
-- `docs/product/backlog/chat-features-future.md` — Collection of future chat features to consider
 
 **Deleted:**
 - `docs/product/backlog/chat-personas.md` — Replaced by custom-agents.md

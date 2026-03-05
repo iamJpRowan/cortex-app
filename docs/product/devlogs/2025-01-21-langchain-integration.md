@@ -4,8 +4,8 @@ developer: Jp Rowan
 agent: Auto (Cursor)
 model: claude-sonnet-4.5
 tags: [langchain, langgraph, llm, agents, tools, neo4j, ollama, sqlite, phase-0, infrastructure]
+related_backlog: [langchain-integration]
 related_files:
-  - docs/product/backlog/langchain-integration.md
   - src/main/services/llm/agent.ts
   - src/main/services/llm/state.ts
   - src/main/services/llm/tools/registry.ts

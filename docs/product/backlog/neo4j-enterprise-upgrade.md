@@ -2,6 +2,7 @@
 status: considering
 themes: [knowledge-graphs]
 summary: Upgrade to Neo4j Enterprise for native multi-database support; no data dir switching or restarts.
+depends_on: [multi-knowledge-graphs]
 ---
 
 [Docs](../../README.md) / [Product](../README.md) / [Backlog](./README.md) / Neo4j Enterprise Edition Upgrade

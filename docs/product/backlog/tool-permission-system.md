@@ -2,6 +2,7 @@
 status: in progress
 themes: [chat-ai]
 summary: Foundational tool definitions and user-controlled permissions (modes, runtime approval). Critical for trust and extensibility.
+depends_on: [configuration-system]
 devlogs: [2026-02-16-tool-permission-system-phase-1, 2026-02-23-tool-permission-modes-ui-and-shared-config]
 ---
 
@@ -246,7 +247,7 @@ Tool registry requires permission metadata per tool as specified in **Part I: To
 
 ### Phase 9 (future): Content and token guardrail confirmations
 
-The same interrupt → modal → approve/deny pattern can be reused for **content-length and token-limit** confirmations. These are part of the remaining work once [Bounded Tool Results and Chat UI Stability](./bounded-tool-results-and-chat-ui-stability.md) default caps and [Context Window and Costs](./context-window-and-costs.md) token estimation are in place:
+The same interrupt → modal → approve/deny pattern can be reused for **content-length and token-limit** confirmations. These are part of the remaining work once [Bounded Tool Results and Chat UI Stability](./archive/bounded-tool-results-and-chat-ui-stability.md) default caps and [Context Window and Costs](./context-window-and-costs.md) token estimation are in place:
 
 - **Allow full tool result:** When the tool factory would **cap** a result (because it exceeds the default max length), optionally **interrupt** and show a modal: "This result is large and will be truncated for context. Include full result anyway?" If the user approves, skip the cap for that invocation only (the ToolMessage gets the uncapped string). If denied, use the capped result. "Remember" can apply per tool or per conversation. Requires the bounded-tool-results factory cap (1.2) and opt-out metadata (1.4) to be implemented so the factory is the single place that can offer this choice.
 - **Confirm oversized prompt:** Before calling the LLM, **estimate input token count** (conversation + system + current prompt). If the estimate exceeds a threshold (e.g. 80% of the model's context window or a configurable "expensive" limit), interrupt and show: "This request will use approximately X tokens (or $Y if cost is available). Continue?" Approve/deny; optional "remember for this conversation." Depends on [Context Window and Costs](./context-window-and-costs.md) (token estimation and context window display) so the app has an estimate and the model's limit before prompting.
@@ -313,7 +314,7 @@ The "ask" permission level (runtime approval) maps directly to LangChain Deep Ag
 **Related:**
 - [Custom Agents](./custom-agents.md) - When implemented, per-agent permissions (mode or custom set) are defined there and combined with the conversation's mode. Agent editor gets tool list from registry (same source as permission UI).
 - [Configuration System](./configuration-system.md) - Per-tool or per-plugin config can be keyed by tool name from definitions.
-- [Bounded Tool Results and Chat UI Stability](./bounded-tool-results-and-chat-ui-stability.md) - Default tool result caps (factory + at-source); “allow full result” confirmation is implemented in Phase 9 (runtime approval) as an additional interrupt type.
+- [Bounded Tool Results and Chat UI Stability](./archive/bounded-tool-results-and-chat-ui-stability.md) - Default tool result caps (factory + at-source); “allow full result” confirmation is implemented in Phase 9 (runtime approval) as an additional interrupt type.
 - [Context Window and Costs](./context-window-and-costs.md) - Token estimation and “used / limit” display; “confirm oversized prompt” uses the same Phase 9 interrupt/modal and depends on this item for estimates.
 
 ## Notes

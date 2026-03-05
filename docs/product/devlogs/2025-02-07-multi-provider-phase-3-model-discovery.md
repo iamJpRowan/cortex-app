@@ -6,8 +6,8 @@ developer: jprowan
 agent: Cursor (Auto)
 model: —
 tags: [multi-provider, model-selection, phase-3]
+related_backlog: [multi-provider-model-selection]
 related_files:
-  - docs/product/backlog/archive/multi-provider-model-selection.md
   - src/main/services/llm/providers/model-metadata.ts
   - src/main/services/llm/providers/model-list-service.ts
   - src/shared/types/llm.ts

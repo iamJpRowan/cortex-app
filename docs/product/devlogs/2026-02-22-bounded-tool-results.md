@@ -4,6 +4,7 @@ developer: cortex-app
 agent: Cursor (Auto)
 model: -
 tags: [tools, guardrails, context-window, neo4j, factory, content-length]
+related_backlog: [bounded-tool-results-and-chat-ui-stability]
 related_files:
   - src/main/services/llm/content-guardrails.ts
   - src/main/services/llm/tools/factory.ts
@@ -11,12 +12,11 @@ related_files:
   - src/main/services/llm/tools/builtin/neo4j/handlers.ts
   - src/main/services/llm/agent.ts
   - src/renderer/src/components/ai-elements/tool-invocation.tsx
-  - docs/product/backlog/bounded-tool-results-and-chat-ui-stability.md
   - docs/development/feature-guides/adding-a-tool.md
 related_issues: []
 related_devlogs:
-  - 2026-02-17-chat-trace-token-usage-and-cleanup.md
-  - 2026-02-16-tool-permission-system-phase-1.md
+  - 2026-02-17-chat-trace-token-usage-and-cleanup
+  - 2026-02-16-tool-permission-system-phase-1
 session_duration: multi-session
 iterations: multiple
 outcome: Bounded tool results complete (1.1 at-source, 1.2 factory cap, 1.4 opt-out); default caps prevent context-window blow-up and UI freezes.
@@ -24,7 +24,7 @@ outcome: Bounded tool results complete (1.1 at-source, 1.2 factory cap, 1.4 opt-
 
 # Context
 
-Tool results (e.g. Neo4j Cypher returning nodes with hour-long transcripts in properties) were being stored in full in the conversation state. That led to UI freezes (renderer parsing huge strings) and "prompt too long" / 429 errors when the next LLM call exceeded the model's context window. Truncation in the trace or display did not fix conversation state—only capping at source or in the factory does. The backlog item [bounded-tool-results-and-chat-ui-stability.md](../backlog/bounded-tool-results-and-chat-ui-stability.md) scoped backend caps (source + factory), agent IPC truncation, UI guardrails, and an opt-out for tools that need full content.
+Tool results (e.g. Neo4j Cypher returning nodes with hour-long transcripts in properties) were being stored in full in the conversation state. That led to UI freezes (renderer parsing huge strings) and "prompt too long" / 429 errors when the next LLM call exceeded the model's context window. Truncation in the trace or display did not fix conversation state—only capping at source or in the factory does. The backlog item [bounded-tool-results-and-chat-ui-stability.md](../backlog/archive/bounded-tool-results-and-chat-ui-stability.md) scoped backend caps (source + factory), agent IPC truncation, UI guardrails, and an opt-out for tools that need full content.
 
 # Problem
 

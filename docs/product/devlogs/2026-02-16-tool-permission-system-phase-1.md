@@ -1,7 +1,8 @@
 ---
 date: 2026-02-16
 tags: [tools, permissions, backlog]
-related_files: [docs/product/backlog/tool-permission-system.md, src/main/services/llm/tools/]
+related_backlog: [tool-permission-system]
+related_files: [src/main/services/llm/tools/]
 outcome: Phase 1 (Factory and Types) implemented; minimal test delayed.
 ---
 

@@ -2,6 +2,7 @@
 status: considering
 themes: [ui-features]
 summary: Drag-and-drop to move widgets from component library to sidebars and assemble custom views.
+depends_on: [ui-layout-framework]
 ---
 
 [Docs](../../README.md) / [Product](../README.md) / [Backlog](./README.md) / Drag and Drop System

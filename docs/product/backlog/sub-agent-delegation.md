@@ -2,6 +2,7 @@
 status: considering
 themes: [chat-ai]
 summary: Agents delegate tasks to other agents (sub-agents) for task decomposition and collaboration.
+depends_on: [custom-agents]
 devlogs: [2025-01-31-custom-agents-design]
 ---
 
@@ -291,7 +292,6 @@ When a parent agent calls `delegate()`:
 
 **Related:**
 - [Chat Conversation Threads](./chat-conversation-threads.md) - User-initiated context isolation (threads on messages); same goal as general-purpose delegation but user-triggered and multi-turn
-- [Chat Features (Future)](./chat-features-future.md) - Memory features may interact with sub-agent state
 
 ## Notes
 

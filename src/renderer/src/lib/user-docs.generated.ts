@@ -17,16 +17,7 @@ export const userDocsManifest: UserDocManifest = {
   concepts: {
     title: 'Key Concepts',
     summary: 'Details regarding the core concepts that the Cortex app is comprised of.',
-    sectionIds: [
-      'key-concepts',
-      'connections',
-      'what-counts-as-a-connection',
-      'capabilities',
-      'what-is-not-a-connection',
-      'types',
-      'permission-system',
-      'summary',
-    ],
+    sectionIds: ['key-concepts', 'connections-planned'],
     sections: [
       {
         id: 'key-concepts',
@@ -34,38 +25,8 @@ export const userDocsManifest: UserDocManifest = {
         level: 1,
       },
       {
-        id: 'connections',
-        title: 'Connections',
-        level: 2,
-      },
-      {
-        id: 'what-counts-as-a-connection',
-        title: 'What counts as a connection',
-        level: 3,
-      },
-      {
-        id: 'capabilities',
-        title: 'Capabilities',
-        level: 3,
-      },
-      {
-        id: 'what-is-not-a-connection',
-        title: 'What is not a connection',
-        level: 3,
-      },
-      {
-        id: 'types',
-        title: 'Types',
-        level: 2,
-      },
-      {
-        id: 'permission-system',
-        title: 'Permission system',
-        level: 2,
-      },
-      {
-        id: 'summary',
-        title: 'Summary',
+        id: 'connections-planned',
+        title: 'Connections (planned)',
         level: 2,
       },
     ],
@@ -189,95 +150,23 @@ const docSections: Record<
 
 docBodies['concepts'] = `# Key Concepts
 
-## Connections
+## Connections (planned)
 
-A **connection** is a **data source** that the application can read from and write to. Data from connections is used to build or update the app’s knowledge graph(s); updates can also be written back to the connection. Connections are not the graph store itself.
+**Planned.** Connections are not yet available in the app. The following describes how they are intended to work once implemented.
 
-### What counts as a connection
+A **connection** is a **data source** you can connect to the app—for example a folder on your computer or a cloud service (e.g. Slack, Google Drive). The app can read from and write to a connection so that agents can use that data (within the permissions you set) and so that data from different sources can be brought together into your knowledge graph.
 
-- **Local**: A folder on the system, or an app/process on the system that exposes data.
-- **External/cloud**: A cloud or remote service (e.g. Slack, Google Drive, a REST API, Notion) that the user configures (credentials, endpoint, workspace, etc.).
-
-### Capabilities
-
-- **Read**: Ingest or sync data from the connection into the knowledge graph(s). For external sources, we first **extract and localize** the data in a format that involves the bare minimum transformation—ideally none. How that localized data gets into the graph is defined via **Types** (see below).
-- **Write**: Update or sync data back to the connection (e.g. push notes, sync state). Connections are inherently read+write capable; permissions and UX control which of read/write (or both) are allowed for a given connection or tool.
-
-### What is not a connection
-
-- **Neo4j** is the **built-in graph database**. It is where graph data lives inside the app, not an external “source” in the connection sense. It does **not** fit the definition of a connection.
-- **Which graphs (Neo4j DBs) an agent can use** is a **separate concept**: graph-level or knowledge-graph-level access control. That should be documented and designed alongside the permission system but under a different heading (e.g. “Graph access” or “Knowledge graph access”), not under “Connections.”
-
-## Types
-
-Getting data from a connection into the graph is governed by **Types**.
-
-- **Type**: The user’s way to define **node (label) structures** for the graph—properties, indexes, and constraints. A Type describes a kind of node (e.g. Person, Location, Book).
-- **Source**: A Type can have one or more **sources**. Each source binds to a **connection** and defines:
-  - The **rule for import** (how to interpret or select data from that connection).
-  - **Property mapping** (connection fields → node properties).
-
-So: **Connection** (data source, read/write) → **Type** (node shape + optional sources) → **Source** (connection + import rule + property mapping) → **Graph**. A Type can source data from multiple connections; the Type and its sources define how that becomes graph nodes.
-
-## Permission system
-
-- **Connection type**: The kind of data source (e.g. Folder, Slack, Google Drive). Not Neo4j.
-- **Connection**: A specific instance (e.g. “My Project Folder”, “Slack #general”, “Drive – Work”).
-- **Tools** that operate on a connection are associated with a **connection type** and optionally a **connection** (instance). Permission hierarchy (in modes) remains: **category** → **connection type** → **connection** → **tool**, but only for tools that act on connections (data sources). Neo4j/graph tools are governed by **graph access** (and category), not by connection type/connection.
-
-## Summary
-
-- **Connections** = data sources (folder, app, cloud). Read: extract/localize with minimal transformation; path to graph is via **Types** (node structures) and **Source** (connection + import rule + property mapping). Write: sync back to the connection.
-- **Neo4j** = built-in graph DB; not a connection. **Graph access** (which knowledge graphs agents can use) is a separate concept.`
+You would create **connection instances** (e.g. “My Project Folder”, “Work Slack”) and control what agents can do per connection in your **permission mode** (allow, ask, or deny read/write per connection type and per instance). The first connection type we plan to support is **Local Folder**: a folder on your system, including all subfolders and files, with agent tools to list, read, and write files within that folder.`
 docSections['concepts'] = [
   { id: 'key-concepts', title: 'Key Concepts', content: `` },
   {
-    id: 'connections',
-    title: 'Connections',
-    content: `A **connection** is a **data source** that the application can read from and write to. Data from connections is used to build or update the app’s knowledge graph(s); updates can also be written back to the connection. Connections are not the graph store itself.`,
-  },
-  {
-    id: 'what-counts-as-a-connection',
-    title: 'What counts as a connection',
-    content: `- **Local**: A folder on the system, or an app/process on the system that exposes data.
-- **External/cloud**: A cloud or remote service (e.g. Slack, Google Drive, a REST API, Notion) that the user configures (credentials, endpoint, workspace, etc.).`,
-  },
-  {
-    id: 'capabilities',
-    title: 'Capabilities',
-    content: `- **Read**: Ingest or sync data from the connection into the knowledge graph(s). For external sources, we first **extract and localize** the data in a format that involves the bare minimum transformation—ideally none. How that localized data gets into the graph is defined via **Types** (see below).
-- **Write**: Update or sync data back to the connection (e.g. push notes, sync state). Connections are inherently read+write capable; permissions and UX control which of read/write (or both) are allowed for a given connection or tool.`,
-  },
-  {
-    id: 'what-is-not-a-connection',
-    title: 'What is not a connection',
-    content: `- **Neo4j** is the **built-in graph database**. It is where graph data lives inside the app, not an external “source” in the connection sense. It does **not** fit the definition of a connection.
-- **Which graphs (Neo4j DBs) an agent can use** is a **separate concept**: graph-level or knowledge-graph-level access control. That should be documented and designed alongside the permission system but under a different heading (e.g. “Graph access” or “Knowledge graph access”), not under “Connections.”`,
-  },
-  {
-    id: 'types',
-    title: 'Types',
-    content: `Getting data from a connection into the graph is governed by **Types**.
+    id: 'connections-planned',
+    title: 'Connections (planned)',
+    content: `**Planned.** Connections are not yet available in the app. The following describes how they are intended to work once implemented.
 
-- **Type**: The user’s way to define **node (label) structures** for the graph—properties, indexes, and constraints. A Type describes a kind of node (e.g. Person, Location, Book).
-- **Source**: A Type can have one or more **sources**. Each source binds to a **connection** and defines:
-  - The **rule for import** (how to interpret or select data from that connection).
-  - **Property mapping** (connection fields → node properties).
+A **connection** is a **data source** you can connect to the app—for example a folder on your computer or a cloud service (e.g. Slack, Google Drive). The app can read from and write to a connection so that agents can use that data (within the permissions you set) and so that data from different sources can be brought together into your knowledge graph.
 
-So: **Connection** (data source, read/write) → **Type** (node shape + optional sources) → **Source** (connection + import rule + property mapping) → **Graph**. A Type can source data from multiple connections; the Type and its sources define how that becomes graph nodes.`,
-  },
-  {
-    id: 'permission-system',
-    title: 'Permission system',
-    content: `- **Connection type**: The kind of data source (e.g. Folder, Slack, Google Drive). Not Neo4j.
-- **Connection**: A specific instance (e.g. “My Project Folder”, “Slack #general”, “Drive – Work”).
-- **Tools** that operate on a connection are associated with a **connection type** and optionally a **connection** (instance). Permission hierarchy (in modes) remains: **category** → **connection type** → **connection** → **tool**, but only for tools that act on connections (data sources). Neo4j/graph tools are governed by **graph access** (and category), not by connection type/connection.`,
-  },
-  {
-    id: 'summary',
-    title: 'Summary',
-    content: `- **Connections** = data sources (folder, app, cloud). Read: extract/localize with minimal transformation; path to graph is via **Types** (node structures) and **Source** (connection + import rule + property mapping). Write: sync back to the connection.
-- **Neo4j** = built-in graph DB; not a connection. **Graph access** (which knowledge graphs agents can use) is a separate concept.`,
+You would create **connection instances** (e.g. “My Project Folder”, “Work Slack”) and control what agents can do per connection in your **permission mode** (allow, ask, or deny read/write per connection type and per instance). The first connection type we plan to support is **Local Folder**: a folder on your system, including all subfolders and files, with agent tools to list, read, and write files within that folder.`,
   },
 ]
 
@@ -295,7 +184,7 @@ Start the app from your terminal or by opening the application. The first time y
 
 ## Next steps
 
-- Read [What is Cortex?](vision) for the big picture.
+- Read [What is Cortex?](vision.md) for the big picture.
 - Open **Settings** to add a provider and pick a model, then try **Chat**.`
 docSections['getting-started'] = [
   { id: 'getting-started', title: 'Getting Started', content: `` },
@@ -314,7 +203,7 @@ docSections['getting-started'] = [
   {
     id: 'next-steps',
     title: 'Next steps',
-    content: `- Read [What is Cortex?](vision) for the big picture.
+    content: `- Read [What is Cortex?](vision.md) for the big picture.
 - Open **Settings** to add a provider and pick a model, then try **Chat**.`,
   },
 ]

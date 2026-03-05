@@ -90,13 +90,12 @@ Allow users to start **threads** attached to a specific message in a conversatio
 
 **Related:**
 - [Sub-Agent Delegation](./sub-agent-delegation.md) - Same goal (context isolation) but agent-initiated and stateless; threads are user-initiated and multi-turn. Implementation may share context-isolation patterns.
-- [Chat Features (Future)](./chat-features-future.md) - Conversation branching is a sibling concept (parallel branches); threads are subordinate clarification conversations.
 
 ## Notes
 
 ### Why Threads vs Branching
 
-- **Branching** (see Chat Features Future): Fork the whole conversation at a message → two parallel *main* paths. "What if I asked differently?"
+- **Branching:** Fork the whole conversation at a message → two parallel *main* paths. "What if I asked differently?"
 - **Threads**: Attach a *child* conversation to a message. "I want to ask a few clarifying questions here without polluting the main context." Different shape and purpose.
 
 ### Relation to Sub-Agent Delegation

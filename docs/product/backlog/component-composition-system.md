@@ -2,6 +2,7 @@
 status: considering
 themes: [ui-features]
 summary: Build custom views by assembling widgets; save and load view configurations.
+depends_on: [ui-layout-framework]
 ---
 
 [Docs](../../README.md) / [Product](../README.md) / [Backlog](./README.md) / Component Composition System

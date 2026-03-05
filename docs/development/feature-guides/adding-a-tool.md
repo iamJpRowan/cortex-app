@@ -14,7 +14,7 @@ In your domain folder under `src/main/services/llm/tools/builtin/<domain>/tools.
 - **description**: For the LLM and UI.
 - **schema**: Zod schema for parameters (use `z.object({ ... })`).
 - **handler**: String key that will match a key in the handler map (e.g. `neo4j_countNodes`).
-- **metadata**: Must include **scope** (`local` | `external` | `app`) and **access** (`read` | `write`). Optional: `connectionType`, `connection`, `risk`, `permissionExplanation`, **capResultLength** (default `true`; set to `false` only when the tool must return uncapped content—increases risk of UI freezes and “prompt too long” errors; see [Bounded Tool Results](../../product/backlog/bounded-tool-results-and-chat-ui-stability.md)).
+- **metadata**: Must include **scope** (`local` | `external` | `app`) and **access** (`read` | `write`). Optional: `connectionType`, `connection`, `risk`, `permissionExplanation`, **capResultLength** (default `true`; set to `false` only when the tool must return uncapped content—increases risk of UI freezes and “prompt too long” errors; see [Bounded Tool Results](../../product/backlog/archive/bounded-tool-results-and-chat-ui-stability.md)).
 
 **Connection type and connection:** Use `connectionType` and `connection` only for tools that operate on **data-source connections** (e.g. Folder, Slack, Google Drive). See [Connections](../../development/architecture/connections.md). Tools that query or modify the graph are governed by **graph access**; do not set `connectionType` for those tools.
 

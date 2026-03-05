@@ -39,7 +39,7 @@ Redesign the chat interface to be more like Cursor's: **full-width turns** (user
 - Input should support or accommodate long content (e.g. auto-resize or scroll with a reasonable max height).
 - Submit via button and/or Enter; newline (e.g. Shift+Enter) behavior is explicit and discoverable.
 
-**Current state:** The chat composer uses a **PromptInput** component (`src/renderer/src/components/ui/prompt-input.tsx`) that provides a multi-line, auto-resizing textarea with Enter to send and Shift+Enter for newline. This was implemented in-app (shadcn AI registry prompt-input requires authentication). File/image attachments are not yet supported; see [Chat Attachments](../chat-attachments.md). Optional follow-on: adopt **AI Elements Prompt Input** from the registry if available ([docs/development/feature-guides/ai-elements.md](../../../development/feature-guides/ai-elements.md)), or add attachment UI per the attachments backlog item. Rich markdown editing (e.g. TipTap) is a separate follow-on; see [Chat Rich Markdown Input](../chat-rich-markdown-input.md).
+**Current state:** The chat composer uses a **PromptInput** component (`src/renderer/src/components/ui/prompt-input.tsx`) that provides a multi-line, auto-resizing textarea with Enter to send and Shift+Enter for newline. This was implemented in-app (shadcn AI registry prompt-input requires authentication). File/image attachments are not yet supported; see [Chat Attachments](../chat-attachments.md). Optional follow-on: adopt **AI Elements Prompt Input** from the registry if available ([docs/development/feature-guides/ai-elements.md](../../../development/feature-guides/ai-elements.md)), or add attachment UI per the attachments backlog item. Rich markdown editing (e.g. TipTap) is a separate follow-on; see [Chat Rich Markdown Input](./chat-rich-markdown-input.md).
 
 ### Sticky Most Recent User Prompt (Deferred Detail)
 
@@ -89,5 +89,5 @@ Redesign the chat interface to be more like Cursor's: **full-width turns** (user
 ## See Also
 
 - [Chat Attachments](../chat-attachments.md) - File/image attachments in the prompt input (follow-on).
-- [Chat Rich Markdown Input](../chat-rich-markdown-input.md) - TipTap/rich markdown editor for chat input (follow-on).
+- [Chat Rich Markdown Input](./chat-rich-markdown-input.md) - TipTap/rich markdown editor for chat input (follow-on).
 - [docs/development/feature-guides/ai-elements.md](../../../development/feature-guides/ai-elements.md) - Installing AI Elements (conversation, message, prompt-input).

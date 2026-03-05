@@ -2,6 +2,7 @@
 status: considering
 themes: [chat-ai, ui-features]
 summary: Add chat to right sidebar; context injection from views; chat about what I'm looking at.
+depends_on: [ui-layout-framework]
 devlogs: [2025-01-27-chat-interface-scoping]
 ---
 

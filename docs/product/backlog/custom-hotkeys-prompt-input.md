@@ -2,6 +2,7 @@
 status: considering
 themes: [chat-ai]
 summary: Configurable hotkeys for chat prompt input; same bindings in Plaintext and Live Preview.
+depends_on: [chat-rich-markdown-input]
 devlogs: [2026-02-16-chat-rich-markdown-input]
 ---
 
@@ -29,7 +30,7 @@ Allow users to view and override all keyboard shortcuts for the chat prompt inpu
 
 ## Prerequisites
 
-- **[Chat Rich Markdown Input](./chat-rich-markdown-input.md)** — Done. Composer has Plaintext and Live Preview; toggle hotkey (`chatView.hotkeys.toggleComposerMode`) and view-specific hotkey pattern exist.
+- **[Chat Rich Markdown Input](./archive/chat-rich-markdown-input.md)** — Complete. Composer has Plaintext and Live Preview; toggle hotkey (`chatView.hotkeys.toggleComposerMode`) and view-specific hotkey pattern exist.
 - **Hotkey parser** supports modifiers (e.g. Cmd+Alt+E) as implemented for the toggle composer hotkey.
 
 ## Out of scope (for this item)
@@ -46,6 +47,6 @@ Allow users to view and override all keyboard shortcuts for the chat prompt inpu
 
 ## See also
 
-- [Chat Rich Markdown Input](./chat-rich-markdown-input.md) — Composer implementation; toggle hotkey.
+- [Chat Rich Markdown Input](./archive/chat-rich-markdown-input.md) — Composer implementation; toggle hotkey.
 - [docs/development/feature-guides/ui-state-persistence.md](../../development/feature-guides/ui-state-persistence.md) — Settings and view keys.
 - TipTap StarterKit and extension keymaps (e.g. bold Mod-b, italic Mod-i, code Mod-e, code block Mod-Alt-c, headings Mod-Alt-1..3, paragraph Mod-Alt-0, bullet list Mod-Shift-8, ordered list Mod-Shift-7, undo/redo Mod-z / Shift-Mod-z, hard break Mod-Enter, etc.) as reference for the full set of actions to support.

@@ -6,16 +6,16 @@ developer: jprowan
 agent: Cursor (Auto)
 model: —
 tags: [multi-provider, phase-5, model-selector, reasoning, extended-thinking]
+related_backlog: [multi-provider-model-selection]
 related_files:
-  - docs/product/backlog/archive/multi-provider-model-selection.md
   - src/renderer/src/components/ChatView.tsx
   - src/renderer/src/components/ModelSelector.tsx
   - src/main/services/llm/agent.ts
   - src/main/services/llm/providers/anthropic.ts
 related_issues: []
 related_devlogs:
-  - 2025-02-07-multi-provider-phase-3-model-discovery.md
-  - 2025-02-07-multi-provider-settings-test-refresh-ux.md
+  - 2025-02-07-multi-provider-phase-3-model-discovery
+  - 2025-02-07-multi-provider-settings-test-refresh-ux
 session_duration: multiple sessions
 iterations: 5a–5e delivery chunks; reasoning streaming; model persistence and UX tweaks
 outcome: Phase 5 complete: selector, per-conversation/per-message model, reasoning in trace, model label during stream and in list

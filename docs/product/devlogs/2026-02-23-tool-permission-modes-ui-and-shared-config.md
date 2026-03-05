@@ -4,6 +4,7 @@ developer: cortex-app
 agent: Cursor (Auto)
 model: -
 tags: [settings, agents, modes, permission-ui, mode-registry, file-watcher]
+related_backlog: [tool-permission-system]
 related_files:
   - src/main/services/modes/registry.ts
   - src/main/services/modes/builtins.ts
@@ -15,7 +16,7 @@ related_files:
   - src/shared/types/llm.ts
 related_issues: []
 related_devlogs:
-  - 2026-02-16-tool-permission-system-phase-1.md
+  - 2026-02-16-tool-permission-system-phase-1
 session_duration: single
 iterations: multiple (Phase 4 backend → IPC → Phase 7 UI → enhancements → shared card → backlog)
 outcome: Phase 4 and Phase 7 complete; Phase 7b (shared user-config watcher) added as next phase.

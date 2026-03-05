@@ -9,7 +9,7 @@ Backlog view — generated from frontmatter. Structure and frontmatter: [TEMPLAT
 
 | ready to test | in progress | designing |
 |--------|--------|--------|
-| **[Chat Rich Markdown Input](./chat-rich-markdown-input.md)** — Rich markdown editing in chat composer with paste-to-render, plaintext/preview toggle; content sent as markdown. [Feb 16 Chat Rich Markdown Input](../devlogs/2026-02-16-chat-rich-markdown-input.md) | **[Bounded Tool Results And Chat Ui Stability](./bounded-tool-results-and-chat-ui-stability.md)** — Content length guardrails for UI and agent context; prevent freezes and context blow-up from large tool results. [Feb 22 Bounded Tool Results](../devlogs/2026-02-22-bounded-tool-results.md)<br><br>**[Tool Permission System](./tool-permission-system.md)** — Foundational tool definitions and user-controlled permissions (modes, runtime approval). Critical for trust and extensibility. [Feb 16 Tool Permission System Phase 1](../devlogs/2026-02-16-tool-permission-system-phase-1.md)<br>[Feb 23 Tool Permission Modes Ui And Shared Config](../devlogs/2026-02-23-tool-permission-modes-ui-and-shared-config.md) | — |
+| — | **[Tool Permission System](./tool-permission-system.md)** — Foundational tool definitions and user-controlled permissions (modes, runtime approval). Critical for trust and extensibility. [Feb 16 Tool Permission System Phase 1](../devlogs/2026-02-16-tool-permission-system-phase-1.md)<br>[Feb 23 Tool Permission Modes Ui And Shared Config](../devlogs/2026-02-23-tool-permission-modes-ui-and-shared-config.md) | — |
 
 ## Next
 
@@ -23,9 +23,7 @@ Backlog view — generated from frontmatter. Structure and frontmatter: [TEMPLAT
 |------|--------|
 | [Chat Attachments And Context](./chat-attachments-and-context.md) | Attach items (e.g. past summaries) to a chat; visualize what is in context (graph nodes, files, view context). |
 | [Chat Attachments](./chat-attachments.md) | File and image attachments in chat prompt (drag-drop, paste); backend sends attachments with the message. |
-| [Chat Context Window And Costs](./chat-context-window-and-costs.md) | Token usage, cost, processing time, and context window visibility (past and before send). |
 | [Chat Conversation Threads](./chat-conversation-threads.md) | Threads on messages for clarifying questions without sending thread content to the main conversation. |
-| [Chat Features Future](./chat-features-future.md) | Future chat ideas (memory, RAG, attachments, feedback, branching) for consideration. |
 | [Chat Quick Launcher](./chat-quick-launcher.md) | Hotkey + overlay to start a chat with input, model, and agent selection without opening chat view. |
 | [Chat Sidebar Integration](./chat-sidebar-integration.md) | Add chat to right sidebar; context injection from views; chat about what I |
 | [Chat Summaries](./chat-summaries.md) | One Markdown summary per conversation; review past chats; agent can discover and use other summaries. |
@@ -58,6 +56,9 @@ Items in [archive](./archive/), sorted by `date_archived` (newest first). Archiv
 | Item | Summary |
 |------|--------|
 | [`completed`] [Chat History Load Single Row And Thinking](./archive/chat-history-load-single-row-and-thinking.md) | One assistant row per turn on load; restore thinking in trace from checkpointer. |
+| [`completed`] [Bounded Tool Results And Chat Ui Stability](./archive/bounded-tool-results-and-chat-ui-stability.md) | Content length guardrails for UI and agent context; prevent freezes and context blow-up from large tool results. |
+| [`completed`] [Agent Streaming Llm](./archive/agent-streaming-llm.md) | Stream LLM response and thinking as it is generated instead of waiting for the full reply. |
+| [`completed`] [Chat Rich Markdown Input](./archive/chat-rich-markdown-input.md) | Rich markdown editing in chat composer with paste-to-render, plaintext/preview toggle; content sent as markdown. |
 | [`completed`] [Cursor Style Chat Ui](./archive/cursor-style-chat-ui.md) | Full-width chat turns, multi-line input, sticky prompt deferred; Cursor-style layout. |
 | [`completed`] [Multi Provider Model Selection](./archive/multi-provider-model-selection.md) | Multi-provider LLM support (Ollama, Anthropic), model selector, per-conversation and per-message model tracking. |
 | [`merged`] [Declarative Tool Definitions](./archive/declarative-tool-definitions.md) | Declarative tool definitions and factory pattern; merged into Tool Permission System. |

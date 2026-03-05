@@ -2,6 +2,7 @@
 status: considering
 themes: [chat-ai]
 summary: Attach items (e.g. past summaries) to a chat; visualize what is in context (graph nodes, files, view context).
+depends_on: [chat-sidebar-integration]
 ---
 
 [Docs](../../README.md) / [Product](../README.md) / [Backlog](./README.md) / Chat Attachments and Context Visibility
@@ -94,7 +95,6 @@ Let users **attach** items to a conversation—including past chat summaries—a
 
 **Related:**
 - [Chat Summaries](./chat-summaries.md) - Provides the summary documents that users can attach to another chat; summary view toggle may show the same artifacts list.
-- [Chat Features (Future)](./chat-features-future.md) - Attachments / Multimodal Input describes file uploads and drag-and-drop; this item focuses on visibility of all context plus attaching past summaries (and optionally files/nodes).
 
 ## Notes
 

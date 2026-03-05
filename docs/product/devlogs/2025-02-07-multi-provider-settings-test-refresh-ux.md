@@ -6,12 +6,12 @@ developer: jprowan
 agent: Cursor (Auto)
 model: —
 tags: [multi-provider, phase-4, settings, test-connection, ux]
+related_backlog: [multi-provider-model-selection]
 related_files:
-  - docs/product/backlog/archive/multi-provider-model-selection.md
   - src/renderer/src/components/SettingsView.tsx
 related_issues: []
 related_devlogs:
-  - 2025-02-07-multi-provider-phase-3-model-discovery.md
+  - 2025-02-07-multi-provider-phase-3-model-discovery
 session_duration: single session
 iterations: analysis → implementation → lint fixes
 outcome: Refined when provider tests run; per-provider refresh icons

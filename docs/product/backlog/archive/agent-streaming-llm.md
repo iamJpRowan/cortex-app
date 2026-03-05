@@ -1,11 +1,12 @@
 ---
-status: done
-themes: [chat-ai]
+status: completed
+date_archived: 2026-02-17
 summary: Stream LLM response and thinking as it is generated instead of waiting for the full reply.
-devlogs: [2026-02-17-chat-trace-token-usage-and-cleanup]
 ---
 
-[Docs](../../README.md) / [Product](../README.md) / [Backlog](./README.md) / Agent Streaming (LLM)
+[Docs](../../README.md) / [Product](../README.md) / [Backlog](../README.md) / Agent Streaming (LLM)
+
+**Why archived:** Implemented. Streaming and trace UI (single timeline of thinking + tool steps, token usage, step copy, metadata placement) completed. See devlog [2026-02-17-chat-trace-token-usage-and-cleanup](../../devlogs/2026-02-17-chat-trace-token-usage-and-cleanup.md).
 
 # Agent Streaming (LLM)
 
@@ -36,9 +37,7 @@ The chat agent is built with LangChain’s `createAgent()`. Its built-in agent n
 - [x] Tool calls, tool results, and conversation state behave as today (no regression).
 - [x] No long “blank” wait before any content appears.
 
-**Implemented:** Streaming and trace UI (single timeline of thinking + tool steps, token usage, step copy, metadata placement). See devlog for session.
-
 ## Related
 
-- [Execution Trace Persistence](./execution-trace-persistence.md) — trace display and persistence.
+- [Execution Trace Persistence](../execution-trace-persistence.md) — trace display and persistence.
 - Existing periodic reasoning emit and “Still working…” in ChatView remain valid; this fix addresses the upstream lack of streamed chunks from the agent.

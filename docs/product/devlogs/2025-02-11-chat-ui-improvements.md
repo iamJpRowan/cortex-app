@@ -4,8 +4,8 @@ developer: jprowan
 agent: Cursor (Composer)
 model: —
 tags: [chat, chat-turn, metadata, copy-action, design-tokens, timestamps, ai-elements, conversation-state, draft-persistence, sidebar-indicators, user-background, resizable-sidebar, title-generation]
+related_backlog: [cursor-style-chat-ui]
 related_files:
-  - docs/product/backlog/archive/cursor-style-chat-ui.md
   - src/renderer/src/components/ChatView.tsx
   - src/renderer/src/components/ConversationList.tsx
   - src/renderer/src/lib/chat-storage.ts

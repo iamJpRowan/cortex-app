@@ -52,6 +52,6 @@ Two issues occur when conversation messages are loaded from persistence (`getCon
 
 ## Related
 
-- [Agent Streaming (LLM)](../agent-streaming-llm.md) — streaming and thinking in the UI.
+- [Agent Streaming (LLM)](./agent-streaming-llm.md) — streaming and thinking in the UI.
 - [Execution Trace Persistence](../execution-trace-persistence.md) — trace persistence and historical viewing.
 - `getConversationMessages` in `src/main/services/llm/agent.ts`; `parseAIContent` in the same file.
