@@ -67,6 +67,18 @@ log() {
   echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
 }
 
+# Require dependencies so we don't exit silently in the loop (set -e + pipefail)
+if ! command -v jq &>/dev/null; then
+  echo "Error: runner.sh requires 'jq' to be installed and on PATH." >&2
+  echo "  Install with: brew install jq" >&2
+  exit 1
+fi
+if ! command -v bd &>/dev/null; then
+  echo "Error: runner.sh requires 'bd' (beads) to be installed and on PATH." >&2
+  echo "  See project README or AGENTS.md for setup." >&2
+  exit 1
+fi
+
 # Trap SIGINT for clean exit
 trap 'log "Interrupted. Completed $DECOMPOSITIONS_COMPLETED decomposition(s) and $TASKS_COMPLETED task(s)."; exit 0' INT
 
@@ -128,7 +140,7 @@ Do not implement anything. Only create the Beads task graph."
     fi
 
     sleep 2
-    continue
+    $ONCE && break || continue
   fi
 
   # --- Phase 2: Execute ready Beads tasks ---
@@ -140,18 +152,18 @@ Do not implement anything. Only create the Beads task graph."
   fi
 
   READY_JSON=$(bd ready --json 2>/dev/null || echo "[]")
-  TASK_ID=$(echo "$READY_JSON" | jq -r '.[0].id // empty' 2>/dev/null)
+  TASK_ID=$(echo "$READY_JSON" | jq -r '.[0].id // empty' 2>/dev/null || echo "")
 
   if [[ -n "$TASK_ID" ]]; then
-    TASK_TITLE=$(echo "$READY_JSON" | jq -r '.[0].title // "Untitled"' 2>/dev/null)
-    TASK_DESC=$(bd show "$TASK_ID" --json 2>/dev/null | jq -r '.description // ""' 2>/dev/null)
+    TASK_TITLE=$(echo "$READY_JSON" | jq -r '.[0].title // "Untitled"' 2>/dev/null || echo "Untitled")
+    TASK_DESC=$(bd show "$TASK_ID" --json 2>/dev/null | jq -r '.description // ""' 2>/dev/null || echo "")
     DID_WORK=true
 
     log "Found ready task: $TASK_ID — $TASK_TITLE"
 
     if $DRY_RUN; then
       log "[DRY RUN] Would claim and work: $TASK_ID — $TASK_TITLE"
-      REMAINING=$(echo "$READY_JSON" | jq -r '.[1:][] | "  \(.id) — \(.title)"' 2>/dev/null)
+      REMAINING=$(echo "$READY_JSON" | jq -r '.[1:][] | "  \(.id) — \(.title)"' 2>/dev/null || echo "")
       if [[ -n "$REMAINING" ]]; then
         log "[DRY RUN] Also ready:"
         echo "$REMAINING"
@@ -186,7 +198,7 @@ Instructions:
     fi
 
     sleep 2
-    continue
+    $ONCE && break || continue
   fi
 
   # --- Nothing to do ---
