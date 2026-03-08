@@ -12,18 +12,11 @@ Data sources (connections), connection types, instances, permissions, and loadin
 
 Generated from frontmatter `themes: [connections, ...]`. Do not edit by hand.
 
-## Next
-
-| Item | Summary |
-|------|--------|
-| [Connections Foundation](../backlog/connections-foundation.md) | Registration, connection instance store, and wiring so modes and agents can use connection-scoped tools. |
-
 ## Considering
 
 | Item | Summary |
 |------|--------|
 | [Defining Graph Node Types](../backlog/defining-graph-node-types.md) | User-defined graph node types (labels, properties, indexes, constraints) and Source (connection + import rule + property mapping); connection data structure. |
 | [Loading Custom Connection Types](../backlog/loading-custom-connection-types.md) | Future: load user-created and marketplace connection types; plugin execution, manifest contract, extensibility points. |
-| [Local Folder Connection Type](../backlog/local-folder-connection-type.md) | First connection type: Local Folder (path = all subfolders/files); agent tools list_directory, read_file, write_file. |
 
 

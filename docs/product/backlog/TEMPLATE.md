@@ -38,7 +38,7 @@ Or use frontmatter `references`. Link to architecture, development, design docs 
 
 | Key          | Required | Description                                                                                                                                                                                             |
 | ------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `status`     | Yes      | One of: **active** `designing`, `in progress`, `ready to test`; **inactive** `next`, `soon`, `considering`. See status groups below.                                                                    |
+| `status`     | Yes      | One of: **active** `in progress`; **planning** `planned`, `refined`, `ready`; **inactive** `considering`. See status groups below.                                                                    |
 | `summary`    | Yes      | One short line for backlog view tables.                                                                                                                                                                 |
 | `themes`     | No       | List of theme IDs (e.g. `[chat-ai, ui-features]`). Theme ID = theme file name (no `.md`) in [docs/product/themes/](../themes/README.md).                                                                |
 | `implements` | No       | Path to concept doc (e.g. `architecture/connections.md`).                                                                                                                                               |
@@ -58,14 +58,16 @@ Or use frontmatter `references`. Link to architecture, development, design docs 
 
 **Status groups and display order** (same order everywhere when listing by status):
 
-- **Active** (Kanban columns in Backlog README): `ready to test` → `in progress` → `designing`. Items you can act on or are in flight.
-- **Inactive** (tables: Next, Soon, Considering): `next` → `soon` → `considering`. Not yet active; display order only, not delivery sequence (see roadmap).
+- **Active** (Kanban columns in Backlog README): `in progress`. Items being implemented via Beads tasks.
+- **Planning**: `planned` → `refined` → `ready`. Items progressing through the backlog lifecycle toward execution.
+- **Inactive**: `considering`. Not part of the current goal.
 - **Done** (archive only): `completed` → `decomposed` → `merged` → `abandoned`.
 
 **Status meanings:**
 
-- **Active:** `ready to test` — Testable; user's turn to test/refine. Only the user marks complete. `in progress` — Being implemented. `designing` — Being designed.
-- **Inactive:** `next` — Next up for implementation. `soon` — Planned soon. `considering` — Under consideration.
+- **Active:** `in progress` — Being implemented. First bead has been claimed. Testing happens at the bead level; backlog item stays `in progress` until all beads are done.
+- **Planning:** `planned` — Identified as needed for the current goal; needs refinement. `refined` — Requirements, success criteria, and references are complete; ready for agent decomposition into Beads tasks. `ready` — Beads tasks exist; runner can begin execution.
+- **Inactive:** `considering` — Under consideration; not part of the current goal.
 - **Done:** `completed`, `decomposed`, `merged`, `abandoned` — used only in archive; set when moving to archive.
 
 **Phased items (optional):** Use top-level sections `## Phase 1: Title` with scope and success criteria only. See [work-backlog-item](../../development/agents/work-backlog-item.md).

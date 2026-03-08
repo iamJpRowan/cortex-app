@@ -10,46 +10,21 @@ This directory holds **product direction**, **backlog**, **devlogs**, and **road
 
 ## Roadmap
 
-The **roadmap** is the single source of order for delivery. Update it via [roadmap-review](../development/agents/roadmap-review.md). Grouping by theme: [Themes](./themes/README.md) (theme ID = theme file name). Visual status: [Backlog](./backlog/README.md#active) (generated; runs in predev and pre-commit).
+The **roadmap** captures the current goal and the backlog items needed to achieve it. Update it via [plan-goal](../development/agents/plan-goal.md). Grouping by theme: [Themes](./themes/README.md). Visual status: [Backlog](./backlog/README.md#active) (generated; runs in predev and pre-commit).
 
-### Current goal (optional)
+### Current goal
 
-When you want to reach a specific capability (e.g. to support how you work), set a **current goal** and the paths below so you can see the MVP and what else to do in the same pass.
+**App reads and writes to the repo.** The app can connect to a local folder (the project repo), agents can read and write files via connection-scoped tools with permissions, and the user can view/edit markdown files and see diffs of agent changes.
 
-- **Current goal:** *(e.g. "Use app with this git repo" or "Prepare for meetings"—replace with your target capability.)*
-- **MVP path:** *(Ordered list of backlog slugs that get you to the goal. Respects `depends_on`; keep minimal.)*
-- **Also consider:** *(Slugs you might do in the same pass—related but not blocking.)*
+### Items for this goal
 
-Put the next 1–3 items from the MVP path (or your chosen sequence) into `current_focus` in the frontmatter above when you're ready to implement.
-
-### Sequence
-
-Order of delivery, grouped by theme. Reorder and edit to match your priorities. Use backlog slugs or links; theme IDs match [themes](./themes/README.md).
-
-#### configuration-extensibility
-
-1. configuration-system
-2. *(add more as needed)*
-
-#### chat-ai
-
-1. tool-permission-system
-2. bounded-tool-results-and-chat-ui-stability
-3. *(order remaining chat-ai items as you prefer)*
-
-#### ui-features
-
-1. ui-layout-framework
-2. drag-and-drop-system
-3. component-composition-system
-4. chat-sidebar-integration *(depends on chat + UI layout)*
-
-#### knowledge-graphs
-
-1. multi-knowledge-graphs
-2. neo4j-enterprise-upgrade
-
-When you run [roadmap-review](../development/agents/roadmap-review.md), update `current_focus`, this sequence, and the current goal / MVP path / Also consider section as needed.
+| Backlog item | Status | Depends on |
+|---|---|---|
+| [Tool Permission System](./backlog/tool-permission-system.md) (Phase 8+) | `in progress` | — |
+| [Connections Foundation](./backlog/connections-foundation.md) | `planned` | tool-permission-system |
+| [Local Folder Connection Type](./backlog/local-folder-connection-type.md) | `planned` | connections-foundation |
+| [Markdown Viewer/Editor](./backlog/markdown-viewer-editor.md) | `planned` | local-folder-connection-type |
+| [Diff Viewer](./backlog/diff-viewer.md) | `planned` | local-folder-connection-type |
 
 <!-- generated -->
 
@@ -73,6 +48,6 @@ When you run [roadmap-review](../development/agents/roadmap-review.md), update `
 
 ## See also
 
-- [How we work](../development/agents/how-we-work.md) — Intended development loop
+- [How we work](../development/agents/how-we-work.md) — Backlog lifecycle and development loop
 - [Backlog](./backlog/README.md) — Backlog view (generated in predev and pre-commit)
 - [Design](../development/design/README.md) — Visual system and UI patterns

@@ -43,10 +43,12 @@ Data sources (connections), connection types, instances, permissions, and loadin
 
 | Item | Summary | Status |
 |------|--------|--------|
-| [Connections Foundation](../backlog/connections-foundation.md) | Registration, connection instance store, and wiring so modes and agents can use connection-scoped tools. | next |
+| [Connections Foundation](../backlog/connections-foundation.md) | Registration, connection instance store, and wiring so modes and agents can use connection-scoped tools. | planned |
+| [Diff Viewer](../backlog/diff-viewer.md) | View diffs of changes agents make to files in a connected local folder. | planned |
+| [Local Folder Connection Type](../backlog/local-folder-connection-type.md) | First connection type: Local Folder (path = all subfolders/files); agent tools list_directory, read_file, write_file. | planned |
+| [Markdown Viewer Editor](../backlog/markdown-viewer-editor.md) | View and edit markdown files from a connected local folder within the app. | planned |
 | [Defining Graph Node Types](../backlog/defining-graph-node-types.md) | User-defined graph node types (labels, properties, indexes, constraints) and Source (connection + import rule + property mapping); connection data structure. | considering |
 | [Loading Custom Connection Types](../backlog/loading-custom-connection-types.md) | Future: load user-created and marketplace connection types; plugin execution, manifest contract, extensibility points. | considering |
-| [Local Folder Connection Type](../backlog/local-folder-connection-type.md) | First connection type: Local Folder (path = all subfolders/files); agent tools list_directory, read_file, write_file. | considering |
 
 ### extensions
 
@@ -72,6 +74,8 @@ Layout system, sidebars, tabs, panels, drag-and-drop, and component composition.
 
 | Item | Summary | Status |
 |------|--------|--------|
+| [Diff Viewer](../backlog/diff-viewer.md) | View diffs of changes agents make to files in a connected local folder. | planned |
+| [Markdown Viewer Editor](../backlog/markdown-viewer-editor.md) | View and edit markdown files from a connected local folder within the app. | planned |
 | [Chat Sidebar Integration](../backlog/chat-sidebar-integration.md) | Add chat to right sidebar; context injection from views; chat about what I | considering |
 | [Component Composition System](../backlog/component-composition-system.md) | Build custom views by assembling widgets; save and load view configurations. | considering |
 | [Drag And Drop System](../backlog/drag-and-drop-system.md) | Drag-and-drop to move widgets from component library to sidebars and assemble custom views. | considering |

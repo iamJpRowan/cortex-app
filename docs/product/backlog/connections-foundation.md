@@ -1,5 +1,5 @@
 ---
-status: next
+status: planned
 summary: Registration, connection instance store, and wiring so modes and agents can use connection-scoped tools.
 themes: [connections]
 implements: development/architecture/connections.md

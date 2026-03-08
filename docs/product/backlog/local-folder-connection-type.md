@@ -1,5 +1,5 @@
 ---
-status: considering
+status: planned
 summary: First connection type: Local Folder (path = all subfolders/files); agent tools list_directory, read_file, write_file.
 themes: [connections]
 implements: development/architecture/connections.md

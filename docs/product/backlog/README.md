@@ -11,12 +11,6 @@ Backlog view — generated from frontmatter. Structure and frontmatter: [TEMPLAT
 |--------|--------|--------|
 | — | **[Tool Permission System](./tool-permission-system.md)** — Foundational tool definitions and user-controlled permissions (modes, runtime approval). Critical for trust and extensibility. [Feb 16 Tool Permission System Phase 1](../devlogs/2026-02-16-tool-permission-system-phase-1.md)<br>[Feb 23 Tool Permission Modes Ui And Shared Config](../devlogs/2026-02-23-tool-permission-modes-ui-and-shared-config.md) | — |
 
-## Next
-
-| Item | Summary |
-|------|--------|
-| [Connections Foundation](./connections-foundation.md) | Registration, connection instance store, and wiring so modes and agents can use connection-scoped tools. |
-
 ## Considering
 
 | Item | Summary |
@@ -39,7 +33,6 @@ Backlog view — generated from frontmatter. Structure and frontmatter: [TEMPLAT
 | [Kbar Smart Chat Detection](./kbar-smart-chat-detection.md) | KBar detects long-form questions and offers to start a chat with that text. |
 | [Llm Tool Hallucination Guardrails](./llm-tool-hallucination-guardrails.md) | Reduce incorrect tool usage (unwanted invokes, wrong commands, invalid args); only use tools when intent warrants. |
 | [Loading Custom Connection Types](./loading-custom-connection-types.md) | Future: load user-created and marketplace connection types; plugin execution, manifest contract, extensibility points. |
-| [Local Folder Connection Type](./local-folder-connection-type.md) | First connection type: Local Folder (path = all subfolders/files); agent tools list_directory, read_file, write_file. |
 | [Multi Knowledge Graphs](./multi-knowledge-graphs.md) | Create and manage multiple Neo4j Knowledge Graphs; switch between them; app reopens last active on startup. |
 | [Neo4j Enterprise Upgrade](./neo4j-enterprise-upgrade.md) | Upgrade to Neo4j Enterprise for native multi-database support; no data dir switching or restarts. |
 | [Ollama Connection](./ollama-connection.md) | Detect Ollama, connect to server, discover models, set default for LLM operations. |
