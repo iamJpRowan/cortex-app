@@ -231,6 +231,9 @@ Tool registry requires permission metadata per tool as specified in **Part I: To
 **Depends on:** Phase 6 done. No dependency on Phase 8/9.
 
 ## Phase 8: Enhance `getToolsForAgent()` Function
+
+**Beads:** Phase 8 is decomposed into tasks under epic `cortex-app-8an` (Tool Permission System). Run `bd ready` to pick up work.
+
 1. Extend signature to accept conversation context so the chat's mode can be applied. (When Custom Agents exist, callers will also pass agent; see [Custom Agents](./custom-agents.md).)
 2. Load conversation's mode from mode registry.
 3. Resolve effective permissions per tool using the mode's hierarchy: category → connection type → connection → tool. No global permission store.
