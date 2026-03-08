@@ -13,6 +13,9 @@ dist/
 
 # Logs
 *.log
+# Runner daemon (scripts/runner.sh) runtime
+scripts/sessions/.current
+scripts/sessions/.attempts
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
