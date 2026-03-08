@@ -3,10 +3,11 @@ import type { z } from 'zod'
 /**
  * Permission scope: where the tool operates.
  * - local: user's machine / local resources (e.g. folder)
- * - external: external services (e.g. Neo4j, Slack)
+ * - external: external services (e.g. Slack, APIs)
+ * - graph: graph databases (e.g. Neo4j); governed by graph access
  * - app: application actions (e.g. invoke_command)
  */
-export type ToolScope = 'local' | 'external' | 'app'
+export type ToolScope = 'local' | 'external' | 'graph' | 'app'
 
 /**
  * Permission access: read vs write.
@@ -15,13 +16,15 @@ export type ToolAccess = 'read' | 'write'
 
 /**
  * Derived category for permission resolution (scope × access).
- * One of six values used by the permission system.
+ * One of eight values used by the permission system.
  */
 export type ToolCategory =
   | 'read local'
   | 'write local'
   | 'read external'
   | 'write external'
+  | 'read graph'
+  | 'write graph'
   | 'read app'
   | 'write app'
 

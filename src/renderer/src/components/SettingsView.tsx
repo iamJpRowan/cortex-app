@@ -445,6 +445,8 @@ export function SettingsView() {
     'writeLocal',
     'readExternal',
     'writeExternal',
+    'readGraph',
+    'writeGraph',
     'readApp',
     'writeApp',
   ] as const
@@ -1594,6 +1596,8 @@ export function SettingsView() {
                                       { key: 'writeLocal', label: 'Write local' },
                                       { key: 'readExternal', label: 'Read external' },
                                       { key: 'writeExternal', label: 'Write external' },
+                                      { key: 'readGraph', label: 'Read graph' },
+                                      { key: 'writeGraph', label: 'Write graph' },
                                       { key: 'readApp', label: 'Read app' },
                                       { key: 'writeApp', label: 'Write app' },
                                     ].map(({ key, label }) => {

@@ -43,7 +43,7 @@ A **tool definition** is a declarative object (no LangChain types at definition 
 - **description**: string (for the LLM and for UI/documentation).
 - **schema**: Zod schema (parameters the tool accepts).
 - **handler**: string key that maps to an implementation function (or, for plugins, a loadable module path).
-- **metadata**: **scope** (required)—`local` | `external` | `app`. **access** (required)—`read` | `write`. Category for permission resolution is derived (e.g. `"read local"`, `"write app"`). All tools, including App tools, must specify both. Optional: **connectionType** and **connection** for tools that operate on **data-source connections** (e.g. "Folder", "Slack", "Google Drive"—see [Connections](../../development/architecture/connections.md)). Graph tools are governed by **graph access**. Optional: **risk** (`safe` | `caution` | `dangerous`); **permissionExplanation** (short text for the permission UI). The factory derives category from scope + access and copies into `ToolMetadata` at registration. Tools missing scope or access are **rejected at registration**; no runtime fallback.
+- **metadata**: **scope** (required)—`local` | `external` | `graph` | `app`. **access** (required)—`read` | `write`. Category for permission resolution is derived (e.g. `"read local"`, `"write graph"`, `"write app"`). All tools, including App tools, must specify both. Optional: **connectionType** and **connection** for tools that operate on **data-source connections** (e.g. "Folder", "Slack", "Google Drive"—see [Connections](../../development/architecture/connections.md)). Graph tools use scope **graph** and are governed by **graph access** (which graphs the agent can use). Optional: **risk** (`safe` | `caution` | `dangerous`); **permissionExplanation** (short text for the permission UI). The factory derives category from scope + access and copies into `ToolMetadata` at registration. Tools missing scope or access are **rejected at registration**; no runtime fallback.
 
 Definitions live in **definition files** (e.g. per-domain: `neo4j/tools.ts`, `command/tools.ts`) or in a single registry file for small sets. No `DynamicStructuredTool` or `toolRegistry` imports in definition files—only data and Zod schemas.
 
@@ -63,7 +63,7 @@ Definitions live in **definition files** (e.g. per-domain: `neo4j/tools.ts`, `co
 
 - **Definitions as data**: Tool definitions are plain objects (or JSON-serializable) plus Zod schemas. Handlers are the only place with I/O and side effects.
 - **Single factory**: One code path turns a definition + handlers into a LangChain tool and metadata. Built-in and user tools use the same path.
-- **Scope and access at registration**: Each tool definition has required **scope** (`local` | `external` | `app`) and **access** (`read` | `write`). Category is derived (six values: read local, write local, read external, write external, read app, write app). The factory derives category and copies into the registry. Tools missing scope or access are rejected at registration; access stays read/write for now (expandable later if needed).
+- **Scope and access at registration**: Each tool definition has required **scope** (`local` | `external` | `graph` | `app`) and **access** (`read` | `write`). Category is derived (eight values: read local, write local, read external, write external, read graph, write graph, read app, write app). The factory derives category and copies into the registry. Tools missing scope or access are rejected at registration; access stays read/write for now (expandable later if needed).
 - **No dynamic import in core**: Built-in tools are statically imported for the initial implementation. Optional discovery/loading of user tools can be added later without changing the factory signature.
 
 ## Part II: Key Capabilities (Permissions)
@@ -75,8 +75,8 @@ Definitions live in **definition files** (e.g. per-domain: `neo4j/tools.ts`, `co
 
 ### Categories and Connections
 
-- **Categories** (six): Derived from **scope** × **access**. Each tool definition has required **scope** (`local` | `external` | `app`) and **access** (`read` | `write`). Category = e.g. `"read local"`, `"write external"`, `"read app"`, `"write app"`. Every tool belongs to exactly one category. App tools follow the same convention (e.g. `invoke_command` → scope `app`, access `write`). The tool registry **requires** scope and access for every tool; tools missing either are **rejected at registration** (no runtime fallback).
-- **Connection type**: The kind of **data source** (e.g. "Folder", "Slack", "Google Drive"). Connection types can have multiple **connections** (instances), e.g. "My Project Folder", "Slack #general", "Drive – Work". Most tools that act on data sources are associated with a connection type and optionally a specific connection; app-scope tools typically are not. Which graphs an agent can read from is a separate concept (**graph access**).
+- **Categories** (eight): Derived from **scope** × **access**. Each tool definition has required **scope** (`local` | `external` | `graph` | `app`) and **access** (`read` | `write`). Category = e.g. `"read local"`, `"write external"`, `"read graph"`, `"write graph"`, `"read app"`, `"write app"`. Every tool belongs to exactly one category. Graph tools use scope **graph** so users can allow/deny graph access independently of external (APIs, Slack, etc.). App tools follow the same convention (e.g. `invoke_command` → scope `app`, access `write`). The tool registry **requires** scope and access for every tool; tools missing either are **rejected at registration** (no runtime fallback).
+- **Connection type**: The kind of **data source** (e.g. "Folder", "Slack", "Google Drive"). Connection types can have multiple **connections** (instances), e.g. "My Project Folder", "Slack #general", "Drive – Work". Most tools that act on data sources are associated with a connection type and optionally a specific connection; app-scope and graph-scope tools typically are not. Which graphs an agent can read from is a separate concept (**graph access**).
 - **Permission hierarchy** (within a mode): **category** (default allow/ask/deny for the category) → **connection type** (override for that type) → **connection** (override for that instance) → **tool** (override for that tool). Resolution: tool override ?? connection override ?? connection type override ?? category default.
 
 ### Permission Modes
@@ -85,18 +85,20 @@ A **mode** is a named permission set: category-level defaults plus optional over
 
 #### Built-in mode definitions (exact category permissions)
 
-Each prebuilt mode defines allow/ask/deny for all six categories:
+Each prebuilt mode defines allow/ask/deny for all eight categories:
 
-| Category       | Local Read Only | Read Only | Local Only | Full   |
-|----------------|-----------------|-----------|------------|--------|
-| read local     | allow           | allow     | allow      | allow  |
-| write local    | deny            | deny      | allow      | allow  |
-| read external  | deny            | allow     | deny       | allow  |
-| write external | deny            | deny      | deny       | allow  |
+| Category        | Local Read Only | Read Only | Local Only | Full   |
+|-----------------|-----------------|-----------|------------|--------|
+| read local      | allow           | allow     | allow      | allow  |
+| write local     | deny            | deny      | allow      | allow  |
+| read external   | deny            | allow     | deny       | allow  |
+| write external  | deny            | deny      | deny       | allow  |
+| read graph      | deny            | deny      | deny       | allow  |
+| write graph     | deny            | deny      | deny       | allow  |
 | read app       | allow           | allow     | allow      | allow  |
 | write app      | ask             | ask       | ask        | allow  |
 
-**Rationale:** Local Read Only = local reads + app reads allowed; writes (local, external, write app) denied or ask. Read Only = all reads allowed; all writes denied or ask. Local Only = local read/write allowed; external denied; app read allow, write app ask. Full = all allow. Write app (e.g. invoke_command) as **ask** in restricted modes so the user is prompted before app actions; **allow** in Full.
+**Rationale:** Local Read Only = local reads + app reads allowed; writes (local, external, graph, write app) denied or ask. Read Only = all reads allowed; all writes denied or ask. Local Only = local read/write allowed; external and graph denied; app read allow, write app ask. Full = all allow. Graph is a separate scope so users can control graph-DB access independently. Write app (e.g. invoke_command) as **ask** in restricted modes so the user is prompted before app actions; **allow** in Full.
 
 - **Prebuilt modes**: **Local Read Only**, **Read Only**, **Local Only**, **Full**—each with category-level allow/ask/deny as in the table above. Prebuilt mode names are fixed and cannot be renamed; they can be **reset to default**. Modes can be **disabled** (hidden from selector, cannot be default).
 - **User modes**: Users can **duplicate** an existing mode and **rename** (mode names must be unique). Stored as one file per mode in a dedicated directory; registry loads built-in + user mode files.
@@ -107,7 +109,7 @@ Each prebuilt mode defines allow/ask/deny for all six categories:
 
 ### Pre-Authorization (Agents tab)
 - **Agents** settings tab: LLM providers at top; **Agent Permission** (mode) definitions below. Custom Agents will be added to this tab in a separate backlog item.
-- View and edit modes: category-level defaults (six categories: read local, write local, read external, write external, read app, write app), then overrides by connection type, connection, and tool. One file per mode; dot notation and explicit overrides (same convention as settings).
+- View and edit modes: category-level defaults (eight categories: read local, write local, read external, write external, read graph, write graph, read app, write app), then overrides by connection type, connection, and tool. One file per mode; dot notation and explicit overrides (same convention as settings).
 - Prebuilt modes (Local Read Only, Read Only, Local Only, Full) can be reset to default; cannot be renamed. User modes: duplicate, rename (unique names), disable.
 - All tools (from registry `list()`) must have a category; permission UI is organized by category and connection. Tools are defined via the foundation in Part I (Tool Definitions) above.
 
@@ -142,7 +144,7 @@ Each prebuilt mode defines allow/ask/deny for all six categories:
 
 ### Tool Metadata
 
-Tool registry requires permission metadata per tool as specified in **Part I: Tool Definition shape**. **Scope** (`local` | `external` | `app`) and **access** (`read` | `write`) are required; category is derived (six values). Connection type and connection are optional; description, risk, permissionExplanation are supported. Registry rejects tools missing scope or access at registration.
+Tool registry requires permission metadata per tool as specified in **Part I: Tool Definition shape**. **Scope** (`local` | `external` | `graph` | `app`) and **access** (`read` | `write`) are required; category is derived (eight values). Connection type and connection are optional; description, risk, permissionExplanation are supported. Registry rejects tools missing scope or access at registration.
 
 ## Phase 1: Factory and Types (Tool Definitions)
 
@@ -155,7 +157,7 @@ Tool registry requires permission metadata per tool as specified in **Part I: To
   - **Factory:** New module `src/main/services/llm/tools/factory.ts` with:
     - `createToolFromDefinition(def, handlers)` → `{ tool, metadata }` (category derived from def.scope + def.access; no separate category parameter).
     - `createToolsFromDefinitions(defs, handlers)` → `{ tool, metadata }[]`.
-  - Factory rejects definitions missing `scope` or `access` (throws or returns error); derives category as one of six values (`read local`, `write local`, `read external`, `write external`, `read app`, `write app`) and sets it on metadata.
+  - Factory rejects definitions missing `scope` or `access` (throws or returns error); derives category as one of eight values (`read local`, `write local`, `read external`, `write external`, `read graph`, `write graph`, `read app`, `write app`) and sets it on metadata.
   - **ToolMetadata:** Extend in `registry.ts` with required `scope` and `access`, and optional `connectionType`, `connection`, `risk`, `permissionExplanation`. Category remains (derived). Existing call sites (builtin index) will be updated to pass at least `scope` and `access` for each tool so registration still succeeds (e.g. echo: `scope: 'app', access: 'read'`; count_nodes: `scope: 'external', access: 'read'`; invoke_command: `scope: 'app', access: 'write'`).
   - **Minimal test:** One test file that creates one definition, one handler, runs the factory, registers with the registry, and asserts the tool is listed and callable (or that metadata is correct). If the project has no test runner yet, add Vitest and one test as in the development testing guide.
 - **Recommendations**
@@ -166,7 +168,7 @@ Tool registry requires permission metadata per tool as specified in **Part I: To
   - Minimal test delayed until project has a test framework; Phase 1 does not add Vitest.
 
 1. Add `ToolDefinition` type (name, description, schema, handler key, metadata including required **scope** and **access** and optional connectionType/connection).
-2. Add `createToolFromDefinition(def, handlers, category)` and `createToolsFromDefinitions(defs, handlers, category)` that return `{ tool, metadata }[]` compatible with `toolRegistry.register()`. Derive category from scope + access (six values); **reject at registration** if scope or access is missing.
+2. Add `createToolFromDefinition(def, handlers, category)` and `createToolsFromDefinitions(defs, handlers, category)` that return `{ tool, metadata }[]` compatible with `toolRegistry.register()`. Derive category from scope + access (eight values); **reject at registration** if scope or access is missing.
 3. Add a minimal test: one definition + one handler → one registered tool that the agent can call. **(Delayed:** test deferred until project has a test framework.)
 4. Update tool registry schema so `ToolMetadata` includes scope, access, derived category, connectionType, connection, risk, permissionExplanation. **Done.**
 
@@ -187,7 +189,7 @@ Tool registry requires permission metadata per tool as specified in **Part I: To
 1. Permission/mode service (e.g. `src/main/services/permissions.ts` or mode registry). **Main settings**: single key for default mode (e.g. `agents.defaultModeId`). No other permission data in main settings. **Done:** `src/main/services/modes/` (registry, builtins, types); settings `agents.defaultModeId`, `agents.disabledModeIds`.
 2. **Mode definitions**: One file per mode in dedicated directory (e.g. `userData/modes/`); dot notation, explicit overrides. Load built-in modes (Local Read Only, Read Only, Local Only, Full) + user mode files. **Done.**
 3. Mode registry API: list, get, save, duplicate, reset prebuilt, disable. Add `modeId` to conversation metadata (set on create from default, update when user changes mode). **Done.** Conversation create uses default from settings; backfill modeId on write when null.
-4. **UI for current API:** Chat mode selector (near model selector); Settings > Agents tab: default mode for new chats, mode list (Duplicate, Reset, Disable), hidden modes (Enable), mode editor (name + six category allow/ask/deny, Save). **Done.**
+4. **UI for current API:** Chat mode selector (near model selector); Settings > Agents tab: default mode for new chats, mode list (Duplicate, Reset, Disable), hidden modes (Enable), mode editor (name + eight category allow/ask/deny, Save). **Done.**
 
 ## Phase 5: Chat Mode Selector & Persistence
 **Status:** Done (backend sets modeId on create; Phase 8 will wire mode into `getToolsForAgent()`).
@@ -203,7 +205,7 @@ Tool registry requires permission metadata per tool as specified in **Part I: To
 1. Rename settings tab to **Agents**; two sections: LLM Providers (default model, Ollama, Anthropic) and Agent Permission (modes). **Done.**
 2. Mode registry: built-in modes as file-shaped content (id, name, description, categories.*), user mode files in `userData/modes/`. API: getMode, listModes, listAllModes, saveMode, duplicateMode, resetMode, setModeDisabled. **Done.**
 3. IPC: modes:list, listAll, get, save, duplicate, reset, setDisabled; preload and api.d.ts. **Done.**
-4. Mode editor UI: category-level defaults (six categories), load/save from registry. **Done.** Overrides by connection type, connection, tool (future).
+4. Mode editor UI: category-level defaults (eight categories), load/save from registry. **Done.** Overrides by connection type, connection, tool (future).
 5. Default mode selector for new chats; `agents.defaultModeId` and `agents.disabledModeIds` in main settings. **Done.**
 6. ModeSelector in chat; conversation `modeId` on create (from default), on user change, and on load. **Done.**
 7. Mode file path: getModeFilePath, modes:getFilePath; expanded mode card shows path in footer. **Open in Editor:** modes:openInEditor (creates file if missing, opens in system editor). **Done.**
@@ -271,7 +273,7 @@ Implement both as additional **interrupt reasons** in the same runtime-approval 
 **Tool definitions (foundation):**
 - [ ] `ToolDefinition` type and factory exist; a single definition + handler produce a working tool with metadata (category, etc.) in the registry
 - [ ] All built-in tools are defined declaratively and instantiated via the factory; no duplicated metadata between definition and registration
-- [ ] Every tool has required scope and access; category derived (six values); tools missing scope or access rejected at registration
+- [ ] Every tool has required scope and access; category derived (eight values); tools missing scope or access rejected at registration
 - [ ] Built-in registration is a domain-based loop (no long list of per-tool imports and registers); echo tool removed
 - [ ] Documentation describes how to add a new tool (definition + handler + register domain); pattern is the intended approach for future user/plugin tools
 
@@ -366,7 +368,7 @@ The LLM executor is created with a fixed set of tools and is cached to avoid reb
 
 - **Main settings**: Only **default mode** for new chats (e.g. `agents.defaultModeId`). Permission data is not stored in the main settings file.
 - **Mode definitions**: **One file per mode** in a dedicated directory; same convention as settings (dot notation, explicit overrides). Enables sharing, extensibility, and plugin-contributed modes.
-- **Categories and connections**: Six categories derived from **scope** × **access** (scope: local | external | app; access: read | write). Hierarchy: category → connection type → connection → tool. All tools must have scope and access; rejected at registration if missing. Connection type = e.g. Folder, Slack, Google Drive (data sources). Connection = instance. Graph access is separate.
+- **Categories and connections**: Eight categories derived from **scope** × **access** (scope: local | external | graph | app; access: read | write). Hierarchy: category → connection type → connection → tool. All tools must have scope and access; rejected at registration if missing. Connection type = e.g. Folder, Slack, Google Drive (data sources). Connection = instance. Graph tools use scope **graph**; graph access (which graphs) is separate.
 
 ### Tool definitions (foundation)
 

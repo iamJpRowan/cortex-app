@@ -6,12 +6,14 @@
 /** Permission level for a tool or category. */
 export type PermissionLevel = 'allow' | 'ask' | 'deny'
 
-/** Six categories derived from scope × access. */
+/** Eight categories derived from scope × access. */
 export const PERMISSION_CATEGORIES = [
   'readLocal',
   'writeLocal',
   'readExternal',
   'writeExternal',
+  'readGraph',
+  'writeGraph',
   'readApp',
   'writeApp',
 ] as const
