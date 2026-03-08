@@ -114,15 +114,10 @@ Each prebuilt mode defines allow/ask/deny for all eight categories:
 - All tools (from registry `list()`) must have a category; permission UI is organized by category and connection. Tools are defined via the foundation in Part I (Tool Definitions) above.
 
 ### Runtime Approval Flow
-- LLM requests tool with "ask" permission
-- Modal/notification shows:
-  - Tool name and description
-  - What the tool does
-  - Arguments the LLM wants to pass
-  - Approve/Deny buttons
-- "Remember this decision" checkbox
-- User approves or denies
-- Decision optionally saved to settings
+- LLM requests tool with "ask" permission; execution pauses until user acts.
+- User must be able to (1) see that a chat is awaiting approval when that chat is not in focus (e.g. sidebar indicator), and (2) see and use the approval UI when they switch to that chat (approval lives in-conversation, not in a global modal).
+- Approval UI shows: tool name, description, arguments the LLM wants to pass; Approve and Deny actions.
+- User approves or denies; result returned to LLM (tool runs) or request blocked (LLM receives refusal).
 
 ### Permission Storage
 
@@ -244,22 +239,30 @@ Tool registry requires permission metadata per tool as specified in **Part I: To
 
 ## Phase 9: Runtime Approval Flow
 
-**Depends on:** Minimal [Deep Agents](./deep-agents-adoption.md) adoption—harness plus `interrupt_on` for tool calls. Phase 9 does not implement custom interrupt logic; it uses Deep Agents' human-in-the-loop so one implementation path applies.
+**Beads:** Epic `cortex-app-1mn` (Phase 9: Runtime Approval Flow). Tasks: 1mn.1 interrupt + pending state, 1mn.2 sidebar indicator, 1mn.3 inline approval card, 1mn.4 approve/deny paths.
 
-1. Adopt Deep Agents harness to the extent needed to support `interrupt_on` for tools (see Deep Agents backlog: MVP slice for this use case).
-2. When LLM requests "ask" tool, Deep Agents pauses; show approval modal with tool details and arguments.
-3. Handle user approve/deny; Deep Agents resumes or blocks accordingly.
-4. Optionally save decision to settings ("remember this decision").
-5. Return result to LLM (allow tool use or block).
+**Goal:** When the LLM invokes a tool that has "ask" permission in the conversation's mode, execution pauses, the user sees approval UI (in-conversation), and on approve the tool runs and its result is returned to the LLM; on deny the request is blocked and the LLM receives a refusal. No persistence of approval decisions—each "ask" invocation is prompted. The user must be able to tell when a chat is awaiting approval even when that chat is not in focus, and when they switch to that chat the approval UI must be visible and usable there.
 
-### Phase 9 (future): Content and token guardrail confirmations
+**Functional scope (what must be implemented):**
 
-The same interrupt → modal → approve/deny pattern can be reused for **content-length and token-limit** confirmations. These are part of the remaining work once [Bounded Tool Results and Chat UI Stability](./archive/bounded-tool-results-and-chat-ui-stability.md) default caps and [Context Window and Costs](./context-window-and-costs.md) token estimation are in place:
+1. **Interrupt on "ask" tool invocation.** When the executor would run a tool whose name is in `getToolsForAgent()`'s `askToolNames`, pause before executing the tool and hand control to the app (callback, event, or harness hook). Implementation may use a framework that supports interrupt (e.g. LangChain Deep Agents' `interrupt_on`) or a minimal custom interrupt layer; this backlog does not depend on another backlog item.
+2. **Sidebar indicator for awaiting approval.** When a conversation has a pending "ask" tool approval, the conversation list must show that state (e.g. icon or badge on the conversation row), using the same pattern as existing "streaming" and "unread" indicators, so the user knows which chat needs attention without having it focused.
+3. **Approval UI in-conversation.** When the user has the conversation in focus, the approval UI must appear in the context of that conversation (not as a global modal). It must show: tool name, tool description, and the arguments the LLM is requesting; Approve and Deny actions. When the user switches to a chat that is awaiting approval, the approval UI must be visible and actionable immediately in that view. UI should follow [design README](../../development/design/README.md) and [ui-guide](../../development/design/ui-guide.md) where applicable.
+4. **Approve path.** User clicks Approve → run the tool with the requested arguments, return the tool result to the executor so the LLM receives it as the tool response.
+5. **Deny path.** User clicks Deny → do not run the tool; return a refusal message to the executor so the LLM sees that the tool use was denied (e.g. short ToolMessage indicating user denied).
+6. **Single flow.** All "ask" tools go through this same interrupt → approval UI → approve/deny path. No per-tool or per-conversation persistence of decisions.
 
-- **Allow full tool result:** When the tool factory would **cap** a result (because it exceeds the default max length), optionally **interrupt** and show a modal: "This result is large and will be truncated for context. Include full result anyway?" If the user approves, skip the cap for that invocation only (the ToolMessage gets the uncapped string). If denied, use the capped result. "Remember" can apply per tool or per conversation. Requires the bounded-tool-results factory cap (1.2) and opt-out metadata (1.4) to be implemented so the factory is the single place that can offer this choice.
-- **Confirm oversized prompt:** Before calling the LLM, **estimate input token count** (conversation + system + current prompt). If the estimate exceeds a threshold (e.g. 80% of the model's context window or a configurable "expensive" limit), interrupt and show: "This request will use approximately X tokens (or $Y if cost is available). Continue?" Approve/deny; optional "remember for this conversation." Depends on [Context Window and Costs](./context-window-and-costs.md) (token estimation and context window display) so the app has an estimate and the model's limit before prompting.
+**Out of scope for Phase 9:** Content-length and token-limit confirmations (see [Content and Token Guardrail Confirmations](./content-and-token-guardrail-confirmations.md)). Any "remember this decision" or approval-override persistence.
 
-Implement both as additional **interrupt reasons** in the same runtime-approval pipeline (e.g. same modal component, different copy and payload). No separate "content guardrail" interrupt stack—one human-in-the-loop flow for tool permission, full-result allowance, and oversized-prompt confirmation.
+**Approval UI approach:** Use the **inline approval card**. Render the pending tool request as a card in the message stream (same area as existing tool steps: collapsible row with icon, label, then expanded content). The card shows tool name, description, arguments, and Approve/Deny buttons. When the user switches to the chat, they see the approval in place with the rest of the turn; no separate overlay. Aligns with existing `TraceDisplay` / `ToolInvocationDetails` patterns and keeps context in one scrollable view.
+
+**Success criteria (testable):**
+
+- With a mode where a tool (e.g. `command_invoke`) is "ask", when the LLM requests that tool the run pauses before execution.
+- Conversation list shows an indicator for conversations that have a pending approval (when that conversation is not selected).
+- When the user selects a conversation that is awaiting approval, the approval UI is visible in that conversation view and shows the tool's name, description, and requested arguments; Approve and Deny are available.
+- Approve: tool runs with those arguments; the LLM receives the tool result and can continue.
+- Deny: tool does not run; the LLM receives a clear refusal and can continue the conversation.
 
 ## Phase 10: Audit & History
 1. Log tool invocations to database or file
@@ -288,32 +291,20 @@ Implement both as additional **interrupt reasons** in the same runtime-approval 
 - [ ] Agents tab: LLM providers + Agent Permission (mode) management; mode editor uses category → connection type → connection → tool hierarchy
 - [ ] `getToolsForAgent()` resolves permissions from the conversation's mode
 - [ ] Executor cache key includes `modeId` (and later `agentId` when Custom Agents affect tools; see Custom Agents backlog)
-- [ ] Runtime approval modal for "ask" tools; user can approve/deny with "remember" option
+- [ ] Runtime approval UI for "ask" tools (in-conversation; sidebar indicator when chat not in focus); user can approve or deny each request (no persistence of decisions)
 - [ ] Audit log records tool invocations; permission settings (mode files) persist across restarts
 - [ ] User can select and change mode per chat; default mode for new chats; loading a conversation restores its last mode
 - [ ] Export/import permission profiles and mode files
 
-## Deep Agents Integration
+## Implementation note: Interrupt and Deep Agents
 
-The "ask" permission level (runtime approval) maps directly to LangChain Deep Agents' `interrupt_on` feature.
-
-**How it works:**
-- Tools with "ask" permission are registered with `interrupt_on: True` in Deep Agents
-- When the agent attempts to use an "ask" tool, Deep Agents pauses execution
-- Our UI shows the approval modal with tool details and arguments
-- User approves or denies; Deep Agents resumes or blocks accordingly
-
-**Benefits:**
-- Leverages Deep Agents' built-in human-in-the-loop mechanism
-- No custom interruption handling needed
-- Works with sub-agents (approval happens at any depth)
+The "ask" permission level requires pausing execution when the LLM requests an "ask" tool, showing the approval UI (in-conversation; see Phase 9), then resuming with the tool result or a refusal. A framework that provides an interrupt/human-in-the-loop hook (e.g. LangChain Deep Agents' `interrupt_on` for tool calls) can be used to implement this; if so, tools in `askToolNames` are registered with that hook and the approval UI is shown when the framework yields control. Alternatively, a minimal custom interrupt layer can be implemented within the existing executor flow. This backlog does not add a dependency on the [Deep Agents Adoption](./deep-agents-adoption.md) backlog; Phase 9's scope is the behavior above, however it is implemented.
 
 ## Related Backlog Items
 
 **Depends on (recommended):**
 - [Chat Interface (MVP)](./archive/chat-interface-mvp.md) - Includes `getToolsForAgent()` helper function
 - [Configuration System](./configuration-system.md) - Settings storage for permissions
-- [Deep Agents Adoption](./deep-agents-adoption.md) - Phase 9 (runtime approval) requires a minimal Deep Agents slice: harness + `interrupt_on` for tool calls. Implement this MVP for the single use case rather than custom interrupt logic.
 
 **Prerequisite for:**
 - [Plugin Extensibility Framework](./plugin-extensibility-framework.md) - Permission system critical before community tools
@@ -321,8 +312,7 @@ The "ask" permission level (runtime approval) maps directly to LangChain Deep Ag
 **Related:**
 - [Custom Agents](./custom-agents.md) - When implemented, per-agent permissions (mode or custom set) are defined there and combined with the conversation's mode. Agent editor gets tool list from registry (same source as permission UI).
 - [Configuration System](./configuration-system.md) - Per-tool or per-plugin config can be keyed by tool name from definitions.
-- [Bounded Tool Results and Chat UI Stability](./archive/bounded-tool-results-and-chat-ui-stability.md) - Default tool result caps (factory + at-source); “allow full result” confirmation is implemented in Phase 9 (runtime approval) as an additional interrupt type.
-- [Context Window and Costs](./context-window-and-costs.md) - Token estimation and “used / limit” display; “confirm oversized prompt” uses the same Phase 9 interrupt/modal and depends on this item for estimates.
+- [Content and Token Guardrail Confirmations](./content-and-token-guardrail-confirmations.md) - "Allow full tool result" and "confirm oversized prompt" are tracked there; they reuse this item's approval UI pattern but are out of scope for this backlog.
 
 ## Notes
 
@@ -350,10 +340,6 @@ Users need confidence that:
 - They control what the LLM can do
 - They can audit what the LLM has done
 - Dangerous operations require explicit approval
-
-### Content and token guardrail confirmations
-
-The runtime approval flow (Phase 9) is the single place for **all** “pause and ask the user” decisions: (1) “ask” tool permission, (2) “allow full tool result” when a result would be capped by the bounded-tool-results factory, and (3) “confirm oversized prompt” when estimated input tokens exceed a threshold. Same interrupt → modal → approve/deny (and optional “remember”) for each; only the trigger and copy differ. Bounded Tool Results and Context Window and Costs provide the default caps and token estimates; this system provides the override UX.
 
 ### Permission Scope
 

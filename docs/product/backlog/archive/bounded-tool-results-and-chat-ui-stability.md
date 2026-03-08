@@ -34,7 +34,7 @@ summary: Content length guardrails for UI and agent context; prevent freezes and
 - **1.4 Opt-out:** `ToolDefinitionMetadata.capResultLength` (default `true`); when `false`, factory skips the central cap.
 - **Part 2 UI:** Tool result display capped (4k) with “Show more”; streaming updates throttled (~80ms); trace updates use rAF; `ToolInvocationDetails` memoized.
 
-User-facing “allow full result” and “confirm oversized prompt” are implemented via the [Tool Permission System](../tool-permission-system.md) runtime approval flow.
+User-facing "allow full result" and "confirm oversized prompt" are **not** part of the Tool Permission System; they are tracked in [Content and Token Guardrail Confirmations](../content-and-token-guardrail-confirmations.md), which reuses the same approval UI pattern once that flow exists.
 
 ## Success criteria
 
@@ -46,5 +46,6 @@ User-facing “allow full result” and “confirm oversized prompt” are imple
 
 ## Related
 
-- [Tool Permission System](../tool-permission-system.md) — runtime approval (including “allow full result” and “confirm oversized prompt”).
-- [Context Window and Costs](../context-window-and-costs.md) — token estimation and “used / limit” display; prerequisite for oversized-prompt confirmation.
+- [Content and Token Guardrail Confirmations](../content-and-token-guardrail-confirmations.md) — user-facing "allow full result" and "confirm oversized prompt"; depends on this item's factory cap and opt-out.
+- [Tool Permission System](../tool-permission-system.md) — runtime approval for "ask" tools; Content and Token Guardrail Confirmations reuses that approval UI.
+- [Context Window and Costs](../context-window-and-costs.md) — token estimation and "used / limit" display; prerequisite for oversized-prompt confirmation.
