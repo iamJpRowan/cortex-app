@@ -9,7 +9,7 @@ bd ready              # Find available work
 bd show <id>          # View issue details
 bd update <id> --claim  # Claim work atomically
 bd close <id>         # Complete work
-bd sync               # Sync with git
+./scripts/beads-export-for-commit.sh   # Export issues to .beads/issues.jsonl for git
 ```
 
 ## Non-Interactive Shell Commands
@@ -101,13 +101,13 @@ bd close bd-42 --reason "Completed" --json
    - `bd create "Found bug" --description="Details about what was found" -p 1 --deps discovered-from:<parent-id>`
 5. **Complete**: `bd close <id> --reason "Done"`
 
-### Auto-Sync
+### Including beads in git commits
 
-bd automatically syncs with git:
+To version beads issue state with the repo, export to JSONL and commit it:
 
-- Exports to `.beads/issues.jsonl` after changes (5s debounce)
-- Imports from JSONL when newer (e.g., after `git pull`)
-- No manual export/import needed!
+- Run `./scripts/beads-export-for-commit.sh` (writes `.beads/issues.jsonl`)
+- `git add .beads/issues.jsonl` and include it in your commit
+- `.beads/issues.jsonl` is not gitignored, so it will be tracked and shared on push
 
 ### Important Rules
 
@@ -130,16 +130,20 @@ For more details, see README.md and docs/QUICKSTART.md.
 1. **File issues for remaining work** - Create issues for anything that needs follow-up
 2. **Run quality gates** (if code changed) - Tests, linters, builds
 3. **Update issue status** - Close finished work, update in-progress items
-4. **PUSH TO REMOTE** - This is MANDATORY:
+4. **Include beads in commit** (so issue state is in the repo):
+   ```bash
+   ./scripts/beads-export-for-commit.sh
+   git add .beads/issues.jsonl
+   ```
+5. **PUSH TO REMOTE** - This is MANDATORY:
    ```bash
    git pull --rebase
-   bd sync
    git push
    git status  # MUST show "up to date with origin"
    ```
-5. **Clean up** - Clear stashes, prune remote branches
-6. **Verify** - All changes committed AND pushed
-7. **Hand off** - Provide context for next session
+6. **Clean up** - Clear stashes, prune remote branches
+7. **Verify** - All changes committed AND pushed
+8. **Hand off** - Provide context for next session
 
 **CRITICAL RULES:**
 - Work is NOT complete until `git push` succeeds
