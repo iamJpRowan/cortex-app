@@ -24,6 +24,12 @@ export interface SettingsExpandableCardProps {
   children: React.ReactNode
   /** When true, applies disabled styling (muted text and border). */
   disabled?: boolean
+  /**
+   * When false, header click/Space only opens the card; closing must be done via
+   * actions (e.g. Save/Cancel). Use when expanded content is a form with unsaved state.
+   * @default true
+   */
+  allowCollapseFromHeader?: boolean
   className?: string
 }
 
@@ -39,10 +45,14 @@ export function SettingsExpandableCard({
   actionIcons,
   children,
   disabled = false,
+  allowCollapseFromHeader = true,
   className,
 }: SettingsExpandableCardProps) {
   const contentId = React.useId()
-  const handleToggle = () => onOpenChange(!open)
+  const handleToggle = () => {
+    if (!open) onOpenChange(true)
+    else if (allowCollapseFromHeader) onOpenChange(false)
+  }
 
   return (
     <Collapsible open={open} onOpenChange={onOpenChange}>
@@ -58,6 +68,12 @@ export function SettingsExpandableCard({
         aria-controls={contentId}
         onClick={handleToggle}
         onKeyDown={e => {
+          const target = e.target as HTMLElement
+          const isTextInput =
+            target.tagName === 'INPUT' ||
+            target.tagName === 'TEXTAREA' ||
+            target.isContentEditable
+          if (isTextInput) return
           if (e.key === 'Enter' || e.key === ' ') {
             e.preventDefault()
             handleToggle()

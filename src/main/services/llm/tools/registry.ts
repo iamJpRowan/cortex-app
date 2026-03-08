@@ -1,6 +1,10 @@
 import { StructuredTool } from '@langchain/core/tools'
 import type { Agent } from '@shared/types'
 import type { ToolAccess, ToolCategory, ToolScope } from './definition-types'
+import { getMode } from '@main/services/modes/registry'
+import { getBuiltinMode } from '@main/services/modes/builtins'
+import type { Mode } from '@main/services/modes/types'
+import { resolveEffectivePermission } from './permission-resolver'
 
 /**
  * Metadata for a registered tool.
@@ -97,42 +101,80 @@ export class ToolRegistry {
   }
 
   /**
-   * Get tools available for a specific agent.
+   * Get tools available for a specific agent and conversation mode.
    *
-   * This method provides a single touch point for tool filtering based on:
-   * - Agent-specific tool permissions (allow/ask/deny)
-   * - Global permission settings (future: Tool Permission System)
+   * Single touch point for tool filtering based on:
+   * - Conversation permission mode (modeId → category/tool allow/ask/deny)
+   * - Agent-specific tool permissions (future: Custom Agents)
    *
-   * Currently a passthrough to getAll(), but the signature supports
-   * future permission filtering without requiring callers to change.
+   * Mode is loaded from the registry; null modeId falls back to Full.
+   * Deny tools are excluded. Allow and ask tools are returned; ask tool names
+   * are listed separately so Phase 9 (runtime approval) can intercept them.
    *
    * @param options Options for filtering tools
+   * @param options.modeId Conversation permission mode id (null treated as Full)
    * @param options.agent Agent configuration with tool permissions
-   * @returns Array of StructuredTool instances available for the agent
+   * @returns tools: StructuredTool[] for the executor (allow + ask only);
+   *          askToolNames: string[] of tools requiring runtime approval (Phase 9)
    *
    * @example
    * ```typescript
-   * // Get all tools (default agent)
-   * const tools = toolRegistry.getToolsForAgent()
-   *
-   * // Get tools for specific agent
-   * const tools = toolRegistry.getToolsForAgent({
-   *   agent: { id: 'research', name: 'Research', tools: { allow: ['neo4j.*'] } }
-   * })
+   * const { tools } = toolRegistry.getToolsForAgent({ modeId: conversation.modeId })
    * ```
    */
-  getToolsForAgent(options?: { agent?: Agent }): StructuredTool[] {
-    // Phase 1: Simple passthrough to getAll()
-    // Future: Filter based on agent.tools.allow/ask/deny and global permissions
+  getToolsForAgent(options?: {
+    modeId?: string | null
+    agent?: Agent
+  }): { tools: StructuredTool[]; askToolNames: string[] } {
+    const { modeId } = options ?? {}
 
-    // TODO: When Tool Permission System is implemented:
-    // 1. Load global permission settings
-    // 2. Intersect with options.agent.tools permissions (if agent provided)
-    // 3. Filter tools: exclude denied, mark ask tools for approval
-    // 4. Return only allowed tools
-    void options // Acknowledge parameter for future use
+    // Load mode from registry; null/missing modeId → Full (legacy conversations treated as Full).
+    let mode: Mode
+    if (modeId) {
+      const found = getMode(modeId)
+      if (found) {
+        mode = found
+      } else {
+        console.warn(
+          `[ToolRegistry] Mode "${modeId}" not found, falling back to Full`
+        )
+        mode = getBuiltinMode('full')
+      }
+    } else {
+      mode = getBuiltinMode('full')
+    }
 
-    return this.getAll()
+    console.log(`[ToolRegistry] getToolsForAgent: mode=${mode.id}`)
+
+    // Resolve effective permission for each tool via the mode hierarchy.
+    // Hierarchy: tool override ?? connection override ?? connection type override ?? category default.
+    const resolved = Array.from(this.tools.values()).map(({ tool, metadata }) => ({
+      tool,
+      metadata,
+      permission: resolveEffectivePermission(metadata, mode),
+    }))
+
+    console.log(
+      `[ToolRegistry] Effective permissions: ${resolved.map(r => `${r.metadata.name}=${r.permission}`).join(', ')}`
+    )
+
+    // Filter: deny tools are excluded entirely.
+    // Allow and ask tools are passed to the executor.
+    // Ask tools are listed separately for Phase 9 runtime approval.
+    const allowed = resolved.filter(r => r.permission !== 'deny')
+    const askToolNames = allowed
+      .filter(r => r.permission === 'ask')
+      .map(r => r.metadata.name)
+
+    if (resolved.length !== allowed.length) {
+      const denied = resolved.filter(r => r.permission === 'deny').map(r => r.metadata.name)
+      console.log(`[ToolRegistry] Denied tools (excluded): ${denied.join(', ')}`)
+    }
+    if (askToolNames.length > 0) {
+      console.log(`[ToolRegistry] Ask tools (require runtime approval): ${askToolNames.join(', ')}`)
+    }
+
+    return { tools: allowed.map(r => r.tool), askToolNames }
   }
 
   /**

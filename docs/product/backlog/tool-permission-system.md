@@ -3,7 +3,7 @@ status: in progress
 themes: [chat-ai]
 summary: Foundational tool definitions and user-controlled permissions (modes, runtime approval). Critical for trust and extensibility.
 depends_on: [configuration-system]
-devlogs: [2026-02-16-tool-permission-system-phase-1, 2026-02-23-tool-permission-modes-ui-and-shared-config]
+devlogs: [2026-02-16-tool-permission-system-phase-1, 2026-02-23-tool-permission-modes-ui-and-shared-config, 2026-03-08-tool-permission-system-phase-8]
 ---
 
 [Docs](../../README.md) / [Product](../README.md) / [Backlog](./README.md) / Tool Permission System
@@ -192,11 +192,11 @@ Tool registry requires permission metadata per tool as specified in **Part I: To
 4. **UI for current API:** Chat mode selector (near model selector); Settings > Agents tab: default mode for new chats, mode list (Duplicate, Reset, Disable), hidden modes (Enable), mode editor (name + eight category allow/ask/deny, Save). **Done.**
 
 ## Phase 5: Chat Mode Selector & Persistence
-**Status:** Done (backend sets modeId on create; Phase 8 will wire mode into `getToolsForAgent()`).
+**Status:** Done (backend sets modeId on create; Phase 8 wired mode into `getToolsForAgent()`).
 1. Add mode selector to chat UI, placed near the agent selector. **Done.**
 2. On new conversation: set conversation `modeId` from default chat mode (settings). **Done** (backend).
 3. When user changes mode in chat: update conversation's `modeId` and persist. **Done.**
-4. When loading a conversation: restore and display its stored mode; use it in `getToolsForAgent()`. **Done** (display + persist); tool filtering in Phase 8.
+4. When loading a conversation: restore and display its stored mode; use it in `getToolsForAgent()`. **Done** (display + persist); tool filtering in Phase 8 (done).
 
 ## Phase 6: Agents Tab & Permission UI
 **Status:** Done. Implementation order below. Remaining phases: 7 (next), then 8, 9, 10, 11.
@@ -232,7 +232,9 @@ Tool registry requires permission metadata per tool as specified in **Part I: To
 
 ## Phase 8: Enhance `getToolsForAgent()` Function
 
-**Beads:** Phase 8 is decomposed into tasks under epic `cortex-app-8an` (Tool Permission System). Run `bd ready` to pick up work.
+**Status:** Done. Mode is loaded from registry; permissions resolved per tool; deny filtered, ask returned for Phase 9; executor cache key includes `modeId`.
+
+**Beads:** Phase 8 was decomposed into tasks under epic `cortex-app-8an` (Tool Permission System). All beads complete.
 
 1. Extend signature to accept conversation context so the chat's mode can be applied. (When Custom Agents exist, callers will also pass agent; see [Custom Agents](./custom-agents.md).)
 2. Load conversation's mode from mode registry.

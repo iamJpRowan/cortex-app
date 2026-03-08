@@ -52,6 +52,13 @@ export interface LLMQueryOptions {
    * When set, the stream runs from this checkpoint instead of the latest.
    */
   checkpointId?: string
+
+  /**
+   * Permission mode id for this conversation.
+   * Passed to getToolsForAgent() so the executor can filter tools by mode.
+   * Null means the conversation has no modeId set; treated as Full (passthrough).
+   */
+  modeId?: string | null
 }
 
 /**

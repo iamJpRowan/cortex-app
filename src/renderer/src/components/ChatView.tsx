@@ -677,10 +677,12 @@ export function ChatView() {
     }
     setMessages(prev => [...prev, userMsg])
 
-    // Start streaming query (pass selected model so backend uses it)
+    // Start streaming query (pass selected model and conversation modeId)
+    const currentModeId = conversations.find(c => c.id === conversationId)?.modeId
     const result = await window.api.llm.queryStream(userMessage, {
       conversationId: conversationId || undefined,
       model: selectedModelId || undefined,
+      modeId: currentModeId ?? null,
     })
 
     if (result.success && result.conversationId) {

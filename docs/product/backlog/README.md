@@ -9,7 +9,7 @@ Backlog view — generated from frontmatter. Structure and frontmatter: [TEMPLAT
 
 | ready to test | in progress | designing |
 |--------|--------|--------|
-| — | **[Tool Permission System](./tool-permission-system.md)** — Foundational tool definitions and user-controlled permissions (modes, runtime approval). Critical for trust and extensibility. [Feb 16 Tool Permission System Phase 1](../devlogs/2026-02-16-tool-permission-system-phase-1.md)<br>[Feb 23 Tool Permission Modes Ui And Shared Config](../devlogs/2026-02-23-tool-permission-modes-ui-and-shared-config.md) | — |
+| — | **[Tool Permission System](./tool-permission-system.md)** — Foundational tool definitions and user-controlled permissions (modes, runtime approval). Critical for trust and extensibility. [Feb 16 Tool Permission System Phase 1](../devlogs/2026-02-16-tool-permission-system-phase-1.md)<br>[Feb 23 Tool Permission Modes Ui And Shared Config](../devlogs/2026-02-23-tool-permission-modes-ui-and-shared-config.md)<br>[Mar 8 Tool Permission System Phase 8](../devlogs/2026-03-08-tool-permission-system-phase-8.md) | — |
 
 ## Considering
 

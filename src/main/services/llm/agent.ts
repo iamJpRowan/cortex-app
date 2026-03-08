@@ -198,7 +198,7 @@ type AgentExecutor = ReactAgent
 
 export class LLMAgentService {
   private checkpointer: SqliteSaver | null = null
-  private executorCache = new Map<PrefixedModelId, AgentExecutor>()
+  private executorCache = new Map<string, AgentExecutor>()
   private config: LLMServiceConfig
   private settingsUnsubscribe: (() => void) | null = null
 
@@ -271,21 +271,31 @@ export class LLMAgentService {
   }
 
   /**
-   * Get or create executor for the given prefixed model id. Caches by model id.
+   * Get or create executor for the given prefixed model id and conversation mode.
+   * Cache key is (modelId, modeId) so different modes get different executor instances
+   * with the correct filtered tool set. When the user changes mode, the next message
+   * misses the cache and a new executor is built with the new mode's tool set.
    */
   private async getExecutorForModel(
-    prefixedModelId: PrefixedModelId
+    prefixedModelId: PrefixedModelId,
+    modeId?: string | null
   ): Promise<AgentExecutor> {
-    let executor = this.executorCache.get(prefixedModelId)
+    const cacheKey = `${prefixedModelId}::${modeId ?? ''}`
+    let executor = this.executorCache.get(cacheKey)
     if (executor) return executor
 
     const getConfig = (id: string) => this.getProviderConfig(id)
     const llm = await providerRegistry.getLLM(prefixedModelId, getConfig)
-    const tools = toolRegistry.getToolsForAgent()
+    const { tools, askToolNames } = toolRegistry.getToolsForAgent({ modeId })
     if (tools.length === 0) {
       console.warn(
         '[LLMAgent] No tools registered. Agent will work but cannot use tools.'
       )
+    }
+    if (askToolNames.length > 0) {
+      // Ask tools are included in the executor's tool set but will require runtime
+      // approval in Phase 9 (interrupt_on). Logged here for observability.
+      console.log(`[LLMAgent] Ask tools pending runtime approval: ${askToolNames.join(', ')}`)
     }
     executor = createAgent({
       model: llm,
@@ -293,8 +303,8 @@ export class LLMAgentService {
       systemPrompt: this.config.llm.systemPrompt,
       checkpointer: this.checkpointer!,
     })
-    this.executorCache.set(prefixedModelId, executor)
-    console.log(`[LLMAgent] Cached executor for model: ${prefixedModelId}`)
+    this.executorCache.set(cacheKey, executor)
+    console.log(`[LLMAgent] Cached executor for model: ${prefixedModelId}, mode: ${modeId ?? '(none)'}`)
     return executor
   }
 
@@ -461,9 +471,9 @@ export class LLMAgentService {
       throw new Error('Agent not initialized. Call initialize() first.')
     }
 
-    const { conversationId, context, agent, model } = options ?? {}
+    const { conversationId, context, agent, model, modeId } = options ?? {}
     const modelId = await this.resolveModelId(options)
-    const executor = await this.getExecutorForModel(modelId)
+    const executor = await this.getExecutorForModel(modelId, modeId)
 
     const config = conversationId
       ? { configurable: { thread_id: conversationId } }
@@ -592,9 +602,9 @@ export class LLMAgentService {
       throw new Error('Agent not initialized. Call initialize() first.')
     }
 
-    const { conversationId, context, agent, model } = options ?? {}
+    const { conversationId, context, agent, model, modeId } = options ?? {}
     const modelId = await this.resolveModelId(options)
-    const executor = await this.getExecutorForModel(modelId)
+    const executor = await this.getExecutorForModel(modelId, modeId)
 
     const convId = conversationId ?? `conv-${Date.now()}`
     const config: {

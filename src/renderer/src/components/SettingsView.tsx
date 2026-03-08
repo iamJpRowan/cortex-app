@@ -520,6 +520,7 @@ export function SettingsView() {
     setEditorName(initialEditorName)
     setEditorDescription(initialEditorDescription)
     setEditorCategories({ ...initialEditorCategories })
+    closeModeEditor()
   }
 
   const handleResetMode = async (modeId: string) => {
@@ -1398,6 +1399,9 @@ export function SettingsView() {
                                 else closeModeEditor()
                               }}
                               disabled={isModeDisabled}
+                              allowCollapseFromHeader={
+                                !(editingModeId === mode.id && isEditorDirty)
+                              }
                               title={
                                 <div className="flex min-w-0 items-center gap-2">
                                   <span className="font-medium text-text-primary truncate">

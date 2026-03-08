@@ -37,7 +37,7 @@ export function registerLLMHandlers() {
     'llm:query',
     async (_event, message: string, options?: LLMQueryOptions) => {
       try {
-        const { conversationId, context, agent, model } = options ?? {}
+        const { conversationId, context, agent, model, modeId } = options ?? {}
 
         console.log(`[LLM IPC] Query received: ${message}`)
         if (context?.viewId) {
@@ -78,6 +78,7 @@ export function registerLLMHandlers() {
           context,
           agent,
           model,
+          modeId,
         })
 
         console.log(
