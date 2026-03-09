@@ -13,6 +13,7 @@ import type {
   ChatMessage,
   TurnBlock,
   PermissionMode,
+  PendingApproval,
 } from '@shared/types'
 
 export interface API {
@@ -74,6 +75,26 @@ export interface API {
       args?: Record<string, unknown>
       error?: string
     }>
+    /**
+     * Phase 9: Respond to a pending tool approval (approve or deny).
+     */
+    approvalRespond: (
+      approvalId: string,
+      approved: boolean
+    ) => Promise<{ success: boolean }>
+    /**
+     * Subscribe to pending tool approval requests.
+     * Fires when the LLM invokes an ask-permission tool and execution has paused.
+     * Returns an unsubscribe function.
+     */
+    onApprovalRequested: (callback: (approval: PendingApproval) => void) => () => void
+    /**
+     * Subscribe to approval resolution events (approval was approved or denied).
+     * Returns an unsubscribe function.
+     */
+    onApprovalResolved: (
+      callback: (data: { approvalId: string; approved: boolean }) => void
+    ) => () => void
     /**
      * Reload the LLM agent configuration.
      * Resets the agent so next query uses fresh prompts from disk.
@@ -301,4 +322,5 @@ export type {
   ChatMessage,
   TurnBlock,
   PermissionMode,
+  PendingApproval,
 }

@@ -3,7 +3,7 @@ status: in progress
 themes: [chat-ai]
 summary: Foundational tool definitions and user-controlled permissions (modes, runtime approval). Critical for trust and extensibility.
 depends_on: [configuration-system]
-devlogs: [2026-02-16-tool-permission-system-phase-1, 2026-02-23-tool-permission-modes-ui-and-shared-config, 2026-03-08-tool-permission-system-phase-8]
+devlogs: [2026-02-16-tool-permission-system-phase-1, 2026-02-23-tool-permission-modes-ui-and-shared-config, 2026-03-08-tool-permission-system-phase-8, 2026-03-09-tool-permission-system-phase-9]
 ---
 
 [Docs](../../README.md) / [Product](../README.md) / [Backlog](./README.md) / Tool Permission System

@@ -24,6 +24,12 @@ import { providerRegistry, getModelsWithMetadata } from './providers'
 import { isModelBlocked } from './providers/tool-support-blocklist'
 import { getProviderConfigWithDecryptedKeys } from './providers/secure-config'
 import { getSettingsService } from '@main/services/settings'
+import {
+  wrapAskTool,
+  runWithStreamContext,
+  cancelConversationApprovals,
+} from './tools/ask-interceptor'
+import type { PendingApproval } from '@shared/types'
 
 /**
  * Normalize message content to a plain string for display.
@@ -292,14 +298,18 @@ export class LLMAgentService {
         '[LLMAgent] No tools registered. Agent will work but cannot use tools.'
       )
     }
+
+    // Wrap ask tools so they pause for user approval at runtime (Phase 9).
+    const wrappedTools = tools.map(tool =>
+      askToolNames.includes(tool.name) ? wrapAskTool(tool) : tool
+    )
     if (askToolNames.length > 0) {
-      // Ask tools are included in the executor's tool set but will require runtime
-      // approval in Phase 9 (interrupt_on). Logged here for observability.
-      console.log(`[LLMAgent] Ask tools pending runtime approval: ${askToolNames.join(', ')}`)
+      console.log(`[LLMAgent] Ask tools wrapped for runtime approval: ${askToolNames.join(', ')}`)
     }
+
     executor = createAgent({
       model: llm,
-      tools,
+      tools: wrappedTools,
       systemPrompt: this.config.llm.systemPrompt,
       checkpointer: this.checkpointer!,
     })
@@ -596,7 +606,8 @@ export class LLMAgentService {
     streamId: string,
     options: LLMQueryOptions | undefined,
     onEvent: StreamEventHandler,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    onPendingApproval?: (approval: PendingApproval) => void
   ): Promise<void> {
     if (!this.checkpointer) {
       throw new Error('Agent not initialized. Call initialize() first.')
@@ -746,6 +757,9 @@ export class LLMAgentService {
     }
 
     try {
+      // Run the stream inside the approval context so ask-tool wrappers can find
+      // the active conversationId and fire the onPendingApproval callback.
+      await runWithStreamContext(convId, onPendingApproval ?? (() => {}), async () => {
       const stream = await executor.stream(
         { messages },
         { ...config, streamMode: ['messages', 'values'] }
@@ -939,6 +953,7 @@ export class LLMAgentService {
           lastMessageCount = allMessages.length
         }
       }
+      }) // end runWithStreamContext
 
       // Flush any reasoning left in buffer (e.g. stream ended before text chunk)
       flushReasoningFromChunks()
@@ -1083,6 +1098,9 @@ export class LLMAgentService {
         suggestion,
         accumulated: accumulatedForEvent || undefined,
       })
+    } finally {
+      // Cancel any pending approvals so the stream does not hang on error/cancel/completion.
+      cancelConversationApprovals(convId)
     }
   }
 

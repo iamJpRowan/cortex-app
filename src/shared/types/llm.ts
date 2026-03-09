@@ -62,6 +62,24 @@ export interface LLMQueryOptions {
 }
 
 /**
+ * A pending tool approval request.
+ * Created when the LLM invokes a tool with "ask" permission; the run pauses until the user
+ * approves or denies. Not persisted — each invocation is always prompted.
+ */
+export interface PendingApproval {
+  /** Unique ID for this approval request (used to resolve it). */
+  approvalId: string
+  /** Conversation this approval belongs to. */
+  conversationId: string
+  /** Tool name (e.g. "command_invoke"). */
+  toolName: string
+  /** Tool description shown to the user. */
+  toolDescription: string
+  /** Arguments the LLM wants to pass to the tool. */
+  args: Record<string, unknown>
+}
+
+/**
  * Trace entry types for execution audit trail.
  * reasoning = provider extended thinking (e.g. Anthropic); emitted to UI only, not persisted.
  */

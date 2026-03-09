@@ -7,6 +7,7 @@ import {
   Loader2,
   FileEdit,
   MessageSquareDot,
+  ShieldAlert,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -44,6 +45,8 @@ interface ConversationListProps {
   selectedConversationHasDraft?: boolean
   /** Per-conversation last message timestamp (for unread indicator). */
   lastMessageAt?: Record<string, number>
+  /** Conversation IDs with a pending tool approval (Phase 9: runtime approval). */
+  pendingApprovalConversationIds?: Set<string>
 }
 
 /** Methods exposed via ref */
@@ -80,6 +83,7 @@ export const ConversationList = React.forwardRef<
     generatingTitleConversationId,
     selectedConversationHasDraft = false,
     lastMessageAt = {},
+    pendingApprovalConversationIds,
   },
   ref
 ) {
@@ -339,6 +343,7 @@ export const ConversationList = React.forwardRef<
               const isGeneratingTitle = generatingTitleConversationId === conversation.id
               const hasDraftIcon = hasDraft(conversation.id)
               const unread = isUnread(conversation)
+              const awaitingApproval = pendingApprovalConversationIds?.has(conversation.id) ?? false
               // Single source of truth: derive display title (generating vs stored)
               const displayTitle = isGeneratingTitle
                 ? 'Generating title...'
@@ -396,7 +401,12 @@ export const ConversationList = React.forwardRef<
                               <FileEdit className="h-3 w-3 text-muted-foreground" />
                             </span>
                           )}
-                          {isStreaming && (
+                          {awaitingApproval && (
+                            <span title="Awaiting tool approval">
+                              <ShieldAlert className="h-3 w-3 text-amber-500" />
+                            </span>
+                          )}
+                          {isStreaming && !awaitingApproval && (
                             <span title="AI responding">
                               <Loader2
                                 className="h-3 w-3 animate-spin text-muted-foreground"

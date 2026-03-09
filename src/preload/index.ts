@@ -6,6 +6,7 @@ import type {
   ListConversationsOptions,
   CreateConversationOptions,
   UpdateConversationOptions,
+  PendingApproval,
 } from '@shared/types'
 
 // Expose protected methods that allow the renderer process to use
@@ -45,6 +46,38 @@ contextBridge.exposeInMainWorld('api', {
     toolsList: () => ipcRenderer.invoke('llm:tools:list'),
     toolsTest: (toolName: string, args: Record<string, unknown>) =>
       ipcRenderer.invoke('llm:tools:test', toolName, args),
+    /**
+     * Phase 9: Respond to a pending tool approval (approve or deny).
+     * Call with the approvalId from the llm:approval-requested event.
+     */
+    approvalRespond: (approvalId: string, approved: boolean) =>
+      ipcRenderer.invoke('llm:approval-respond', approvalId, approved),
+    /**
+     * Subscribe to pending tool approval requests.
+     * Fires when the LLM invokes an ask-permission tool and execution has paused.
+     * Returns an unsubscribe function.
+     */
+    onApprovalRequested: (callback: (approval: PendingApproval) => void) => {
+      const handler = (_event: Electron.IpcRendererEvent, approval: PendingApproval) => {
+        callback(approval)
+      }
+      ipcRenderer.on('llm:approval-requested', handler)
+      return () => ipcRenderer.removeListener('llm:approval-requested', handler)
+    },
+    /**
+     * Subscribe to approval resolution events (approval was approved or denied).
+     * Returns an unsubscribe function.
+     */
+    onApprovalResolved: (
+      callback: (data: { approvalId: string; approved: boolean }) => void
+    ) => {
+      const handler = (
+        _event: Electron.IpcRendererEvent,
+        data: { approvalId: string; approved: boolean }
+      ) => callback(data)
+      ipcRenderer.on('llm:approval-resolved', handler)
+      return () => ipcRenderer.removeListener('llm:approval-resolved', handler)
+    },
     /**
      * Reload the LLM agent configuration.
      * Resets the agent so next query uses fresh prompts from disk.

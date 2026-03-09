@@ -36,9 +36,10 @@ export type {
   ListConversationsOptions,
   CreateConversationOptions,
   UpdateConversationOptions,
-  // Permission modes (Tool Permission System)
+  // Permission modes and runtime approval (Tool Permission System)
   PermissionLevel,
   PermissionMode,
+  PendingApproval,
   // Streaming types
   StreamEventType,
   StreamEventBase,

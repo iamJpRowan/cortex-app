@@ -12,6 +12,7 @@ import {
   Brain,
   Square,
   RotateCcw,
+  ShieldAlert,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { getToolIcon } from '@/lib/tool-icons'
@@ -51,6 +52,7 @@ import type {
   TraceEntry,
   ConversationMetadata,
   TurnBlock,
+  PendingApproval,
 } from '@/types/api'
 import {
   buildDisplayItems,
@@ -131,6 +133,13 @@ export function ChatView() {
   const [streamingConversationId, setStreamingConversationId] = React.useState<
     string | undefined
   >(undefined)
+  /**
+   * Per-conversation pending approval requests (Phase 9).
+   * Keyed by conversationId; at most one pending approval per conversation at a time.
+   */
+  const [pendingApprovals, setPendingApprovals] = React.useState<Map<string, PendingApproval>>(
+    new Map()
+  )
   /** Conversation ID currently generating title (shows "Generating title..." indicator). */
   const [generatingTitleConversationId, setGeneratingTitleConversationId] =
     React.useState<string | null>(null)
@@ -409,6 +418,33 @@ export function ChatView() {
     }
   }, [])
 
+  // Phase 9: Subscribe to pending tool approval events.
+  React.useEffect(() => {
+    const unsubApprovalRequested = window.api.llm.onApprovalRequested(approval => {
+      setPendingApprovals(prev => {
+        const next = new Map(prev)
+        next.set(approval.conversationId, approval)
+        return next
+      })
+    })
+    const unsubApprovalResolved = window.api.llm.onApprovalResolved(({ approvalId }) => {
+      setPendingApprovals(prev => {
+        const next = new Map(prev)
+        for (const [convId, approval] of next.entries()) {
+          if (approval.approvalId === approvalId) {
+            next.delete(convId)
+            break
+          }
+        }
+        return next
+      })
+    })
+    return () => {
+      unsubApprovalRequested()
+      unsubApprovalResolved()
+    }
+  }, [])
+
   // Subscribe to title generation start (add placeholder, show indicator)
   React.useEffect(() => {
     const unsubscribe = window.api.conversations.onTitleGenerating(
@@ -472,6 +508,13 @@ export function ChatView() {
         prev === event.conversationId ? undefined : prev
       )
       setCurrentStreamId(null)
+      // Clear any pending approval for this conversation when the stream ends.
+      setPendingApprovals(prev => {
+        if (!prev.has(event.conversationId)) return prev
+        const next = new Map(prev)
+        next.delete(event.conversationId)
+        return next
+      })
       if (streamingThrottleTimeoutRef.current) {
         clearTimeout(streamingThrottleTimeoutRef.current)
         streamingThrottleTimeoutRef.current = null
@@ -963,6 +1006,9 @@ export function ChatView() {
     }
   }, [streamingBlocks, streamingContent, currentTrace, selectedModelId, isLoading])
 
+  /** Active pending approval for the currently viewed conversation (Phase 9). */
+  const activeApproval = conversationId ? pendingApprovals.get(conversationId) : undefined
+
   return (
     <div className="flex flex-1 min-h-0 overflow-hidden">
       {/* Conversation Sidebar - resizable */}
@@ -987,6 +1033,7 @@ export function ChatView() {
           generatingTitleConversationId={generatingTitleConversationId ?? undefined}
           selectedConversationHasDraft={input.trim().length > 0}
           lastMessageAt={lastMessageAt}
+          pendingApprovalConversationIds={new Set(pendingApprovals.keys())}
         />
         <div
           role="separator"
@@ -1106,6 +1153,48 @@ export function ChatView() {
             </ConversationContent>
             <ConversationScrollButton />
           </Conversation>
+
+          {/* Phase 9: Inline approval card — shown when the LLM is waiting for tool approval */}
+          {activeApproval && (
+            <div className="flex-shrink-0 w-full px-4 pb-2">
+              <div className="max-w-4xl mx-auto w-full border border-border-primary rounded-lg bg-background p-4 flex flex-col gap-3 shadow-sm">
+                <div className="flex items-center gap-2">
+                  <ShieldAlert className="h-4 w-4 text-amber-500 shrink-0" />
+                  <span className="text-sm font-medium">Tool approval required</span>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-sm font-semibold">{activeApproval.toolName}</span>
+                  {activeApproval.toolDescription && (
+                    <span className="text-xs text-muted-foreground">{activeApproval.toolDescription}</span>
+                  )}
+                </div>
+                {Object.keys(activeApproval.args).length > 0 && (
+                  <div className="rounded bg-muted px-3 py-2">
+                    <pre className="text-xs text-muted-foreground whitespace-pre-wrap break-all overflow-auto max-h-40">
+                      {JSON.stringify(activeApproval.args, null, 2)}
+                    </pre>
+                  </div>
+                )}
+                <div className="flex items-center gap-2 justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.api.llm.approvalRespond(activeApproval.approvalId, false)}
+                  >
+                    Deny
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => window.api.llm.approvalRespond(activeApproval.approvalId, true)}
+                  >
+                    Approve
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Composer: full-width footer with input + actions inside one container */}
           <form

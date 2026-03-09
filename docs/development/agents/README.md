@@ -17,18 +17,18 @@ When the user references one of the workflow docs below (by name, file, or simil
 
 ## When the user wants to…
 
-| Intent                                                    | Workflow                                                                                            |
-| --------------------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| Set a goal and identify what to build                     | [plan-goal.md](./plan-goal.md)                                                                      |
-| Refine a `planned` backlog item                           | [refine-backlog-item.md](./refine-backlog-item.md)                                                  |
-| Decompose a `refined` item into Beads tasks (automated)   | [decompose-backlog-item.md](./decompose-backlog-item.md)                                            |
-| Work the next task / implement                            | [work-backlog-item.md](./work-backlog-item.md) — use `bd ready` for next task                       |
-| Set backlog item ready for review (runner-invoked)        | [set-backlog-item-ready-for-review.md](./set-backlog-item-ready-for-review.md)                      |
-| Define or refine a core concept (product/system behavior) | [defining-core-concepts.md](./defining-core-concepts.md)                                            |
-| Evaluate backlog (relevance, clarify, abandon, hygiene)   | [backlog-grooming.md](./backlog-grooming.md)                                                        |
-| Clean up docs (links, user vs dev, devlog links)          | [docs-cleanup.md](./docs-cleanup.md)                                                                |
-| Get ready to commit                                       | [prepare-to-commit.md](./prepare-to-commit.md)                                                      |
-| Commit (after prepare-to-commit)                         | [commit.md](./commit.md)                                                                            |
+| Intent                                                    | Workflow                                                                       |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| Set a goal and identify what to build                     | [plan-goal.md](./plan-goal.md)                                                 |
+| Refine a `planned` backlog item                           | [refine-backlog-item.md](./refine-backlog-item.md)                             |
+| Decompose a `refined` item into Beads tasks (automated)   | [decompose-backlog-item.md](./decompose-backlog-item.md)                       |
+| Work the next task / implement                            | [work-backlog-item.md](./work-backlog-item.md) — use `bd ready` for next task  |
+| Set backlog item ready for review (runner-invoked)        | [set-backlog-item-ready-for-review.md](./set-backlog-item-ready-for-review.md) |
+| Define or refine a core concept (product/system behavior) | [defining-core-concepts.md](./defining-core-concepts.md)                       |
+| Evaluate backlog (relevance, clarify, abandon, hygiene)   | [backlog-grooming.md](./backlog-grooming.md)                                   |
+| Clean up docs (links, user vs dev, devlog links)          | [docs-cleanup.md](./docs-cleanup.md)                                           |
+| Get ready to commit                                       | [prepare-to-commit.md](./prepare-to-commit.md)                                 |
+| Commit (after prepare-to-commit)                          | [commit.md](./commit.md)                                                       |
 
 Use **one workflow per conversation** so the agent has clear intent.
 
@@ -56,8 +56,8 @@ Each workflow doc is a set of explicit instructions for that conversation type.
 - **[backlog-grooming.md](./backlog-grooming.md)** — Backlog hygiene and relevance (clarify, abandon, archive).
   _Example phrases:_ "backlog grooming", "groom the backlog", "follow backlog-grooming".
 
-- **[docs-cleanup.md](./docs-cleanup.md)** — Docs-only cleanup (links, user vs dev, devlog related_backlog).
-  _Example phrases:_ "docs cleanup", "clean up the docs", "follow docs-cleanup".
+- **[docs-cleanup.md](./docs-cleanup.md)** — Docs-only cleanup (links, user vs dev, devlog related*backlog).
+  \_Example phrases:* "docs cleanup", "clean up the docs", "follow docs-cleanup".
 
 - **[prepare-to-commit.md](./prepare-to-commit.md)** — Review code before commit: apply all recommended fixes (workarounds, patterns, docs, session artifacts, UI/reuse), then report what was updated and what was not.
   _Example phrases:_ "prepare to commit", "review before commit", "pre-commit review", "follow prepare-to-commit".

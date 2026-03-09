@@ -15,6 +15,7 @@ import { getProviderConfigWithDecryptedKeys } from '@main/services/llm/providers
 import { getSettingsService } from '@main/services/settings'
 import type { LLMProvidersConfig } from '@main/services/settings'
 import type { LLMQueryOptions, StreamQueryResult, ListModelsResult } from '@shared/types'
+import { respondToApproval } from '@main/services/llm/tools/ask-interceptor'
 // Import builtin tools to trigger auto-registration
 import '@main/services/llm/tools/builtin'
 
@@ -247,7 +248,13 @@ export function registerLLMHandlers() {
                 window.webContents.send('llm:stream', streamEvent)
               }
             },
-            controller.signal
+            controller.signal,
+            // Phase 9: forward pending approval requests to the renderer.
+            approval => {
+              if (!window.isDestroyed()) {
+                window.webContents.send('llm:approval-requested', approval)
+              }
+            }
           )
           .catch(err => {
             cleanup()
@@ -294,6 +301,24 @@ export function registerLLMHandlers() {
       activeStreamControllers.delete(streamId)
     }
   })
+
+  /**
+   * Phase 9: Respond to a pending tool approval request.
+   * Called by the renderer when the user approves or denies an ask-tool invocation.
+   * Resolves the promise in the ask-interceptor, allowing the stream to continue.
+   */
+  ipcMain.handle(
+    'llm:approval-respond',
+    (event, approvalId: string, approved: boolean) => {
+      const resolved = respondToApproval(approvalId, approved)
+      // Notify renderer so it can remove the approval card immediately.
+      const senderWindow = BrowserWindow.fromWebContents(event.sender)
+      if (resolved && senderWindow && !senderWindow.isDestroyed()) {
+        senderWindow.webContents.send('llm:approval-resolved', { approvalId, approved })
+      }
+      return { success: resolved }
+    }
+  )
 
   /**
    * List all available tools
