@@ -15,16 +15,23 @@
 #   ./scripts/runner.sh --once           # Run one pass then exit (old behavior)
 #   ./scripts/runner.sh --dry-run        # Show what would run without spawning agents
 #   ./scripts/runner.sh --worktree /path/to/worktree  # Use a specific git worktree (default: ../cortex-app-runner)
+#   ./scripts/runner.sh --model MODEL [--ollama]      # Override model and/or use Ollama
+#   ./scripts/runner.sh --no-ollama                  # Use Anthropic Claude instead of default Ollama
+#
+# Default: Ollama with model danielsheep/Qwen3-Coder-30B-A3B-Instruct-1M-Unsloth:UD-Q4_K_XL.
+# Use --no-ollama to use Anthropic Claude (requires claude auth login). Use --model to override the model.
 #
 # Git worktree: The runner uses a separate worktree so you can stay on main in the main repo while
 # agents work on backlog branches. Beads state (.beads) is shared via a symlink in the worktree.
 # Set RUNNER_WORKTREE or use --worktree to override the default worktree path.
 #
+# Ollama: Default backend is local Ollama. Ensure Ollama is running (e.g. ollama serve) and the model is pulled.
+#
 # Monitor the active Claude session (in another terminal):
 #   tail -f $(cat scripts/sessions/.current)
 # Or: tail -f scripts/runner.log  (runner events) and tail -f scripts/sessions/task-*.log (session output)
 #
-# Requires: claude (Claude Code CLI) installed and logged in. Run 'claude auth login' if needed.
+# Requires: claude (Claude Code CLI) installed and logged in. Run 'claude auth login' if needed. (Not required when using --ollama.)
 
 set -euo pipefail
 
@@ -35,6 +42,10 @@ POLL_INTERVAL=30  # seconds between polls when idle
 TASKS_COMPLETED=0
 DECOMPOSITIONS_COMPLETED=0
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+# Default: local Ollama model (override with --model; use --no-ollama for Anthropic Claude)
+DEFAULT_OLLAMA_MODEL="danielsheep/Qwen3-Coder-30B-A3B-Instruct-1M-Unsloth:UD-Q4_K_XL"
+CLAUDE_MODEL="$DEFAULT_OLLAMA_MODEL"
+USE_OLLAMA=true
 
 # Parse args
 while [[ $# -gt 0 ]]; do
@@ -60,8 +71,20 @@ while [[ $# -gt 0 ]]; do
       RUNNER_WORKTREE="$2"
       shift 2
       ;;
+    --model)
+      CLAUDE_MODEL="$2"
+      shift 2
+      ;;
+    --ollama)
+      USE_OLLAMA=true
+      shift
+      ;;
+    --no-ollama)
+      USE_OLLAMA=false
+      shift
+      ;;
     -h|--help)
-      echo "Usage: runner.sh [--poll SECONDS] [--max-tasks N] [--once] [--dry-run] [--worktree PATH]"
+      echo "Usage: runner.sh [--poll SECONDS] [--max-tasks N] [--once] [--dry-run] [--worktree PATH] [--model MODEL] [--ollama]"
       echo ""
       echo "Options:"
       echo "  --poll N        Seconds between polls when idle (default: 30)"
@@ -69,6 +92,9 @@ while [[ $# -gt 0 ]]; do
       echo "  --once          Run one pass then exit (don't poll)"
       echo "  --dry-run       Show what would run without spawning agents (implies --once)"
       echo "  --worktree PATH Git worktree path for agent work (default: REPO_ROOT/../cortex-app-runner or RUNNER_WORKTREE env)"
+      echo "  --model MODEL   Model for Claude Code (default: $DEFAULT_OLLAMA_MODEL when using Ollama)"
+      echo "  --ollama        Use local Ollama as backend (default)"
+      echo "  --no-ollama     Use Anthropic Claude instead of Ollama (requires claude auth login)"
       exit 0
       ;;
     *)
@@ -84,6 +110,20 @@ if [[ "$RUNNER_WORKTREE" != /* ]]; then
   RUNNER_WORKTREE="$(cd "$REPO_ROOT" && cd "$RUNNER_WORKTREE" && pwd)"
 fi
 export RUNNER_WORKTREE
+
+# When using Ollama, point Claude Code at the local Ollama server (Anthropic-compatible API)
+if $USE_OLLAMA; then
+  export ANTHROPIC_AUTH_TOKEN=ollama
+  export ANTHROPIC_BASE_URL="${ANTHROPIC_BASE_URL:-http://localhost:11434}"
+  export ANTHROPIC_API_KEY=""
+fi
+
+# Extra args for every claude invocation (e.g. --model MODEL)
+# When using Ollama we always pass the model; when using Anthropic we only pass if user set a different model
+CLAUDE_EXTRA_ARGS=()
+if [[ -n "$CLAUDE_MODEL" ]] && { $USE_OLLAMA || [[ "$CLAUDE_MODEL" != "$DEFAULT_OLLAMA_MODEL" ]]; }; then
+  CLAUDE_EXTRA_ARGS=(--model "$CLAUDE_MODEL")
+fi
 
 # BACKLOG_DIR is in the worktree so we read/write backlog docs there
 BACKLOG_DIR="$RUNNER_WORKTREE/docs/product/backlog"
@@ -117,11 +157,14 @@ if ! command -v gh &>/dev/null; then
   echo "  Install with: brew install gh" >&2
   exit 1
 fi
-AUTH_JSON=$(claude auth status 2>/dev/null || echo "")
-if ! echo "$AUTH_JSON" | jq -e '.loggedIn == true' &>/dev/null; then
-  echo "Error: Claude Code is not logged in. Runner cannot spawn sessions." >&2
-  echo "  Run: claude auth login" >&2
-  exit 1
+# When using Ollama we don't need Anthropic login; otherwise require it
+if ! $USE_OLLAMA; then
+  AUTH_JSON=$(claude auth status 2>/dev/null || echo "")
+  if ! echo "$AUTH_JSON" | jq -e '.loggedIn == true' &>/dev/null; then
+    echo "Error: Claude Code is not logged in. Runner cannot spawn sessions." >&2
+    echo "  Run: claude auth login" >&2
+    exit 1
+  fi
 fi
 
 SESSIONS_DIR="$REPO_ROOT/scripts/sessions"
@@ -280,6 +323,16 @@ list_epics_ready_for_review_handoff() {
 
 log "Runner started. poll=${POLL_INTERVAL}s, max-tasks=${MAX_TASKS:-unlimited}, once=$ONCE, dry-run=$DRY_RUN"
 log "Runner worktree: $RUNNER_WORKTREE (main repo: $REPO_ROOT)"
+if $USE_OLLAMA; then
+  log "Backend: Ollama (ANTHROPIC_BASE_URL=${ANTHROPIC_BASE_URL:-http://localhost:11434})"
+  log "Model: $CLAUDE_MODEL"
+else
+  if [[ -n "$CLAUDE_MODEL" ]] && [[ "$CLAUDE_MODEL" != "$DEFAULT_OLLAMA_MODEL" ]]; then
+    log "Model: $CLAUDE_MODEL"
+  else
+    log "Model: (Anthropic default)"
+  fi
+fi
 log "Sessions dir: $SESSIONS_DIR — to watch live: tail -f \$(cat $CURRENT_SESSION_FILE 2>/dev/null || echo $SESSIONS_DIR/*.log | head -1)"
 
 while true; do
@@ -322,7 +375,7 @@ Do not implement anything. Only create the Beads task graph."
       echo "[$(date '+%Y-%m-%d %H:%M:%S')] Session started — decompose $ITEM_NAME" >> "$SESSION_LOG"
       log "Spawning Claude Code to decompose $ITEM_NAME..."
       log "  Session log: $SESSION_LOG (watch: tail -f $SESSION_LOG)"
-      if echo "$DECOMPOSE_PROMPT" | claude -p --dangerously-skip-permissions --add-dir "$RUNNER_WORKTREE" 2>&1 | tee -a "$SESSION_LOG"; then
+      if echo "$DECOMPOSE_PROMPT" | claude "${CLAUDE_EXTRA_ARGS[@]}" -p --dangerously-skip-permissions --add-dir "$RUNNER_WORKTREE" 2>&1 | tee -a "$SESSION_LOG"; then
         DECOMPOSITIONS_COMPLETED=$((DECOMPOSITIONS_COMPLETED + 1))
         log "Decomposition of $ITEM_NAME complete. Total decompositions: $DECOMPOSITIONS_COMPLETED"
       else
@@ -418,7 +471,7 @@ Instructions:
       echo "[$(date '+%Y-%m-%d %H:%M:%S')] Session started — task $TASK_ID — $TASK_TITLE" >> "$SESSION_LOG"
       log "Spawning Claude Code session for $TASK_ID — $TASK_TITLE"
       log "  Session log: $SESSION_LOG (watch: tail -f $SESSION_LOG)"
-      if echo "$PROMPT" | claude -p --dangerously-skip-permissions --add-dir "$RUNNER_WORKTREE" 2>&1 | tee -a "$SESSION_LOG"; then
+      if echo "$PROMPT" | claude "${CLAUDE_EXTRA_ARGS[@]}" -p --dangerously-skip-permissions --add-dir "$RUNNER_WORKTREE" 2>&1 | tee -a "$SESSION_LOG"; then
         TASKS_COMPLETED=$((TASKS_COMPLETED + 1))
         clear_fail_count "$TASK_ID"
         log "Task $TASK_ID session complete. Total completed: $TASKS_COMPLETED"
@@ -441,7 +494,7 @@ Backlog document path: $BACKLOG_FOR_REVIEW
 Do only what that workflow describes. Do not implement code or set the item to completed/archive."
           SESSION_LOG_REVIEW="$SESSIONS_DIR/ready-for-review-${EPIC_FOR_REVIEW}-$(date '+%Y%m%d-%H%M%S').log"
           echo "$SESSION_LOG_REVIEW" > "$CURRENT_SESSION_FILE"
-          if echo "$REVIEW_PROMPT" | claude -p --dangerously-skip-permissions --add-dir "$RUNNER_WORKTREE" 2>&1 | tee -a "$SESSION_LOG_REVIEW"; then
+          if echo "$REVIEW_PROMPT" | claude "${CLAUDE_EXTRA_ARGS[@]}" -p --dangerously-skip-permissions --add-dir "$RUNNER_WORKTREE" 2>&1 | tee -a "$SESSION_LOG_REVIEW"; then
             log "Set backlog item ready for review complete for $EPIC_FOR_REVIEW"
 
             # Push branch and create PR for human review
