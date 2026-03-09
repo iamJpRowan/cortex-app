@@ -15,9 +15,10 @@ The backlog item is the central planning artifact. Each status has a clear owner
 | `refined` | Agent (auto) | `decompose-backlog-item` (no human turn) | Design is solid. Agent decomposes into Beads epic + tasks. |
 | `ready` | Runner | `work-backlog-item` | Beads tasks exist. Runner picks up the first unblocked task. |
 | `in progress` | Agent/You | (working + testing beads) | Work ongoing. You test individual beads as they hit `ready to test`. |
+| `ready for review` | Runner (auto) | You review | All beads closed; runner ran set-backlog-item-ready-for-review. You review, then mark `completed` and archive. |
 | `completed` | You | Archive | All beads done, you're satisfied with the feature. |
 
-Testing happens at the **Beads level**, not the backlog level. A backlog item stays `in progress` until all its beads are closed and you're satisfied, then you mark it `completed`.
+Testing happens at the **Beads level**, not the backlog level. A backlog item moves to `ready for review` when all its beads are closed (runner detects this and spawns the set-backlog-item-ready-for-review agent). You then review, and when satisfied mark it `completed` and archive.
 
 ## The Three Phases
 
@@ -45,15 +46,16 @@ Planning and execution overlap. You don't wait for all items to be refined befor
 
 ## The Runner
 
-A lightweight script manages agent continuity:
+A lightweight script manages agent continuity. It uses a **git worktree** (default: `../cortex-app-runner` from the repo root) so you can stay on `main` in the main repo while agents work on backlog branches in the worktree. The worktree is created with branch `runner-main` (from `main`) because Git does not allow the same branch in two worktrees. Beads state (`.beads`) is shared via a symlink so there is a single source of truth.
 
-1. Run `bd ready` to find a task with no open blockers.
-2. Spawn a Claude Code session with the task context.
-3. Agent works the task, creates a devlog, and closes the task (or sets to `ready to test`).
-4. If the task was **auto-advance**, go to step 1. If **review-required**, pause that chain.
-5. Repeat until `bd ready` returns nothing.
+1. Run `bd ready` (from the main repo) to find a task with no open blockers.
+2. **Branch per backlog item:** In the runner worktree, ensure branch `backlog/<slug>` for the task's epic (create from `main` if needed). All agent work for that item stays on that branch in the worktree.
+3. Spawn a Claude Code session with the worktree as context. Agent follows [work-backlog-item](./work-backlog-item.md): implements, updates devlog, runs prepare-to-commit and commit (fixing hook failures), closes the task or sets `ready to test`. Agent does not push.
+4. **Epic complete:** After each task session, check if any epic has all children closed and its backlog doc is not yet `ready for review`. If so, spawn a separate session that follows [set-backlog-item-ready-for-review](./set-backlog-item-ready-for-review.md) to add a Review summary and set status to `ready for review`. Then push the branch and create a PR (`backlog/<slug>` → `main`) with the review summary as the PR body.
+5. If the task was **auto-advance**, go to step 1. If **review-required**, pause that chain.
+6. Repeat until `bd ready` returns nothing.
 
-The runner is not a supervisor or orchestrator. It's a while loop. The intelligence is in the task graph (Beads) and the agent.
+Run the runner from the **main repo** (e.g. `./scripts/runner.sh`). Use `--worktree PATH` or set `RUNNER_WORKTREE` to override the worktree location. The runner is the orchestrator (worktree, branching, epic-complete detection, spawning the right workflow). The intelligence is in the task graph (Beads) and the agent workflows.
 
 ## Your Daily Routine
 

@@ -8,7 +8,7 @@
 
 1. **Read the backlog item.** Load the item and all docs it references (`implements`, `references`, `depends_on` items, linked architecture/design docs). Understand the goal, requirements, success criteria, and constraints.
 
-2. **Create a Beads epic.** `bd create "<backlog item title>" -t epic` with a description that links back to the backlog item file path.
+2. **Create a Beads epic.** `bd create "<backlog item title>" -t epic` with a description that includes the backlog item path so the runner can link epic → backlog. Include a line: `Backlog: docs/product/backlog/<slug>.md` (where `<slug>` is the backlog filename without `.md`). The runner uses this to create the branch `backlog/<slug>` and to spawn the "set backlog item ready for review" workflow when all tasks are closed.
 
 3. **Break into session-sized tasks.** Each task should be completable in a single agent session (~10-30 minutes of agent work). For each task:
    - `bd create "<task title>" -t task` as a child of the epic.

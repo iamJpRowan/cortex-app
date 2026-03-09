@@ -23,6 +23,7 @@ When the user references one of the workflow docs below (by name, file, or simil
 | Refine a `planned` backlog item                           | [refine-backlog-item.md](./refine-backlog-item.md)                                                  |
 | Decompose a `refined` item into Beads tasks (automated)   | [decompose-backlog-item.md](./decompose-backlog-item.md)                                            |
 | Work the next task / implement                            | [work-backlog-item.md](./work-backlog-item.md) — use `bd ready` for next task                       |
+| Set backlog item ready for review (runner-invoked)        | [set-backlog-item-ready-for-review.md](./set-backlog-item-ready-for-review.md)                      |
 | Define or refine a core concept (product/system behavior) | [defining-core-concepts.md](./defining-core-concepts.md)                                            |
 | Evaluate backlog (relevance, clarify, abandon, hygiene)   | [backlog-grooming.md](./backlog-grooming.md)                                                        |
 | Clean up docs (links, user vs dev, devlog links)          | [docs-cleanup.md](./docs-cleanup.md)                                                                |
@@ -46,6 +47,8 @@ Each workflow doc is a set of explicit instructions for that conversation type.
 
 - **[work-backlog-item.md](./work-backlog-item.md)** — Working a Beads task (implementing or advancing it).
   _Example phrases:_ "work this backlog item", "work on [this backlog doc]", "implement this backlog item", "let's work the backlog", "follow work-backlog-item".
+
+- **[set-backlog-item-ready-for-review.md](./set-backlog-item-ready-for-review.md)** — Set a backlog item ready for review when all its beads are closed. Invoked by the runner; not typically started by the user.
 
 - **[defining-core-concepts.md](./defining-core-concepts.md)** — Defining or refining how the product works; trickle-down to architecture, user docs, dev docs, backlog.
   _Example phrases:_ "define a core concept", "we're defining [concept]", "refine the connections doc", "follow defining-core-concepts".

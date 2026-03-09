@@ -38,7 +38,7 @@ Or use frontmatter `references`. Link to architecture, development, design docs 
 
 | Key          | Required | Description                                                                                                                                                                                             |
 | ------------ | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `status`     | Yes      | One of: **active** `in progress`; **planning** `planned`, `refined`, `ready`; **inactive** `considering`. See status groups below.                                                                    |
+| `status`     | Yes      | One of: **active** `in progress`, `ready for review`; **planning** `planned`, `refined`, `ready`; **inactive** `considering`. See status groups below.                                                                    |
 | `summary`    | Yes      | One short line for backlog view tables.                                                                                                                                                                 |
 | `themes`     | No       | List of theme IDs (e.g. `[chat-ai, ui-features]`). Theme ID = theme file name (no `.md`) in [docs/product/themes/](../themes/README.md).                                                                |
 | `implements` | No       | Path to concept doc (e.g. `architecture/connections.md`).                                                                                                                                               |
@@ -58,14 +58,14 @@ Or use frontmatter `references`. Link to architecture, development, design docs 
 
 **Status groups and display order** (same order everywhere when listing by status):
 
-- **Active** (Kanban columns in Backlog README): `in progress`. Items being implemented via Beads tasks.
+- **Active** (Kanban columns in Backlog README): `in progress`, `ready for review`. Items being implemented via Beads tasks, or all beads done and awaiting human review.
 - **Planning**: `planned` → `refined` → `ready`. Items progressing through the backlog lifecycle toward execution.
 - **Inactive**: `considering`. Not part of the current goal.
 - **Done** (archive only): `completed` → `decomposed` → `merged` → `abandoned`.
 
 **Status meanings:**
 
-- **Active:** `in progress` — Being implemented. First bead has been claimed. Testing happens at the bead level; backlog item stays `in progress` until all beads are done.
+- **Active:** `in progress` — Being implemented. First bead has been claimed. Testing happens at the bead level. `ready for review` — All beads are closed; runner has run the set-backlog-item-ready-for-review workflow. User reviews and then sets to `completed` and archives.
 - **Planning:** `planned` — Identified as needed for the current goal; needs refinement. `refined` — Requirements, success criteria, and references are complete; ready for agent decomposition into Beads tasks. `ready` — Beads tasks exist; runner can begin execution.
 - **Inactive:** `considering` — Under consideration; not part of the current goal.
 - **Done:** `completed`, `decomposed`, `merged`, `abandoned` — used only in archive; set when moving to archive.

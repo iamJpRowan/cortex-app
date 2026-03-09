@@ -58,13 +58,15 @@
 ## Close out
 
 - **Definition of done:** Check the backlog's success criteria; in the devlog, note how each was met (or why not).
-- **Update backlog status:** If this is the first bead being worked for a backlog item, set the backlog item status to `in progress` in frontmatter. When all beads for a backlog item are closed and the user has confirmed, set to `completed` and archive.
-- **Archive (only after user confirms):** Move the item to archive and mark `completed` only when the **user has tested and confirmed** the work. When the user confirms: move to `docs/product/backlog/archive/`, add frontmatter `status: completed`, `date_archived: YYYY-MM-DD`, and `summary` (one line). Put "Why archived" or "Merged into" in the body, not frontmatter. See [Backlog TEMPLATE](../../product/backlog/TEMPLATE.md).
-- **Create or update a devlog** for this session in `docs/product/devlogs/` with **related_backlog** set to this backlog item (use backlog **slug**: filename without `.md`). **Add this devlog to the backlog item** in turn: update the backlog item's **devlogs** frontmatter with the devlog **ID** (filename without `.md`). See [Devlogs README](../../product/devlogs/README.md) for format. Summarize what was done, key decisions, approach taken, and what's remaining so the next session can continue without this chat. Do this at the end of every session, even if the item isn't fully complete.
+- **Update backlog status:** If this is the first bead being worked for a backlog item, set the backlog item status to `in progress` in frontmatter. Do **not** set the item to `completed` or archive it — only the user does that after testing and confirming. When all beads are closed, the runner will spawn a separate session to set the item [ready for review](./set-backlog-item-ready-for-review.md).
+- **Create or update a devlog** — Prefer **one devlog per backlog item** (or per major phase). Append to the existing devlog for this item as you complete beads; do not create a new devlog per bead. Create or update the devlog in `docs/product/devlogs/` with **related_backlog** set to this backlog item (use backlog **slug**: filename without `.md`). **Add this devlog to the backlog item** in turn: update the backlog item's **devlogs** frontmatter with the devlog **ID** (filename without `.md`). See [Devlogs README](../../product/devlogs/README.md). Summarize what was done, key decisions, approach taken, and what's remaining. Do this at the end of every session, even if the item isn't fully complete.
+- **Prepare to commit and commit (per bead):** Before ending the session, follow [prepare-to-commit](./prepare-to-commit.md) for all uncommitted changes from this bead, then [commit](./commit.md). Run `./scripts/beads-export-for-commit.sh`, then `git add .beads/issues.jsonl` and all changed files. Use the commit message template (include the bead/task ID in the body). If `git commit` fails (e.g. pre-commit hook), fix the reported issues (lint, types, docs) and retry until the commit succeeds. Do **not** push — the user pushes after review.
 
 ## See also
 
 - [App Components](../design/app-components.md) — Primitives vs app components; consistency → intuitiveness
 - [Backlog README](../../product/backlog/README.md) — Backlog view (generated); [TEMPLATE](../../product/backlog/TEMPLATE.md) — structure and frontmatter
+- [set-backlog-item-ready-for-review](./set-backlog-item-ready-for-review.md) — Runner invokes this when all beads for an item are closed
+- [prepare-to-commit](./prepare-to-commit.md) and [commit](./commit.md) — Per-bead commit before session end
 - [refine-backlog-item.md](./refine-backlog-item.md) — Workflow for refining a planned backlog item
 - [How we work](./how-we-work.md) — Backlog lifecycle and development loop

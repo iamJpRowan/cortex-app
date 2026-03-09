@@ -20,7 +20,7 @@ Use the [TEMPLATE.md](./TEMPLATE.md) to create new entries with format: `YYYY-MM
 **Linking (bi-directional):**
 
 - **Devlog → backlog:** Set `related_backlog` in frontmatter to the **backlog slug(s)** (filename without `.md`), e.g. `[tool-permission-system]`. Path: `docs/product/backlog/{slug}.md` (or `docs/product/backlog/archive/{slug}.md` for archived items).
-- **Backlog → devlog:** The backlog item lists this devlog by **devlog ID** (filename without `.md`) in frontmatter `devlogs`, e.g. `devlogs: [2026-02-17-chat-trace-token-usage-and-cleanup]`. Path: `docs/product/devlogs/{id}.md`. [work-backlog-item](../../development/agents/work-backlog-item.md) close-out adds the new devlog ID to the backlog item so the link is bi-directional. Prefer one devlog per session per backlog item; if continuing the same item, update the existing devlog or add a new dated entry so there is a clear timeline.
+- **Backlog → devlog:** The backlog item lists this devlog by **devlog ID** (filename without `.md`) in frontmatter `devlogs`, e.g. `devlogs: [2026-02-17-chat-trace-token-usage-and-cleanup]`. Path: `docs/product/devlogs/{id}.md`. [work-backlog-item](../../development/agents/work-backlog-item.md) close-out adds the new devlog ID to the backlog item so the link is bi-directional. **Prefer one devlog per backlog item** (or per major phase); append to it as beads complete rather than creating a new devlog per bead.
 
 Devlogs are where **implementation** for a backlog item is documented as it occurs: approach taken, decisions, what was built, what's remaining. The backlog item holds requirements and success criteria; the devlog holds the narrative of how the work was done.
 
