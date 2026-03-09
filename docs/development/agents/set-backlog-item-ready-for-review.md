@@ -6,6 +6,10 @@
 
 This workflow is invoked by the **runner** when it detects an epic has all children closed. The agent's job is only what this document describes.
 
+## Context
+
+You run in the **runner worktree** on the branch for this backlog item (`backlog/<slug>`). All edits and the commit you make must stay on this branch so the backlog update is on the same branch as the implementation work from the beads.
+
 ## Inputs
 
 You will be given:
@@ -28,7 +32,9 @@ Use these to scope your work; do not work on other items.
 
 3. **Set backlog status** — In the backlog document's YAML frontmatter, set `status: ready for review`. This signals to the user (and to the runner) that the item is ready for human review and that this workflow need not run again for this epic.
 
-4. **Optional: label the epic** — To avoid duplicate runs, you may add a label to the epic, e.g. `bd label add <epic-id> ready-for-review-done`. The primary idempotency signal is the backlog doc status.
+4. **Commit the backlog doc on this branch** — Commit only the backlog document (and any companion review file you added at `docs/product/backlog/review/<slug>.md`). Use a commit message like `chore(backlog): set <slug> ready for review`. Do **not** push — the runner pushes this branch after you finish.
+
+5. **Optional: label the epic** — To avoid duplicate runs, you may add a label to the epic, e.g. `bd label add <epic-id> ready-for-review-done`. The primary idempotency signal is the backlog doc status.
 
 ## Do not
 
