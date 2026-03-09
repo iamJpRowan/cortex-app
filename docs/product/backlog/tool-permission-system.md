@@ -1,5 +1,5 @@
 ---
-status: in progress
+status: ready for review
 themes: [chat-ai]
 summary: Foundational tool definitions and user-controlled permissions (modes, runtime approval). Critical for trust and extensibility.
 depends_on: [configuration-system]
@@ -137,6 +137,65 @@ Each prebuilt mode defines allow/ask/deny for all eight categories:
 ### Tool Metadata
 
 Tool registry requires permission metadata per tool as specified in **Part I: Tool Definition shape**. **Scope** (`local` | `external` | `graph` | `app`) and **access** (`read` | `write`) are required; category is derived (eight values). Connection type and connection are optional; description, risk, permissionExplanation are supported. Registry rejects tools missing scope or access at registration.
+
+## Review summary
+
+The Tool Permission System delivers two integrated capabilities: a **declarative tool foundation** (Phases 1–3) and a **user-controlled permission system with runtime approval** (Phases 4–9). Tools are now defined as data objects with required `scope` and `access` metadata; a shared factory derives the permission category and produces the LangChain tool, making the registry the single source of truth for all permission-related UI. On top of that, users can configure named permission **modes** (Local Read Only, Read Only, Local Only, Full, or custom copies) in the new **Agents settings tab**, assign a mode per conversation, and have those permissions enforced when the LLM invokes tools.
+
+The final phase (Phase 9) closes the loop with a **runtime approval flow**: when a tool's permission is "ask", the executor pauses before running it, an inline approval card appears in the conversation view, and a sidebar indicator marks any unfocused chat awaiting approval. The user approves (tool runs, result returned to LLM) or denies (LLM receives a refusal message). Phase 10 (audit log) was deliberately skipped; all other planned phases are complete.
+
+### Steps to test and validate
+
+1. **Tool definitions and factory**
+   - Open `src/main/services/llm/tools/` and confirm `definition-types.ts`, `factory.ts`, `permission-resolver.ts` exist.
+   - Check `builtin/neo4j/tools.ts` and `builtin/command/tools.ts` for declarative definitions with `scope` and `access` on every entry.
+   - Confirm that starting the app and sending a message with the Neo4j graph connected still invokes `neo4j_count_nodes` successfully.
+
+2. **Agents tab and mode management**
+   - Open **Settings → Agents**. Verify the two sections: *LLM Providers* and *Agent Permission*.
+   - Confirm four built-in modes are listed (Local Read Only, Read Only, Local Only, Full).
+   - Duplicate a mode, rename it, edit a category permission, and save. Verify the file appears in `userData/modes/`. Reload the app and confirm the custom mode persists.
+   - Reset a built-in mode to default; confirm the Reset action disappears once it matches the built-in.
+   - Delete the custom mode; confirm it is removed from the list and the file is gone.
+   - Externally edit a mode JSON file and confirm the Settings list refreshes without switching tabs (Phase 7 file watcher).
+
+3. **Mode selector and conversation persistence**
+   - Start a new conversation. The mode selector (near the model selector in the chat header) should default to the mode set in Settings.
+   - Change the mode mid-conversation. Send another message; confirm the new mode is active (check logs for "effective permissions").
+   - Close and reopen the conversation; confirm the mode is restored.
+
+4. **Permission enforcement (`getToolsForAgent`)**
+   - Set a mode where `write app` is **deny** (e.g. Local Read Only).
+   - Send a message that would trigger `command_invoke`. Verify the tool is not offered to the LLM (check logs — denied tools are logged).
+   - Switch to Full mode and repeat; the tool should be available.
+
+5. **Runtime approval flow (Phase 9)**
+   - Set a mode where `write app` is **ask** (any restricted built-in except Local Read Only; or edit a custom mode).
+   - Send a message that triggers `command_invoke`.
+   - Observe: the stream pauses; a `ShieldAlert` / `ShieldQuestion` icon appears on the conversation row in the sidebar.
+   - Switch to the conversation; the inline **approval card** should be visible below the streaming content, showing tool name, description, and the LLM's requested arguments.
+   - Click **Approve** → the tool runs; the LLM receives the result and the conversation continues.
+   - Repeat the test and click **Deny** → the tool does not run; the LLM receives `'Tool use was denied by the user.'` and acknowledges it.
+   - Open two conversations simultaneously (two separate chats both using "ask" tools) to verify that concurrent approval states are isolated and do not bleed between chats.
+
+### Key code areas
+
+- Tool types and factory: `src/main/services/llm/tools/definition-types.ts`, `factory.ts`, `permission-resolver.ts`
+- Built-in domains: `src/main/services/llm/tools/builtin/neo4j/`, `builtin/command/`
+- Mode registry and built-ins: `src/main/services/modes/`
+- IPC: `src/main/ipc/modes.ts`, `src/main/ipc/llm.ts`
+- Ask-tool interrupt: `src/main/services/llm/tools/ask-interceptor.ts`
+- Executor and cache: `src/main/services/llm/agent.ts`
+- Renderer: `src/renderer/src/components/SettingsView.tsx`, `ModeSelector.tsx`, `ChatView.tsx`, `ConversationList.tsx`
+
+### Devlogs
+
+- [Phase 1–3: Factory, types, domain migration](../../product/devlogs/2026-02-16-tool-permission-system-phase-1.md)
+- [Phases 4 & 7: Mode storage, Agents tab, permission UI, file watcher](../../product/devlogs/2026-02-23-tool-permission-modes-ui-and-shared-config.md)
+- [Phase 8: `getToolsForAgent()` enforcement and executor cache](../../product/devlogs/2026-03-08-tool-permission-system-phase-8.md)
+- [Phase 9: Runtime approval flow (interrupt, sidebar, inline card)](../../product/devlogs/2026-03-09-tool-permission-system-phase-9.md)
+
+---
 
 ## Phase 1: Factory and Types (Tool Definitions)
 
