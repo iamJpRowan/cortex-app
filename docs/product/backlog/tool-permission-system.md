@@ -130,12 +130,9 @@ Each prebuilt mode defines allow/ask/deny for all eight categories:
 
 - **Export/import**: Permission profiles and custom modes (e.g. mode files).
 
-### Audit & History
-- Log all tool invocations (what, when, arguments, result)
-- Permission audit trail (what was allowed/denied)
-- View history in UI
-- Clear history or specific entries
-- Export audit log
+### Audit & History *(deferred)*
+- *Not in current scope.* Per-conversation trace already shows tool use in that chat. A dedicated audit log (cross-conversation tool invocations, permission decision history, viewer, export, clear) was Phase 10 and is **skipped** for now; may be revisited when plugins or compliance needs justify it.
+- If implemented later: log tool invocations and permission decisions, viewer UI, export, clear.
 
 ### Tool Metadata
 
@@ -194,7 +191,7 @@ Tool registry requires permission metadata per tool as specified in **Part I: To
 4. When loading a conversation: restore and display its stored mode; use it in `getToolsForAgent()`. **Done** (display + persist); tool filtering in Phase 8 (done).
 
 ## Phase 6: Agents Tab & Permission UI
-**Status:** Done. Implementation order below. Remaining phases: 7 (next), then 8, 9, 10, 11.
+**Status:** Done. Implementation order below. Phases 7–9 done; Phase 10 skipped; Phase 11 (future) remains.
 
 **Completed (in order of implementation):**
 1. Rename settings tab to **Agents**; two sections: LLM Providers (default model, Ollama, Anthropic) and Agent Permission (modes). **Done.**
@@ -264,13 +261,11 @@ Tool registry requires permission metadata per tool as specified in **Part I: To
 - Approve: tool runs with those arguments; the LLM receives the tool result and can continue.
 - Deny: tool does not run; the LLM receives a clear refusal and can continue the conversation.
 
-## Phase 10: Audit & History
-1. Log tool invocations to database or file
-2. Create audit log viewer UI
-3. Display tool usage history
-4. Permission decision history
-5. Export functionality
-6. Clear history actions
+## Phase 10 (Skipped): Audit & History
+
+**Decision:** Skipped for now. Per-conversation trace provides visibility of tool use within each chat; control and runtime approval (Phases 1–9) deliver the core permission-system goal. A dedicated audit log (persistent store, cross-conversation viewer, permission decision history, export, clear) is cost-heavy for current use; may be revisited when plugins or compliance needs justify it.
+
+*Original scope:* Log tool invocations and permission decisions; audit log viewer UI; tool usage and permission decision history; export; clear.
 
 ## Phase 11 (Future): User and Plugin Tools
 - When [Plugin Extensibility Framework](./plugin-extensibility-framework.md) or user-defined tools are implemented, load definitions (and optionally handlers) from plugin manifests or user directories.
@@ -292,7 +287,7 @@ Tool registry requires permission metadata per tool as specified in **Part I: To
 - [ ] `getToolsForAgent()` resolves permissions from the conversation's mode
 - [ ] Executor cache key includes `modeId` (and later `agentId` when Custom Agents affect tools; see Custom Agents backlog)
 - [ ] Runtime approval UI for "ask" tools (in-conversation; sidebar indicator when chat not in focus); user can approve or deny each request (no persistence of decisions)
-- [ ] Audit log records tool invocations; permission settings (mode files) persist across restarts
+- [ ] Permission settings (mode files) persist across restarts; tool use is visible per conversation in the trace (dedicated audit log deferred)
 - [ ] User can select and change mode per chat; default mode for new chats; loading a conversation restores its last mode
 - [ ] Export/import permission profiles and mode files
 
@@ -338,7 +333,7 @@ This system is critical for user trust and safety, especially when the plugin ec
 Users need confidence that:
 - They know what tools are available
 - They control what the LLM can do
-- They can audit what the LLM has done
+- They can see what the LLM did in each conversation (trace); a dedicated cross-conversation audit log is deferred
 - Dangerous operations require explicit approval
 
 ### Permission Scope
