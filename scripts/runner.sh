@@ -111,6 +111,14 @@ if [[ "$RUNNER_WORKTREE" != /* ]]; then
 fi
 export RUNNER_WORKTREE
 
+# Prevent using the main repo as worktree so backlog updates stay on backlog branches
+REPO_ROOT_CANON=$(cd "$REPO_ROOT" && pwd -P)
+RUNNER_WORKTREE_CANON=$(cd "$RUNNER_WORKTREE" && pwd -P 2>/dev/null) || true
+if [[ -n "$RUNNER_WORKTREE_CANON" && "$REPO_ROOT_CANON" == "$RUNNER_WORKTREE_CANON" ]]; then
+  echo "Error: Runner worktree must not be the main repo. Use a separate worktree (e.g. default: $REPO_ROOT/../cortex-app-runner)." >&2
+  exit 1
+fi
+
 # When using Ollama, point Claude Code at the local Ollama server (Anthropic-compatible API)
 if $USE_OLLAMA; then
   export ANTHROPIC_AUTH_TOKEN=ollama
@@ -481,6 +489,8 @@ Instructions:
           [[ -z "$line" ]] && continue
           EPIC_FOR_REVIEW=$(echo "$line" | awk '{print $1}')
           BACKLOG_FOR_REVIEW=$(echo "$line" | cut -d' ' -f2-)
+          # Ensure we're on the backlog branch so the backlog doc update is committed there (same branch as prior beads)
+          ensure_backlog_branch "$BACKLOG_FOR_REVIEW"
           log "Epic $EPIC_FOR_REVIEW complete; spawning set-backlog-item-ready-for-review for $BACKLOG_FOR_REVIEW"
           REVIEW_PROMPT="You are working on the cortex-app project.
 
@@ -497,9 +507,20 @@ Do only what that workflow describes. Do not implement code or set the item to c
           if echo "$REVIEW_PROMPT" | claude "${CLAUDE_EXTRA_ARGS[@]}" -p --dangerously-skip-permissions --add-dir "$RUNNER_WORKTREE" 2>&1 | tee -a "$SESSION_LOG_REVIEW"; then
             log "Set backlog item ready for review complete for $EPIC_FOR_REVIEW"
 
-            # Push branch and create PR for human review
             REVIEW_SLUG=$(basename "$BACKLOG_FOR_REVIEW" .md)
             REVIEW_BRANCH="backlog/$REVIEW_SLUG"
+
+            # Commit any uncommitted backlog doc changes so they're on the same branch as the implementation
+            if git -C "$RUNNER_WORKTREE" status --porcelain -- "$BACKLOG_FOR_REVIEW" "docs/product/backlog/review/${REVIEW_SLUG}.md" 2>/dev/null | grep -q .; then
+              log "Committing backlog doc updates for $REVIEW_SLUG..."
+              git -C "$RUNNER_WORKTREE" add "$BACKLOG_FOR_REVIEW"
+              [[ -f "$RUNNER_WORKTREE/docs/product/backlog/review/${REVIEW_SLUG}.md" ]] && git -C "$RUNNER_WORKTREE" add "docs/product/backlog/review/${REVIEW_SLUG}.md"
+              if ! git -C "$RUNNER_WORKTREE" diff --cached --quiet 2>/dev/null; then
+                git -C "$RUNNER_WORKTREE" commit -m "chore(backlog): set $REVIEW_SLUG ready for review" 2>&1 | tee -a "$SESSION_LOG_REVIEW" || log "WARNING: commit failed for backlog doc"
+              fi
+            fi
+
+            # Push branch and create PR for human review
             log "Pushing $REVIEW_BRANCH and creating PR..."
             if git -C "$RUNNER_WORKTREE" push -u origin "$REVIEW_BRANCH" 2>&1 | tee -a "$SESSION_LOG_REVIEW"; then
               # Extract review summary from backlog doc for PR body
