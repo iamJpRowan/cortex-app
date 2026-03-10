@@ -15,23 +15,17 @@
 #   ./scripts/runner.sh --once           # Run one pass then exit (old behavior)
 #   ./scripts/runner.sh --dry-run        # Show what would run without spawning agents
 #   ./scripts/runner.sh --worktree /path/to/worktree  # Use a specific git worktree (default: ../cortex-app-runner)
-#   ./scripts/runner.sh --model MODEL [--ollama]      # Override model and/or use Ollama
-#   ./scripts/runner.sh --no-ollama                  # Use Anthropic Claude instead of default Ollama
+#   ./scripts/runner.sh --model MODEL    # Override the Claude model
 #
-# Default: Ollama with model danielsheep/Qwen3-Coder-30B-A3B-Instruct-1M-Unsloth:UD-Q4_K_XL.
-# Use --no-ollama to use Anthropic Claude (requires claude auth login). Use --model to override the model.
+# Default backend: Anthropic Claude. Requires 'claude auth login'.
 #
 # Git worktree: The runner uses a separate worktree so you can stay on main in the main repo while
-# agents work on backlog branches. Beads state (.beads) is shared via a symlink in the worktree.
+# agents work on backlog branches. Beads state is shared via the native Beads redirect mechanism.
 # Set RUNNER_WORKTREE or use --worktree to override the default worktree path.
 #
-# Ollama: Default backend is local Ollama. Ensure Ollama is running (e.g. ollama serve) and the model is pulled.
+# Monitor output directly in the terminal — claude sessions write to stdout.
 #
-# Monitor the active Claude session (in another terminal):
-#   tail -f $(cat scripts/sessions/.current)
-# Or: tail -f scripts/runner.log  (runner events) and tail -f scripts/sessions/task-*.log (session output)
-#
-# Requires: claude (Claude Code CLI) installed and logged in. Run 'claude auth login' if needed. (Not required when using --ollama.)
+# Requires: claude (Claude Code CLI) installed and logged in. Run 'claude auth login' if needed.
 
 set -euo pipefail
 
@@ -42,10 +36,7 @@ POLL_INTERVAL=30  # seconds between polls when idle
 TASKS_COMPLETED=0
 DECOMPOSITIONS_COMPLETED=0
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-# Default: local Ollama model (override with --model; use --no-ollama for Anthropic Claude)
-DEFAULT_OLLAMA_MODEL="danielsheep/Qwen3-Coder-30B-A3B-Instruct-1M-Unsloth:UD-Q4_K_XL"
-CLAUDE_MODEL="$DEFAULT_OLLAMA_MODEL"
-USE_OLLAMA=true
+CLAUDE_MODEL=""
 
 # Parse args
 while [[ $# -gt 0 ]]; do
@@ -75,16 +66,8 @@ while [[ $# -gt 0 ]]; do
       CLAUDE_MODEL="$2"
       shift 2
       ;;
-    --ollama)
-      USE_OLLAMA=true
-      shift
-      ;;
-    --no-ollama)
-      USE_OLLAMA=false
-      shift
-      ;;
     -h|--help)
-      echo "Usage: runner.sh [--poll SECONDS] [--max-tasks N] [--once] [--dry-run] [--worktree PATH] [--model MODEL] [--ollama]"
+      echo "Usage: runner.sh [--poll SECONDS] [--max-tasks N] [--once] [--dry-run] [--worktree PATH] [--model MODEL]"
       echo ""
       echo "Options:"
       echo "  --poll N        Seconds between polls when idle (default: 30)"
@@ -92,9 +75,7 @@ while [[ $# -gt 0 ]]; do
       echo "  --once          Run one pass then exit (don't poll)"
       echo "  --dry-run       Show what would run without spawning agents (implies --once)"
       echo "  --worktree PATH Git worktree path for agent work (default: REPO_ROOT/../cortex-app-runner or RUNNER_WORKTREE env)"
-      echo "  --model MODEL   Model for Claude Code (default: $DEFAULT_OLLAMA_MODEL when using Ollama)"
-      echo "  --ollama        Use local Ollama as backend (default)"
-      echo "  --no-ollama     Use Anthropic Claude instead of Ollama (requires claude auth login)"
+      echo "  --model MODEL   Claude model to use (default: claude's default)"
       exit 0
       ;;
     *)
@@ -113,23 +94,15 @@ export RUNNER_WORKTREE
 
 # Prevent using the main repo as worktree so backlog updates stay on backlog branches
 REPO_ROOT_CANON=$(cd "$REPO_ROOT" && pwd -P)
-RUNNER_WORKTREE_CANON=$(cd "$RUNNER_WORKTREE" && pwd -P 2>/dev/null) || true
+RUNNER_WORKTREE_CANON=$(cd "$RUNNER_WORKTREE" 2>/dev/null && pwd -P 2>/dev/null) || true
 if [[ -n "$RUNNER_WORKTREE_CANON" && "$REPO_ROOT_CANON" == "$RUNNER_WORKTREE_CANON" ]]; then
   echo "Error: Runner worktree must not be the main repo. Use a separate worktree (e.g. default: $REPO_ROOT/../cortex-app-runner)." >&2
   exit 1
 fi
 
-# When using Ollama, point Claude Code at the local Ollama server (Anthropic-compatible API)
-if $USE_OLLAMA; then
-  export ANTHROPIC_AUTH_TOKEN=ollama
-  export ANTHROPIC_BASE_URL="${ANTHROPIC_BASE_URL:-http://localhost:11434}"
-  export ANTHROPIC_API_KEY=""
-fi
-
-# Extra args for every claude invocation (e.g. --model MODEL)
-# When using Ollama we always pass the model; when using Anthropic we only pass if user set a different model
+# Extra args for every claude invocation
 CLAUDE_EXTRA_ARGS=()
-if [[ -n "$CLAUDE_MODEL" ]] && { $USE_OLLAMA || [[ "$CLAUDE_MODEL" != "$DEFAULT_OLLAMA_MODEL" ]]; }; then
+if [[ -n "${CLAUDE_MODEL:-}" ]]; then
   CLAUDE_EXTRA_ARGS=(--model "$CLAUDE_MODEL")
 fi
 
@@ -165,19 +138,16 @@ if ! command -v gh &>/dev/null; then
   echo "  Install with: brew install gh" >&2
   exit 1
 fi
-# When using Ollama we don't need Anthropic login; otherwise require it
-if ! $USE_OLLAMA; then
-  AUTH_JSON=$(claude auth status 2>/dev/null || echo "")
-  if ! echo "$AUTH_JSON" | jq -e '.loggedIn == true' &>/dev/null; then
-    echo "Error: Claude Code is not logged in. Runner cannot spawn sessions." >&2
-    echo "  Run: claude auth login" >&2
-    exit 1
-  fi
+AUTH_JSON=$(claude auth status 2>/dev/null || echo "")
+if ! echo "$AUTH_JSON" | jq -e '.loggedIn == true' &>/dev/null; then
+  echo "Error: Claude Code is not logged in. Runner cannot spawn sessions." >&2
+  echo "  Run: claude auth login" >&2
+  exit 1
 fi
 
 SESSIONS_DIR="$REPO_ROOT/scripts/sessions"
-CURRENT_SESSION_FILE="$SESSIONS_DIR/.current"
 ATTEMPTS_FILE="$SESSIONS_DIR/.attempts"
+mkdir -p "$SESSIONS_DIR"
 MAX_TASK_RETRIES=3
 mkdir -p "$SESSIONS_DIR"
 
@@ -186,23 +156,52 @@ mkdir -p "$SESSIONS_DIR"
 ensure_runner_worktree() {
   if [[ ! -d "$RUNNER_WORKTREE" ]]; then
     log "Creating runner worktree at $RUNNER_WORKTREE (branch runner-main from main)"
-    err=$(git -C "$REPO_ROOT" worktree add -b runner-main "$RUNNER_WORKTREE" main 2>&1) || true
+    if git -C "$REPO_ROOT" branch --list runner-main | grep -q runner-main; then
+      # Branch already exists — add worktree without -b
+      err=$(git -C "$REPO_ROOT" worktree add "$RUNNER_WORKTREE" runner-main 2>&1) || true
+    else
+      err=$(git -C "$REPO_ROOT" worktree add -b runner-main "$RUNNER_WORKTREE" main 2>&1) || true
+    fi
     if [[ ! -d "$RUNNER_WORKTREE" ]]; then
       echo "Error: Failed to create worktree at $RUNNER_WORKTREE" >&2
       echo "$err" >&2
       exit 1
     fi
   fi
-  # Share .beads so beads state is canonical in the main repo
-  if [[ -e "$RUNNER_WORKTREE/.beads" ]] && [[ ! -L "$RUNNER_WORKTREE/.beads" ]]; then
-    rm -rf "$RUNNER_WORKTREE/.beads"
-  fi
-  if [[ ! -e "$RUNNER_WORKTREE/.beads" ]]; then
-    ln -s "$REPO_ROOT/.beads" "$RUNNER_WORKTREE/.beads"
-    log "Linked $RUNNER_WORKTREE/.beads -> $REPO_ROOT/.beads"
-  fi
+  # Beads state is shared via Beads' native redirect mechanism.
+  # The post-checkout hook (bd hooks run post-checkout) sets up .beads/redirect
+  # automatically when the worktree is created — no symlink needed.
 }
 ensure_runner_worktree
+
+# Sync the runner worktree's current branch to the latest main.
+# Safe to call between tasks only — never call while a session is running.
+# On conflict or error, logs and returns non-zero so the caller can skip work.
+sync_worktree_to_main() {
+  log "Syncing worktree to latest main..."
+  if ! git -C "$RUNNER_WORKTREE" fetch origin main 2>&1 | tee -a "$LOG_FILE"; then
+    log "WARNING: fetch origin main failed — skipping sync, will retry next poll"
+    return 1
+  fi
+  local branch
+  branch=$(git -C "$RUNNER_WORKTREE" rev-parse --abbrev-ref HEAD 2>/dev/null)
+  if [[ "$branch" == "runner-main" ]]; then
+    # Fast-forward only; if it can't, bail
+    if ! git -C "$RUNNER_WORKTREE" merge --ff-only origin/main 2>&1 | tee -a "$LOG_FILE"; then
+      log "WARNING: Could not fast-forward runner-main to origin/main — manual intervention needed"
+      return 1
+    fi
+  else
+    # Rebase backlog branch onto latest main
+    if ! git -C "$RUNNER_WORKTREE" rebase origin/main 2>&1 | tee -a "$LOG_FILE"; then
+      log "WARNING: Rebase of $branch onto origin/main failed — aborting rebase, skipping work this cycle"
+      git -C "$RUNNER_WORKTREE" rebase --abort 2>/dev/null || true
+      return 1
+    fi
+  fi
+  log "Worktree ($branch) is up to date with origin/main"
+  return 0
+}
 
 # Per-session failure count: skip tasks that have failed MAX_TASK_RETRIES times this run
 get_fail_count() {
@@ -252,12 +251,21 @@ find_backlog_items_by_status() {
   done
 }
 
-# Get epic ID for a task (parent in parent-child dependency). bd show can return a single object or array of one. Run bd from main repo.
+# Get epic ID for a task (parent in parent-child dependency). Run bd from main repo.
 get_epic_for_task() {
   local task_id="$1"
   local raw
   raw=$(cd "$REPO_ROOT" && bd show "$task_id" --json 2>/dev/null)
   echo "$raw" | jq -r 'if type == "array" then .[0] else . end | [.dependencies[]? | select(.type == "parent-child") | .depends_on_id][0] // empty' 2>/dev/null
+}
+
+# Get phase number from epic description ("Phase: N"). Returns empty string if not phased.
+get_phase_for_epic() {
+  local epic_id="$1"
+  local raw desc
+  raw=$(cd "$REPO_ROOT" && bd show "$epic_id" --json 2>/dev/null)
+  desc=$(echo "$raw" | jq -r 'if type == "array" then .[0].description else .description end // ""' 2>/dev/null)
+  echo "$desc" | grep -oE 'Phase:[[:space:]]*[0-9]+' | grep -oE '[0-9]+' | head -1
 }
 
 # Get backlog doc path from epic description (expects "Backlog: docs/product/backlog/<slug>.md"). bd show can return array of one. Run bd from main repo.
@@ -273,12 +281,20 @@ get_backlog_path_for_epic() {
   echo "$path"
 }
 
-# Ensure the runner worktree is on branch backlog/<slug> for the given backlog path; create from main if needed
+# Ensure the runner worktree is on the correct branch for the given epic.
+# Branch name: backlog/<slug>-phase-N for phased epics, backlog/<slug> for non-phased.
+# Epic description must contain "Backlog: docs/product/backlog/<slug>.md" and optionally "Phase: N".
 ensure_backlog_branch() {
   local backlog_path="$1"
+  local phase_num="$2"  # empty string if no phase
   local slug
   slug=$(basename "$backlog_path" .md)
-  local branch="backlog/$slug"
+  local branch
+  if [[ -n "$phase_num" ]]; then
+    branch="backlog/${slug}-phase-${phase_num}"
+  else
+    branch="backlog/${slug}"
+  fi
   local current
   current=$(git -C "$RUNNER_WORKTREE" rev-parse --abbrev-ref HEAD 2>/dev/null)
   if [[ "$current" != "$branch" ]]; then
@@ -288,11 +304,12 @@ ensure_backlog_branch() {
       git -C "$RUNNER_WORKTREE" fetch origin main 2>/dev/null || true
       git -C "$RUNNER_WORKTREE" checkout -b "$branch" origin/main 2>/dev/null || git -C "$RUNNER_WORKTREE" checkout -b "$branch" runner-main 2>/dev/null || true
     fi
-    log "Switched worktree to branch $branch for backlog item $slug"
+    log "Switched worktree to branch $branch"
   fi
 }
 
-# Output lines "EPIC_ID BACKLOG_PATH" for epics that are complete (all children closed) and not yet ready for review. Run bd from main repo.
+# Output lines "EPIC_ID BACKLOG_PATH PHASE" for epics that are complete (all children closed) and not yet ready for review.
+# PHASE is the phase number from the epic description (empty for non-phased). Run bd from main repo.
 list_epics_ready_for_review_handoff() {
   local export_file
   export_file=$(mktemp)
@@ -321,7 +338,9 @@ list_epics_ready_for_review_handoff() {
           local status
           status=$(awk '/^---$/{if(n++) exit} /^status:/{print $2}' "$full_path" 2>/dev/null)
           if [[ "$status" != "ready for review" ]]; then
-            echo "$epic $backlog_path"
+            local phase_num
+            phase_num=$(get_phase_for_epic "$epic")
+            echo "$epic $backlog_path $phase_num"
           fi
         fi
       fi
@@ -331,20 +350,24 @@ list_epics_ready_for_review_handoff() {
 
 log "Runner started. poll=${POLL_INTERVAL}s, max-tasks=${MAX_TASKS:-unlimited}, once=$ONCE, dry-run=$DRY_RUN"
 log "Runner worktree: $RUNNER_WORKTREE (main repo: $REPO_ROOT)"
-if $USE_OLLAMA; then
-  log "Backend: Ollama (ANTHROPIC_BASE_URL=${ANTHROPIC_BASE_URL:-http://localhost:11434})"
+if [[ -n "${CLAUDE_MODEL:-}" ]]; then
   log "Model: $CLAUDE_MODEL"
-else
-  if [[ -n "$CLAUDE_MODEL" ]] && [[ "$CLAUDE_MODEL" != "$DEFAULT_OLLAMA_MODEL" ]]; then
-    log "Model: $CLAUDE_MODEL"
-  else
-    log "Model: (Anthropic default)"
-  fi
 fi
-log "Sessions dir: $SESSIONS_DIR — to watch live: tail -f \$(cat $CURRENT_SESSION_FILE 2>/dev/null || echo $SESSIONS_DIR/*.log | head -1)"
 
 while true; do
   DID_WORK=false
+
+  # Sync worktree to latest main before doing any work this cycle.
+  # If sync fails, skip this cycle and poll again next interval.
+  if ! sync_worktree_to_main; then
+    if $ONCE || $DRY_RUN; then
+      log "Sync failed — exiting (--once mode)."
+      break
+    fi
+    log "Sync failed — sleeping ${POLL_INTERVAL}s before retry..."
+    sleep "$POLL_INTERVAL"
+    continue
+  fi
 
   # --- Phase 1: Decompose any 'refined' backlog items into Beads tasks ---
 
@@ -371,23 +394,18 @@ The backlog item is at: docs/product/backlog/$ITEM_NAME.md (relative to the proj
 
 Steps:
 1. Read the backlog item and all docs it references (implements, references, depends_on items).
-2. Create a Beads epic with description that includes: Backlog: docs/product/backlog/$ITEM_NAME.md (so the runner can link epic to branch and ready-for-review).
-3. Break into session-sized tasks (~10-30 min each) with dependencies (bd create, bd dep add).
-4. Tag each task as auto-advance or review-required in the description.
-5. Update the backlog item status to 'ready' in frontmatter.
+2. Create one Beads epic per phase (or one epic for the whole item if no phases). Each epic description must include: Backlog: docs/product/backlog/$ITEM_NAME.md and Phase: N (omit Phase for non-phased items).
+3. Break each epic into session-sized tasks (~10-30 min each) with dependency links (bd create, bd dep add).
+4. Update the backlog item status to 'ready' in frontmatter.
 
 Do not implement anything. Only create the Beads task graph."
 
-      SESSION_LOG="$SESSIONS_DIR/decompose-${ITEM_NAME}-$(date '+%Y%m%d-%H%M%S').log"
-      echo "$SESSION_LOG" > "$CURRENT_SESSION_FILE"
-      echo "[$(date '+%Y-%m-%d %H:%M:%S')] Session started — decompose $ITEM_NAME" >> "$SESSION_LOG"
       log "Spawning Claude Code to decompose $ITEM_NAME..."
-      log "  Session log: $SESSION_LOG (watch: tail -f $SESSION_LOG)"
-      if echo "$DECOMPOSE_PROMPT" | claude "${CLAUDE_EXTRA_ARGS[@]}" -p --dangerously-skip-permissions --add-dir "$RUNNER_WORKTREE" 2>&1 | tee -a "$SESSION_LOG"; then
+      if echo "$DECOMPOSE_PROMPT" | (cd "$RUNNER_WORKTREE" && claude "${CLAUDE_EXTRA_ARGS[@]+"${CLAUDE_EXTRA_ARGS[@]}"}" -p --dangerously-skip-permissions); then
         DECOMPOSITIONS_COMPLETED=$((DECOMPOSITIONS_COMPLETED + 1))
         log "Decomposition of $ITEM_NAME complete. Total decompositions: $DECOMPOSITIONS_COMPLETED"
       else
-        log "WARNING: Claude Code session exited with error for decomposition of $ITEM_NAME — check $SESSION_LOG"
+        log "WARNING: Claude Code session exited with error for decomposition of $ITEM_NAME"
       fi
     fi
 
@@ -442,12 +460,13 @@ Do not implement anything. Only create the Beads task graph."
 
     log "Claimed task: $TASK_ID — $TASK_TITLE"
 
-    # Ensure we're on the branch for this backlog item (branch per backlog item)
+    # Ensure we're on the correct branch for this phase
     EPIC_ID=$(get_epic_for_task "$TASK_ID")
     if [[ -n "$EPIC_ID" ]]; then
       BACKLOG_PATH=$(get_backlog_path_for_epic "$EPIC_ID")
+      PHASE_NUM=$(get_phase_for_epic "$EPIC_ID")
       if [[ -n "$BACKLOG_PATH" ]]; then
-        ensure_backlog_branch "$BACKLOG_PATH"
+        ensure_backlog_branch "$BACKLOG_PATH" "$PHASE_NUM"
       fi
     fi
 
@@ -470,94 +489,73 @@ Instructions:
 1. Run 'bd show $TASK_ID' to get full task details.
 2. Read the linked backlog item and referenced docs before starting.
 3. Follow the work-backlog-item workflow in docs/development/agents/work-backlog-item.md.
-4. Create or update the devlog for this backlog item (one devlog per item; append as you complete beads).
-5. When done: close or set ready_to_test per the workflow, then run prepare-to-commit and commit (see work-backlog-item close out). Fix any pre-commit hook failures and retry until commit succeeds. Do not push.
-6. For auto-advance tasks: close with 'bd update $TASK_ID --status closed'. For review-required: 'bd update $TASK_ID --status ready_to_test' and summarize what to test."
+4. Create or update the devlog for this phase (one devlog per phase; append as you complete beads).
+5. When done: close the task with 'bd update $TASK_ID --status closed', then run prepare-to-commit and commit (see work-backlog-item close out). Fix any pre-commit hook failures and retry until commit succeeds. Do not push."
 
-      SESSION_LOG="$SESSIONS_DIR/task-${TASK_ID}-$(date '+%Y%m%d-%H%M%S').log"
-      echo "$SESSION_LOG" > "$CURRENT_SESSION_FILE"
-      echo "[$(date '+%Y-%m-%d %H:%M:%S')] Session started — task $TASK_ID — $TASK_TITLE" >> "$SESSION_LOG"
       log "Spawning Claude Code session for $TASK_ID — $TASK_TITLE"
-      log "  Session log: $SESSION_LOG (watch: tail -f $SESSION_LOG)"
-      if echo "$PROMPT" | claude "${CLAUDE_EXTRA_ARGS[@]}" -p --dangerously-skip-permissions --add-dir "$RUNNER_WORKTREE" 2>&1 | tee -a "$SESSION_LOG"; then
+      if echo "$PROMPT" | (cd "$RUNNER_WORKTREE" && claude "${CLAUDE_EXTRA_ARGS[@]+"${CLAUDE_EXTRA_ARGS[@]}"}" -p --dangerously-skip-permissions); then
         TASKS_COMPLETED=$((TASKS_COMPLETED + 1))
         clear_fail_count "$TASK_ID"
         log "Task $TASK_ID session complete. Total completed: $TASKS_COMPLETED"
 
-        # Phase 2b: If any epic has all children closed and is not yet "ready for review", spawn set-backlog-item-ready-for-review agent
+        # Phase 2b: If any epic has all children closed, spawn create-pr-message then push and create PR
         while IFS= read -r line; do
           [[ -z "$line" ]] && continue
           EPIC_FOR_REVIEW=$(echo "$line" | awk '{print $1}')
-          BACKLOG_FOR_REVIEW=$(echo "$line" | cut -d' ' -f2-)
-          # Ensure we're on the backlog branch so the backlog doc update is committed there (same branch as prior beads)
-          ensure_backlog_branch "$BACKLOG_FOR_REVIEW"
-          log "Epic $EPIC_FOR_REVIEW complete; spawning set-backlog-item-ready-for-review for $BACKLOG_FOR_REVIEW"
+          BACKLOG_FOR_REVIEW=$(echo "$line" | awk '{print $2}')
+          PHASE_FOR_REVIEW=$(echo "$line" | awk '{print $3}')
+          ensure_backlog_branch "$BACKLOG_FOR_REVIEW" "$PHASE_FOR_REVIEW"
+          REVIEW_SLUG=$(basename "$BACKLOG_FOR_REVIEW" .md)
+          if [[ -n "$PHASE_FOR_REVIEW" ]]; then
+            REVIEW_BRANCH="backlog/${REVIEW_SLUG}-phase-${PHASE_FOR_REVIEW}"
+            PR_TITLE="backlog: ${REVIEW_SLUG} phase ${PHASE_FOR_REVIEW}"
+          else
+            REVIEW_BRANCH="backlog/${REVIEW_SLUG}"
+            PR_TITLE="backlog: ${REVIEW_SLUG}"
+          fi
+          log "Epic $EPIC_FOR_REVIEW complete; spawning create-pr-message for $REVIEW_BRANCH"
           REVIEW_PROMPT="You are working on the cortex-app project.
 
-The epic $EPIC_FOR_REVIEW has all tasks closed. Prepare the backlog item for human review.
+Epic $EPIC_FOR_REVIEW has all tasks closed. Prepare the phase PR body.
 
-Follow the workflow in docs/development/agents/set-backlog-item-ready-for-review.md.
+Follow the workflow in docs/development/agents/create-pr-message.md.
 
 Epic ID: $EPIC_FOR_REVIEW
 Backlog document path: $BACKLOG_FOR_REVIEW
+Phase: ${PHASE_FOR_REVIEW:-none}
 
-Do only what that workflow describes. Do not implement code or set the item to completed/archive."
-          SESSION_LOG_REVIEW="$SESSIONS_DIR/ready-for-review-${EPIC_FOR_REVIEW}-$(date '+%Y%m%d-%H%M%S').log"
-          echo "$SESSION_LOG_REVIEW" > "$CURRENT_SESSION_FILE"
-          if echo "$REVIEW_PROMPT" | claude "${CLAUDE_EXTRA_ARGS[@]}" -p --dangerously-skip-permissions --add-dir "$RUNNER_WORKTREE" 2>&1 | tee -a "$SESSION_LOG_REVIEW"; then
-            log "Set backlog item ready for review complete for $EPIC_FOR_REVIEW"
-
-            REVIEW_SLUG=$(basename "$BACKLOG_FOR_REVIEW" .md)
-            REVIEW_BRANCH="backlog/$REVIEW_SLUG"
-
-            # Commit any uncommitted backlog doc changes so they're on the same branch as the implementation
-            if git -C "$RUNNER_WORKTREE" status --porcelain -- "$BACKLOG_FOR_REVIEW" "docs/product/backlog/review/${REVIEW_SLUG}.md" 2>/dev/null | grep -q .; then
-              log "Committing backlog doc updates for $REVIEW_SLUG..."
-              git -C "$RUNNER_WORKTREE" add "$BACKLOG_FOR_REVIEW"
-              [[ -f "$RUNNER_WORKTREE/docs/product/backlog/review/${REVIEW_SLUG}.md" ]] && git -C "$RUNNER_WORKTREE" add "docs/product/backlog/review/${REVIEW_SLUG}.md"
-              if ! git -C "$RUNNER_WORKTREE" diff --cached --quiet 2>/dev/null; then
-                git -C "$RUNNER_WORKTREE" commit -m "chore(backlog): set $REVIEW_SLUG ready for review" 2>&1 | tee -a "$SESSION_LOG_REVIEW" || log "WARNING: commit failed for backlog doc"
-              fi
-            fi
-
-            # Push branch and create PR for human review
-            log "Pushing $REVIEW_BRANCH and creating PR..."
-            if git -C "$RUNNER_WORKTREE" push -u origin "$REVIEW_BRANCH" 2>&1 | tee -a "$SESSION_LOG_REVIEW"; then
-              # Extract review summary from backlog doc for PR body
-              BACKLOG_FULL_PATH="$RUNNER_WORKTREE/$BACKLOG_FOR_REVIEW"
-              PR_BODY=""
-              if [[ -f "$BACKLOG_FULL_PATH" ]]; then
-                # Extract everything from "## Review summary" to the next h2 or end of file
-                PR_BODY=$(awk '/^## Review summary/{found=1; next} found && /^## /{exit} found{print}' "$BACKLOG_FULL_PATH" 2>/dev/null)
-              fi
-              if [[ -z "$PR_BODY" ]]; then
-                PR_BODY="All beads for **$REVIEW_SLUG** are complete. See the backlog doc at \`$BACKLOG_FOR_REVIEW\` for details."
-              fi
-              if gh pr create \\
-                --repo "$(git -C "$RUNNER_WORKTREE" remote get-url origin 2>/dev/null)" \\
-                --head "$REVIEW_BRANCH" \\
-                --base main \\
-                --title "backlog: $REVIEW_SLUG" \\
-                --body "$PR_BODY" \\
-                2>&1 | tee -a "$SESSION_LOG_REVIEW"; then
-                log "PR created for $REVIEW_BRANCH"
-              else
-                log "WARNING: Failed to create PR for $REVIEW_BRANCH — push succeeded, create PR manually"
-              fi
+Do only what that workflow describes. Do not implement code or modify the backlog item status."
+          log "Spawning create-pr-message session..."
+          PR_BODY=$(echo "$REVIEW_PROMPT" | (cd "$RUNNER_WORKTREE" && claude "${CLAUDE_EXTRA_ARGS[@]+"${CLAUDE_EXTRA_ARGS[@]}"}" -p --dangerously-skip-permissions))
+          REVIEW_RC=$?
+          if [[ $REVIEW_RC -eq 0 && -n "$PR_BODY" ]]; then
+            log "create-pr-message complete for $EPIC_FOR_REVIEW"
+            if git -C "$RUNNER_WORKTREE" push -u origin "$REVIEW_BRANCH" 2>&1; then
+              log "Pushed $REVIEW_BRANCH"
             else
-              log "WARNING: Failed to push $REVIEW_BRANCH — create PR manually"
+              log "WARNING: Failed to push $REVIEW_BRANCH — PR create may fail"
+            fi
+            if gh pr create \
+              --repo "$(git -C "$RUNNER_WORKTREE" remote get-url origin 2>/dev/null)" \
+              --head "$REVIEW_BRANCH" \
+              --base main \
+              --title "$PR_TITLE" \
+              --body "$PR_BODY" \
+              2>&1; then
+              log "PR created for $REVIEW_BRANCH"
+            else
+              log "WARNING: Failed to create PR for $REVIEW_BRANCH — create PR manually"
             fi
           else
-            log "WARNING: Set-backlog-item-ready-for-review session exited with error for $EPIC_FOR_REVIEW — check $SESSION_LOG_REVIEW"
+            log "WARNING: create-pr-message session failed for $EPIC_FOR_REVIEW"
           fi
         done < <(list_epics_ready_for_review_handoff)
       else
         FAIL_CNT=$(get_fail_count "$TASK_ID")
         FAIL_CNT=$((FAIL_CNT + 1))
         set_fail_count "$TASK_ID" "$FAIL_CNT"
-        # Clear status and assignee so the task is claimable again (--status open alone does not clear assignee)
         (cd "$REPO_ROOT" && bd update "$TASK_ID" --status open --assignee "" 2>/dev/null) || true
-        log "WARNING: Claude Code session exited with error for $TASK_ID — unclaimed. Fail count this session: $FAIL_CNT/$MAX_TASK_RETRIES. Check $SESSION_LOG"
+        log "WARNING: Claude Code session exited with error for $TASK_ID — unclaimed. Fail count this session: $FAIL_CNT/$MAX_TASK_RETRIES"
         if [[ $FAIL_CNT -ge $MAX_TASK_RETRIES ]]; then
           log "Task $TASK_ID will be skipped for the rest of this session (max retries reached)."
         fi

@@ -1,5 +1,5 @@
 ---
-status: in progress
+status: refined
 themes: [chat-ai]
 summary: Foundational tool definitions and user-controlled permissions (modes, runtime approval). Critical for trust and extensibility.
 depends_on: [configuration-system]
@@ -235,8 +235,6 @@ Tool registry requires permission metadata per tool as specified in **Part I: To
 5. **Single touch point**: Callers pass conversation; executor cache key includes `modeId`. (When Custom Agents affect tool sets, cache key will include `agentId`; see Custom Agents backlog.)
 
 ## Phase 9: Runtime Approval Flow
-
-**Beads:** Epic `cortex-app-1mn` (Phase 9: Runtime Approval Flow). Tasks: 1mn.1 interrupt + pending state, 1mn.2 sidebar indicator, 1mn.3 inline approval card, 1mn.4 approve/deny paths.
 
 **Goal:** When the LLM invokes a tool that has "ask" permission in the conversation's mode, execution pauses, the user sees approval UI (in-conversation), and on approve the tool runs and its result is returned to the LLM; on deny the request is blocked and the LLM receives a refusal. No persistence of approval decisions—each "ask" invocation is prompted. The user must be able to tell when a chat is awaiting approval even when that chat is not in focus, and when they switch to that chat the approval UI must be visible and usable there.
 

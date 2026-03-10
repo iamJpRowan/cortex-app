@@ -27,7 +27,7 @@ Implementation approach is **not** decided here — that happens when the work i
 
 2. **Clarify and flesh out.** Work through each element of "refined" above. Ask the user when requirements are ambiguous. If a concept doc needs refinement first, stop and suggest a [defining-core-concepts](./defining-core-concepts.md) session for that concept before continuing.
 
-3. **Consider splitting.** If the item is too large or covers multiple independent capabilities, help the user split it into multiple items. Each item should be independently implementable and testable.
+3. **Consider splitting or phasing.** If the item is too large or covers multiple independent capabilities, help the user split it into multiple items. Each item should be independently implementable and testable. If the item is best delivered incrementally as a single cohesive feature (e.g. phase 1 builds the foundation, phase 2 adds on top), use phases instead of splitting. Each phase gets its own `## Phase N: Title` section with its own scope and success criteria. Phases are worked sequentially — each produces a separate branch and PR for review before the next begins.
 
 4. **Update the doc.** Ensure the backlog item has all required elements. Set status to `refined` in frontmatter.
 

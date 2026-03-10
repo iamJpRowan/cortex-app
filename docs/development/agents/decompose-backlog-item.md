@@ -8,24 +8,24 @@
 
 1. **Read the backlog item.** Load the item and all docs it references (`implements`, `references`, `depends_on` items, linked architecture/design docs). Understand the goal, requirements, success criteria, and constraints.
 
-2. **Create a Beads epic.** `bd create "<backlog item title>" -t epic` with a description that includes the backlog item path so the runner can link epic → backlog. Include a line: `Backlog: docs/product/backlog/<slug>.md` (where `<slug>` is the backlog filename without `.md`). The runner uses this to create the branch `backlog/<slug>` and to spawn the "set backlog item ready for review" workflow when all tasks are closed.
+2. **Create a Beads epic per phase.** For each `## Phase N: Title` section in the backlog item, create one Beads epic: `bd create "<backlog item title> — Phase N: <phase title>" -t epic`. For backlog items with no phases, create a single epic for the whole item. Each epic's description must include:
+   - `Backlog: docs/product/backlog/<slug>.md` — so the runner can link epic → backlog doc
+   - `Phase: N` (omit for single-phase items) — so the runner can derive the branch name `backlog/<slug>-phase-N`
+
+   The runner uses these to create the correct branch and open a PR when all beads in the epic are closed.
 
 3. **Break into session-sized tasks.** Each task should be completable in a single agent session (~10-30 minutes of agent work). For each task:
    - `bd create "<task title>" -t task` as a child of the epic.
    - Set a clear description with scope and acceptance criteria (derived from the backlog item's requirements and success criteria).
    - Add dependency links (`bd dep add <child> <parent>`) for tasks that must be completed in order.
 
-4. **Tag each task.** Each task gets one of two completion types (in the task description or metadata):
-   - **auto-advance** — No UI or human review needed. Agent closes the task and the runner picks up the next one.
-   - **review-required** — Has UI or needs human testing. Agent sets the task to `ready to test`. Downstream tasks stay blocked until the user approves.
-
-5. **Update the backlog item.** Set status to `ready` in frontmatter. Add a note in the body referencing the Beads epic ID.
+4. **Update the backlog item.** Set status to `ready` in frontmatter. Add a note in the body referencing each Beads epic ID.
 
 ## Task sizing guidance
 
 - **Too big:** If a task requires multiple files across multiple domains (e.g., backend + frontend + docs), or if it would take more than one agent session, break it down further.
 - **Too small:** If a task is just renaming a variable or adding an import, it should be part of a larger task. A task should deliver a meaningful, testable unit of progress.
-- **UI tasks:** Separate "implement the behavior" (auto-advance) from "build the UI to exercise it" (review-required) where possible. This lets the behavior work proceed without waiting for user review.
+- **UI tasks:** No need to separate behavior from UI for review gating. All review happens when the full phase PR is opened. Focus task boundaries on logical units of work, not review checkpoints.
 
 ## See also
 
