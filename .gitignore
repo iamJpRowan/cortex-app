@@ -61,10 +61,6 @@ resources/neo4j/
 # Electron
 *.asar
 
-# Dolt database files (added by bd init)
-.dolt/
-*.db
-
 # Obsidian
 **/.obsidian/
 **/*.base
