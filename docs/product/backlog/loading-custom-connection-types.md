@@ -1,6 +1,6 @@
 ---
 status: considering
-summary: Future: load user-created and marketplace connection types; plugin execution, manifest contract, extensibility points.
+summary:  load user-created and marketplace connection types; plugin execution, manifest contract, extensibility points.
 themes: [connections, extensions]
 implements: development/architecture/connections.md
 depends_on: [connections-foundation, local-folder-connection-type]
