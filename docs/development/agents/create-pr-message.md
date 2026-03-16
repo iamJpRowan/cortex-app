@@ -2,37 +2,35 @@
 
 # Create PR message
 
-**Intent:** When all Beads tasks for a phase epic are closed, produce a PR body with a clear summary and concrete test steps. This workflow is **invoked by the runner** — output the PR body to stdout and nothing else.
+**Intent:** When all tasks in a story are complete, produce a PR body with a clear summary and concrete test steps, then open the PR. This workflow is **invoked by `/work`** when it detects all tasks in the current story are checked off.
 
 ## Context
 
-You run in the **runner worktree** on the branch for this phase (`backlog/<slug>-phase-N` or `backlog/<slug>`). The runner captures your stdout and uses it as the PR body when creating the PR.
+You run on the branch for this story (`backlog/<epic-slug>-<story-slug>` or `backlog/<slug>` for single-story epics).
 
 ## Inputs
 
 You will be given:
 
-- **Epic ID** — The Beads epic whose tasks are all closed.
-- **Backlog document path** — Path to the backlog item file (e.g. `docs/product/backlog/<slug>.md`).
-- **Phase** — The phase number, or `none` for non-phased items.
+- **Story document path** — Path to the story doc (e.g. `docs/product/backlog/<slug>.md`).
 
 ## Process
 
-1. **Read the backlog item and devlog(s)** — Load the backlog item and the devlog(s) in its `devlogs` frontmatter. Use them to understand what was built and how.
+1. **Read the story doc and devlog(s)** — Load the story doc and the devlog(s) in its `devlogs` frontmatter. Use them to understand what was built and how.
 
-2. **Print the PR body to stdout** — Output a markdown document containing:
+2. **Open the PR** — Run `gh pr create` with a body containing:
    - A short summary (2–3 sentences) of what was built and why.
    - A **"How to test"** section with concrete, numbered steps: how to run the app, where to navigate, what to interact with, and what to expect.
    - Links to the relevant devlog(s).
 
+3. **Report the PR URL** — Return the PR URL to the `/work` skill so it can be surfaced to the user.
+
 ## Do not
 
-- Change product code, commit files, or modify the backlog item.
-- Push or create the PR — the runner does that using your stdout output.
-- Write anything to stdout other than the PR body (no preamble, no commentary).
-- Work on other backlog items or tasks.
+- Change product code, commit files, or modify the story doc.
+- Work on other stories or epics.
 
 ## See also
 
-- [how-we-work](./how-we-work.md) — Full lifecycle and runner description
+- [how-we-work](./how-we-work.md) — Full lifecycle and hierarchy description
 - [work-backlog-item](./work-backlog-item.md) — How implementation tasks are worked

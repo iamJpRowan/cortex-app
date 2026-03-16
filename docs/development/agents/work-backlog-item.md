@@ -2,13 +2,11 @@
 
 # Work a backlog item
 
-**What to work on:** When starting a session, **determine what to work on from `bd ready`** (Beads tasks with no open blockers) unless the user explicitly specifies a different item. Each Beads task links to a backlog item — read the backlog item and its referenced docs for full context. If `bd ready` returns nothing, inform the user (all tasks are blocked on review or the epic is done).
+**What to work on:** This workflow is executed by the `/work` skill on behalf of a specific task. The `/work` skill identifies the next `pending` `*.task.md` file in the story folder and spawns a sub-agent with that file as the primary context. If invoked directly by the user, scan the story folder for the first `pending` task file (lowest numeric prefix, no unresolved `depends_on`).
 
-**Autonomous by default.** This workflow assumes the agent is spawned by the runner with no user present. Proceed directly from reading the task to implementing it. Record your approach in the devlog — do not wait for user input.
+**Autonomous by default.** This workflow assumes the agent is spawned with no user present. Proceed directly from reading the task to implementing it. Record your approach in the devlog — do not wait for user input.
 
-**Doc as state:** The backlog document and devlogs are the source of truth. Prefer updating the backlog doc and devlog over long chat replies. **Use the backlog item as the manifest of relevant context:** at the start of a session, read the backlog item and the docs it links to — `implements` (concept doc), `devlogs` (devlogs for this item), and `references` or a **References** section (architecture/development/design docs that apply). Load only those linked docs to bound context.
-
-**Status location:** Put **backlog item status** in **YAML frontmatter** at the top of the file. Keep the backlog body lean: status, short "Next" or "Current approach: see devlog …" only. **Approach and decisions** live in the **devlog** (implementation narrative); the backlog is the contract (goal, requirements, success criteria) and manifest (links).
+**Doc as state:** The task file, story file, and devlog are the source of truth. The task file is your primary input — it is self-contained. The story file (`<slug>.story.md`) is the contract (goal, requirements, success criteria) and manifest (links to devlogs and references). **Approach and decisions** live in the **devlog**.
 
 ## Objectives
 
@@ -17,57 +15,55 @@
 - Context that can easily be shared across many sessions.
 - **Consistent, intuitive UI** — Use app components so the same actions and concepts are presented the same way. When touching existing UI, check whether the pattern should be an app component and extract or adopt it if so (see [App Components](../design/app-components.md)).
 
-## When the item includes UI
+## When the story includes UI
 
 - **Functionality first, with minimal UI to prove it** — Implement behavior, data, and integration so the feature works end-to-end. Include **enough UI** to exercise and verify it (e.g. minimal screen or panel).
-- **Close the bead when done** — Close each bead via `bd update <id> --status closed` once implementation is complete.
 - **Primitives as foundation** — Use shadcn (and AI Elements where relevant) for low-level UI. Design tokens and [UI Guide](../design/ui-guide.md) apply.
-- **App components for consistency** — Before adding new UI, **review existing app components** (`src/renderer/src/components/`, excluding `ui/` and `ai-elements/`) and design docs ([design README](../design/README.md), [ui-guide](../design/ui-guide.md), [app-components](../design/app-components.md)). Prefer reusing or extending an app component. If you build bespoke UI, **justify in the devlog**. When you add UI that could be reused elsewhere, note it in the devlog.
+- **App components for consistency** — Before adding new UI, **review existing app components** (`src/renderer/src/components/`, excluding `ui/` and `ai-elements/`) and design docs ([design README](../design/README.md), [ui-guide](../design/ui-guide.md), [app-components](../design/app-components.md)). Prefer reusing or extending an app component. If you build bespoke UI, **justify in the devlog**.
 - **Improve existing UI when you touch it** — When you **modify** existing views or panels, check whether the pattern repeats elsewhere and should be an app component. Extract or adopt if it does; document in the devlog if extraction is non-trivial and deferred.
 
 ## Starting a session
 
-1. **Read the Beads task** — `bd show <id>` for scope and acceptance criteria.
-2. **Read the backlog item and linked docs** — the backlog item, its `implements`, `devlogs`, and `references` docs. Load only what's linked to bound context.
-3. **Determine your approach** — Based on the task scope, backlog requirements, and existing decisions in devlogs. Treat any decisions or approach already in the devlog as fixed.
-4. **Record approach in the devlog** — Create or update a devlog for this session. Record your approach, key decisions, and what you plan to build. This replaces any "first message to the user" — the devlog is the record.
-5. **Set backlog status** — If this is the first bead being worked for the backlog item, set status to `in progress` in frontmatter.
+1. **Read the task file** — Scope, acceptance criteria, and references are all here. This file is your complete input for what to build.
+2. **Read the story file and linked docs** — Find `<slug>.story.md` in the parent folder. Load the story's `devlogs` and `references`. Load only what's linked to bound context.
+3. **Determine your approach** — Based on the task scope, story requirements, and existing decisions in devlogs. Treat any decisions already in the devlog as fixed.
+4. **Record approach in the devlog** — Create or update the devlog for this story. Record your approach, key decisions, and what you plan to build.
+5. **Update task and story status:**
+   - Set `status: in-progress` in the task file's frontmatter.
+   - If this is the first task being worked for the story, set the story file's status to `in progress`.
+   - If this is the first task in the first child story of a container, set the container's status to `in progress` as well.
 6. **Proceed to implementation immediately.** Do not wait for user input.
 
 ## Implement
 
-- Follow the approach and decisions recorded in the devlog (and any short "next" in the backlog).
+- Follow the approach and decisions recorded in the devlog.
 - When you make a decision or change direction, record it in the **devlog**.
-- Look for ways to limit rework or refactors based on this and related backlog items.
 
-**When to stop and flag:** Only stop implementing when you discover something that **materially changes the overall approach** (e.g. new constraint, a design that conflicts with the backlog requirements, or a dependency that doesn't work as expected). Record what you found in the devlog, set the bead to a blocked state, and leave clear notes for the next session or the user.
+**When to stop and flag:** Only stop when you discover something that **materially changes the overall approach** (e.g. new constraint, design conflict, broken dependency). Set `status: blocked` in the task file frontmatter, add a `## Blocked` section with the reason, and leave clear notes for the next session.
 
 **When implementation is testable:**
+- Set `status: complete` in the task file's frontmatter.
+- All review (UI or otherwise) happens when the full story PR is opened — not at the task level.
 
-- Close the bead via `bd update <id> --status closed`. The runner will pick up the next task.
-- All review (UI or otherwise) happens when the full phase PR is opened — not at the bead level. Do not set beads to `ready_to_test`.
+## Update the devlog as you work
 
-## Update the backlog and devlog as you work
-
-- Keep **approach and decisions** in the **devlog**. Keep the **backlog** to status, short next steps, and links.
-- Update the devlog as you go: decisions, what was built, what's left. The next session loads context from the devlog, not from chat.
+- Keep **approach and decisions** in the **devlog**. The story file stays as the contract — do not add implementation notes there.
+- Update the devlog as you go. The next session loads context from the devlog, not from chat.
 
 ## Review docs
 
-- Review existing documentation (architecture, development, related backlog items). **Make documentation updates** so the repo stays accurate. If an update is outside what you can edit, note it in the devlog.
+- Review existing documentation (architecture, development, related stories). **Make documentation updates** so the repo stays accurate. Note anything out of scope in the devlog.
 
 ## Close out
 
-- **Definition of done:** Check the backlog's success criteria; in the devlog, note how each was met (or why not).
-- **Update backlog status:** If this is the first bead being worked for a backlog item, set the backlog item status to `in progress` in frontmatter. Do **not** set the item to `completed` or archive it — only the user does that after all phase PRs are merged to main.
-- **Create or update a devlog** — **One devlog per phase** (or per backlog item if there are no phases). Append to the existing devlog for this phase as you complete beads within it; do not create a new devlog per bead. The devlog feeds directly into the PR body when the phase is complete. Create or update the devlog in `docs/product/devlogs/` with **related_backlog** set to this backlog item (use backlog **slug**: filename without `.md`). **Add this devlog to the backlog item** in turn: update the backlog item's **devlogs** frontmatter with the devlog **ID** (filename without `.md`). See [Devlogs README](../../product/devlogs/README.md). Summarize what was done, key decisions, approach taken, and what's remaining. Do this at the end of every session, even if the item isn't fully complete.
-- **Prepare to commit, commit, and push (per bead):** Before ending the session, follow [prepare-to-commit](./prepare-to-commit.md) for all uncommitted changes from this bead, then [commit](./commit.md). Run `./scripts/beads-export-for-commit.sh`, then `git add .beads/issues.jsonl` and all changed files. Use the commit message template (include the bead/task ID in the body). If `git commit` fails (e.g. pre-commit hook), fix the reported issues (lint, types, docs) and retry until the commit succeeds. Then `git push` — push after every bead so work is never stranded locally.
+- **Definition of done:** Check the story's success criteria; in the devlog, note how each was met (or why not).
+- **Create or update the devlog** — **One devlog per story**. Append to the existing devlog as you complete tasks; do not create a new devlog per task. Create or update it in `docs/product/devlogs/` with **related_backlog** set to this story's slug. Update the story file's `devlogs` frontmatter with the devlog ID. See [Devlogs README](../../product/devlogs/README.md).
+- **Prepare to commit, commit, and push (per task):** Follow [prepare-to-commit](./prepare-to-commit.md) for all uncommitted changes, then [commit](./commit.md). Include the task filename or title in the commit body. If `git commit` fails (pre-commit hook), fix the reported issues and retry. Then `git push` — push after every task so work is never stranded locally.
 
 ## See also
 
 - [App Components](../design/app-components.md) — Primitives vs app components; consistency → intuitiveness
-- [Backlog README](../../product/backlog/README.md) — Backlog view (generated); [TEMPLATE](../../product/backlog/TEMPLATE.md) — structure and frontmatter
-- [create-pr-message](./create-pr-message.md) — Runner invokes this when all beads in a phase epic are closed
-- [prepare-to-commit](./prepare-to-commit.md) and [commit](./commit.md) — Per-bead commit before session end
-- [refine-backlog-item.md](./refine-backlog-item.md) — Workflow for refining a planned backlog item
+- [TEMPLATE.story.md](../../product/backlog/TEMPLATE.story.md) and [TEMPLATE.task.md](../../product/backlog/TEMPLATE.task.md) — Story and task formats
+- [create-pr-message](./create-pr-message.md) — Invoked by `/work` when all task files in a story are complete
+- [prepare-to-commit](./prepare-to-commit.md) and [commit](./commit.md) — Per-task commit before session end
 - [How we work](./how-we-work.md) — Backlog lifecycle and development loop

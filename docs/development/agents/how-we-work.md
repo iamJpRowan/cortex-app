@@ -4,62 +4,67 @@
 
 This document describes the intended development loop so both the user and agents can follow a consistent process.
 
+## Hierarchy
+
+| Term | Role |
+|---|---|
+| **Theme** | High-level grouping of related stories. |
+| **Story** | A backlog item. Always a folder (`<slug>/<slug>.story.md`). Either a **container** (has child story subfolders) or a **leaf** (has task files). One leaf story = one branch, one devlog, one PR. |
+| **Task** | Single-agent workable unit. An individual file (`NN-slug.task.md`) inside a leaf story folder. Self-contained: scope, acceptance criteria, and references needed — nothing else. |
+
+Stories nest at any depth. Decompose until each story maps to a single PR. Archiving works at the folder level — a completed container story and all its children move to `archive/` together.
+
 ## Backlog Lifecycle
 
-The backlog item is the central planning artifact. Each status has a clear owner and a corresponding workflow that advances it to the next state.
+Every story — container or leaf — shares the same status lifecycle.
 
 | Status | Owner | Next workflow | What happens |
 |---|---|---|---|
-| `considering` | — | `plan-goal` (pulls it in) | Item exists but is not part of the current goal. |
-| `planned` | You | `refine-backlog-item` | Goal-setting identified this item as needed. May be a lightweight placeholder. |
-| `refined` | Agent (auto) | `decompose-backlog-item` (no human turn) | Design is solid. Agent decomposes into Beads epic + tasks. |
-| `ready` | Runner | `work-backlog-item` | Beads tasks exist. Runner picks up the first unblocked task. |
-| `in progress` | Agent/You | (working beads; reviewing PRs per phase) | Work ongoing. Agents work beads; each completed phase produces a PR for your review. |
-| `completed` | You | Archive | All phase PRs merged to main; you're satisfied with the feature. |
+| `considering` | — | `plan-goal` (pulls it in) | Story exists but is not part of the current goal. |
+| `planned` | You | `refine-backlog-item` | Goal-setting identified this story as needed. May be a lightweight placeholder. |
+| `refined` | Agent (auto) | `decompose-backlog-item` (no human turn) | Requirements solid. Agent creates child story folders or task files depending on scope. |
+| `ready` | Agent (auto) | `/work` (leaf stories only) | Leaf: task files written, `/work` can begin. Container: all children are planned. |
+| `in progress` | Agent/You | (working tasks; reviewing PRs per leaf story) | Work ongoing. Each completed leaf story opens a PR for your review. |
+| `completed` | You | Archive | Leaf: PR merged. Container: all child stories completed. |
 
-Review happens at the **phase level**, not the bead level. Each phase maps to one Beads epic and one git branch (`backlog/<slug>-phase-N`, or `backlog/<slug>` for items with no phases). When all beads in a phase epic are closed, the runner spawns [create-pr-message](./create-pr-message.md) to produce a PR body with test steps, then pushes the branch and opens a PR. You check out the branch, run `npm run dev`, test and iterate, then merge the PR. When all phases are merged, mark the backlog item `completed` and archive it.
+Review happens at the **leaf story level**. Each leaf story maps to one git branch (`backlog/<story-path>`). When all tasks in a leaf story are complete, the agent opens a PR. You check out the branch, run `npm run dev`, test and iterate, then merge. When all leaf stories under a container are merged, mark the container `completed` and archive the whole folder.
 
 ## The Three Phases
 
 | Phase | Who | What |
 |-------|-----|------|
-| 1. Plan | You + agent | Set goal, refine backlog items, agent decomposes into Beads tasks |
-| 2. Execute | Agents (continuous) | Agents work through Beads task chain; each completed task spawns the next |
-| 3. Review | You | Check out phase PR branch, `npm run dev`, test and iterate, merge when satisfied |
+| 1. Plan | You + agent | Set goal, refine stories, agent decomposes into child stories or tasks |
+| 2. Execute | Agents (via `/work`) | `/work` works through tasks in a leaf story; opens PR when done |
+| 3. Review | You | Check out PR branch, `npm run dev`, test and iterate, merge when satisfied |
 
-Planning and execution overlap. You don't wait for all items to be refined before execution starts. As soon as one item reaches `ready`, the runner begins working its tasks while you continue refining later items.
+Planning and execution overlap. As soon as one leaf story reaches `ready`, `/work` can begin while you continue refining other stories.
 
 ## The User's Role
 
-1. **Set goals** — Define the next target capability and identify the backlog items needed to achieve it. Use the [plan-goal](./plan-goal.md) workflow.
-2. **Refine backlog items** — For each `planned` item, flesh out requirements and success criteria so agents can decompose and implement it. Use the [refine-backlog-item](./refine-backlog-item.md) workflow.
-3. **Review phase PRs** — When a phase PR is opened, check out the branch, run `npm run dev`, test and iterate. Merge when satisfied. If the work is egregiously wrong, close the PR, reset the backlog item to `refined` with improved requirements, and let the runner re-decompose. Only you mark a backlog item `completed` after all its phase PRs are merged.
-4. **Define concepts** — Define or refine how the product works using [defining-core-concepts](./defining-core-concepts.md) before refining any backlog item that depends on an unsettled concept. This is not a lifecycle step; do it when a concept is ambiguous or missing before refinement proceeds.
+1. **Set goals** — Define the next target capability and identify the stories needed. Use the [plan-goal](./plan-goal.md) workflow.
+2. **Refine stories** — For each `planned` story, flesh out requirements and success criteria. Use the [refine-backlog-item](./refine-backlog-item.md) workflow.
+3. **Review story PRs** — When a leaf story PR is opened, check out the branch, run `npm run dev`, test and iterate. Merge when satisfied. If work is egregiously wrong, close the PR, reset the story to `refined` with improved requirements, and re-decompose.
+4. **Define concepts** — Use [defining-core-concepts](./defining-core-concepts.md) before refining any story that depends on an unsettled concept.
 
 ## The Agent's Role
 
-1. **Decompose** — When a backlog item reaches `refined`, automatically decompose it into Beads tasks. Follow [decompose-backlog-item](./decompose-backlog-item.md).
-2. **Implement** — Work tasks from `bd ready`. Follow [work-backlog-item](./work-backlog-item.md).
-3. **Hand off for review** — When all beads in a phase (epic) are closed, the runner pushes the branch and opens a PR. The PR body contains a summary of what was built and how to test it.
-4. **Respond to feedback** — If the user requests changes after reviewing a PR, new beads are created on the same branch and worked before the PR is merged.
+1. **Decompose** — When a story reaches `refined`, apply the child-stories-vs-tasks decision rule and decompose accordingly. Follow [decompose-backlog-item](./decompose-backlog-item.md).
+2. **Implement** — Work tasks within a leaf story. Follow [work-backlog-item](./work-backlog-item.md).
+3. **Hand off for review** — When all tasks in a leaf story are complete, open a PR with summary and test steps.
+4. **Respond to feedback** — If the user requests changes after reviewing a PR, new tasks are added to the story on the same branch and worked before the PR is merged.
 
-## The Runner
+## The `/work` Skill
 
-A lightweight script manages agent continuity. It uses a **git worktree** (default: `../cortex-app-runner` from the repo root) so you can stay on `main` in the main repo while agents work on backlog branches in the worktree. The worktree is created with branch `runner-main` (from `main`) because Git does not allow the same branch in two worktrees. Beads state (`.beads`) is shared via Beads' native redirect mechanism — the `post-checkout` hook sets up `.beads/redirect` in the worktree automatically, pointing back to the main repo's `.beads`.
+Invoked on a **leaf story** (tasks, no child stories). Orchestrates all tasks using sub-agents in isolated worktrees. When all tasks are done, opens a PR and stops. If invoked on a container story, detects no tasks and reports the first ready child story instead.
 
-1. Run `bd ready` (from the main repo) to find a task with no open blockers.
-2. **Branch per phase:** In the runner worktree, ensure branch `backlog/<slug>-phase-N` (or `backlog/<slug>` for items with no phases) for the task's epic (create from `main` if needed). All agent work for that phase stays on that branch in the worktree.
-3. Spawn a Claude Code session with the worktree as context. Agent follows [work-backlog-item](./work-backlog-item.md): implements, updates devlog, runs prepare-to-commit and commit (fixing hook failures), then closes the task. Agent does not push.
-4. **Epic complete:** After each task session, check if any epic has all children closed. If so, spawn a session following [create-pr-message](./create-pr-message.md) to produce a PR body with test steps. Then push the branch (`backlog/<slug>-phase-N` or `backlog/<slug>` → `main`) and create a PR using that body.
-5. Go to step 1 and continue working the next ready task.
-
-Run the runner from the **main repo** (e.g. `./scripts/runner.sh`). Use `--worktree PATH` or set `RUNNER_WORKTREE` to override the worktree location. The runner is the orchestrator (worktree, branching, epic-complete detection, spawning the right workflow). The intelligence is in the task graph (Beads) and the agent workflows.
+See [work-backlog-item](./work-backlog-item.md) for how individual tasks are implemented.
 
 ## Your Daily Routine
 
-1. **Check open PRs** — Review phase PRs in GitHub/Cursor. Check out the branch, `npm run dev`, test and iterate, then merge.
-2. **Advance `planned` items** — Pick the next one and run `refine-backlog-item`.
-3. **Set the next goal** — When all items in the current goal are `completed`, start over with `plan-goal`.
+1. **Check open PRs** — Review leaf story PRs in GitHub. Check out the branch, `npm run dev`, test and iterate, then merge.
+2. **Refine `planned` stories** — Pick the next one and run `refine-backlog-item`.
+3. **Invoke `/work`** — On the next `ready` leaf story to continue execution.
+4. **Set the next goal** — When all stories in the current goal are `completed`, start over with `plan-goal`.
 
 ## See also
 

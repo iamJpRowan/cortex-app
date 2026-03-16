@@ -2,14 +2,8 @@
 
 # Backlog
 
-Backlog view — generated from frontmatter. Structure and frontmatter: [TEMPLATE.md](./TEMPLATE.md). Order: [Product README](../README.md#roadmap). Themes: [themes](../themes/README.md).
+Backlog view — generated from frontmatter. Structure and frontmatter: [TEMPLATE.story.md](./TEMPLATE.story.md). Order: [Product README](../README.md#roadmap). Themes: [themes](../themes/README.md).
 
-
-## Active
-
-| ready to test | in progress | designing |
-|--------|--------|--------|
-| — | **[Tool Permission System](./tool-permission-system.md)** — Foundational tool definitions and user-controlled permissions (modes, runtime approval). Critical for trust and extensibility. [Feb 16 Tool Permission System Phase 1](../devlogs/2026-02-16-tool-permission-system-phase-1.md)<br>[Feb 23 Tool Permission Modes Ui And Shared Config](../devlogs/2026-02-23-tool-permission-modes-ui-and-shared-config.md)<br>[Mar 8 Tool Permission System Phase 8](../devlogs/2026-03-08-tool-permission-system-phase-8.md) | — |
 
 ## Considering
 
@@ -23,6 +17,7 @@ Backlog view — generated from frontmatter. Structure and frontmatter: [TEMPLAT
 | [Chat Summaries](./chat-summaries.md) | One Markdown summary per conversation; review past chats; agent can discover and use other summaries. |
 | [Component Composition System](./component-composition-system.md) | Build custom views by assembling widgets; save and load view configurations. |
 | [Configuration System](./configuration-system.md) | User configuration via config files, preferences UI, and runtime overrides; control LLM, tools, and plugin settings. |
+| [Content And Token Guardrail Confirmations](./content-and-token-guardrail-confirmations.md) | User-facing |
 | [Context Window And Costs](./context-window-and-costs.md) | Token usage, cost, processing time, and context window visibility (past and before send). |
 | [Custom Agents](./custom-agents.md) | Create and manage custom agents (instructions, tools, model, params); switch in conversation; smart suggestions. |
 | [Custom Hotkeys Prompt Input](./custom-hotkeys-prompt-input.md) | Configurable hotkeys for chat prompt input; same bindings in Plaintext and Live Preview. |

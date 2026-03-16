@@ -6,11 +6,11 @@
 
 ## Hygiene
 
-1. **Backlog view** — The [Backlog README](../../product/backlog/README.md) is generated from frontmatter (predev/pre-commit). Ensure each item has required frontmatter (`status`, `summary`) per [TEMPLATE](../../product/backlog/TEMPLATE.md).
+1. **Backlog view** — The [Backlog README](../../product/backlog/README.md) is generated from frontmatter (predev/pre-commit). Ensure each item has required frontmatter (`status`, `summary`) per [TEMPLATE](../../product/backlog/story.TEMPLATE.md).
 2. **Status consistency** — For each item, is the status in frontmatter consistent with the body? Flag mismatches (e.g. `status: in progress` but body suggests work is done).
-3. **Archive** — Are any items completed but not yet in `docs/product/backlog/archive/`? Move them with `status: completed`, `date_archived: YYYY-MM-DD`, and `summary`. Abandoned items: `status: abandoned`, `date_archived`, `summary`; put "Why archived" in the body, not frontmatter. See [TEMPLATE](../../product/backlog/TEMPLATE.md). No archive README; the generated Backlog README lists archived items.
+3. **Archive** — Are any items completed but not yet in `docs/product/backlog/archive/`? Move them with `status: completed`, `date_archived: YYYY-MM-DD`, and `summary`. Abandoned items: `status: abandoned`, `date_archived`, `summary`; put "Why archived" in the body, not frontmatter. See [TEMPLATE](../../product/backlog/story.TEMPLATE.md). No archive README; the generated Backlog README lists archived items.
 4. **Links** — Check "requires:" and other links between backlog items. Fix broken or stale links (e.g. pointing to archived or renamed items).
-5. **Backlog item as manifest** — For each item, if devlogs reference it (`related_backlog`), does the backlog item list those devlogs in `devlogs` (frontmatter) by devlog ID (filename without `.md`)? Add the back-link so the relationship is bi-directional. Format: [Backlog TEMPLATE](../../product/backlog/TEMPLATE.md), [Devlogs README](../../product/devlogs/README.md).
+5. **Backlog item as manifest** — For each item, if devlogs reference it (`related_backlog`), does the backlog item list those devlogs in `devlogs` (frontmatter) by devlog ID (filename without `.md`)? Add the back-link so the relationship is bi-directional. Format: [Backlog TEMPLATE](../../product/backlog/story.TEMPLATE.md), [Devlogs README](../../product/devlogs/README.md).
 
 ## Relevance and lifecycle
 
@@ -29,6 +29,6 @@ For each item (or a subset the user chooses), evaluate:
 
 ## See also
 
-- [Backlog README](../../product/backlog/README.md) — Backlog view (generated); [TEMPLATE](../../product/backlog/TEMPLATE.md) — structure, frontmatter, archive
+- [Backlog README](../../product/backlog/README.md) — Backlog view (generated); [TEMPLATE](../../product/backlog/story.TEMPLATE.md) — structure, frontmatter, archive
 - [Roadmap](../../product/README.md#roadmap) — Current focus (grooming may inform roadmap-review)
 - [How we work](./how-we-work.md) — Intended development loop

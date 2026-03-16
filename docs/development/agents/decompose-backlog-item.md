@@ -2,33 +2,86 @@
 
 # Decompose backlog item
 
-**Intent:** Take a `refined` backlog item and decompose it into a Beads epic with session-sized tasks. This workflow is **fully automated** — no human turn is required. Once a backlog item reaches `refined`, the agent decomposes it and the runner can begin execution immediately.
+**Intent:** Take a `refined` story and decompose it — either into child stories or into task files. Fully automated; no human turn required. Apply the decision rule below to determine which output is appropriate.
 
-## Process
+---
 
-1. **Read the backlog item.** Load the item and all docs it references (`implements`, `references`, `depends_on` items, linked architecture/design docs). Understand the goal, requirements, success criteria, and constraints.
+## The decision rule
 
-2. **Create a Beads epic per phase.** For each `## Phase N: Title` section in the backlog item, create one Beads epic: `bd create "<backlog item title> — Phase N: <phase title>" -t epic`. For backlog items with no phases, create a single epic for the whole item. Each epic's description must include:
-   - `Backlog: docs/product/backlog/<slug>.md` — so the runner can link epic → backlog doc
-   - `Phase: N` (omit for single-phase items) — so the runner can derive the branch name `backlog/<slug>-phase-N`
+**Create child stories when:**
+- Delivering the story would require more than one PR.
+- There are distinct phases or aspects that each benefit from separate review before the next begins.
 
-   The runner uses these to create the correct branch and open a PR when all beads in the epic are closed.
+**Create task files when:**
+- The story maps to a single PR.
+- All tasks share the same context, references, and implementation domain.
 
-3. **Break into session-sized tasks.** Each task should be completable in a single agent session (~10-30 minutes of agent work). For each task:
-   - `bd create "<task title>" -t task` as a child of the epic.
-   - Set a clear description with scope and acceptance criteria (derived from the backlog item's requirements and success criteria).
-   - Add dependency links (`bd dep add <child> <parent>`) for tasks that must be completed in order.
+A story never has both child stories and task files. Decompose until every leaf story maps to exactly one PR.
 
-4. **Update the backlog item.** Set status to `ready` in frontmatter. Add a note in the body referencing each Beads epic ID.
+---
+
+## Creating child stories
+
+1. **Read the story.** Load `<slug>.story.md` and all referenced docs. Understand the goal, requirements, success criteria, and constraints.
+
+2. **Create a child story folder per phase or aspect.** For each `## Phase N: Title` or distinct aspect, create `<parent-folder>/<child-slug>/<child-slug>.story.md`. Each child story file must include:
+   - **Frontmatter:** `type: story`, `title`, `status: planned`, `summary`, `parent: <parent-slug>.story.md`.
+   - **Goal** — What this child story delivers (scoped to this phase/aspect only).
+   - **Out of scope** — What it explicitly does not cover.
+   - **Success criteria** — Concrete and testable; derived from the parent's criteria for this scope.
+   - **References** — The subset of the parent's references that apply to this child.
+
+3. **Update the parent story.** Add `children: [child-slug-1.story.md, child-slug-2.story.md]` to frontmatter in dependency order. Set parent status to `ready`.
+
+4. **Pause for review.** After creating child stories, surface them to the user for scope validation before decomposing any child into tasks. Children start at `planned` — each is refined and decomposed separately.
+
+---
+
+## Creating task files
+
+1. **Read the story.** Load `<slug>.story.md` and all referenced docs.
+
+2. **Create a task file per unit of work.** Name files `NN-slug.task.md` with a zero-padded numeric prefix for ordering (`01-`, `02-`, etc.). Each task file follows [TEMPLATE.task.md](../../product/backlog/TEMPLATE.task.md):
+
+   ```markdown
+   ---
+   type: task
+   title: <title>
+   status: pending
+   story: <parent-slug>.story.md
+   depends_on: []
+   ---
+
+   # Task: <title>
+
+   ## Scope
+   What this task covers — specific enough to implement without reading anything beyond
+   this file and its listed references.
+
+   ## Acceptance criteria
+   How to verify the task is complete.
+
+   ## References
+   - path/to/relevant/doc.md
+   ```
+
+   - Tasks must be completable in a single agent session (~10–30 minutes of agent work).
+   - Use `depends_on` for tasks that must complete before this one can start (filenames including `.task.md`).
+   - References in each task file are the minimal set needed — not the full story reference list.
+
+3. **Update the story.** Set status to `ready` in the story file's frontmatter.
+
+---
 
 ## Task sizing guidance
 
-- **Too big:** If a task requires multiple files across multiple domains (e.g., backend + frontend + docs), or if it would take more than one agent session, break it down further.
-- **Too small:** If a task is just renaming a variable or adding an import, it should be part of a larger task. A task should deliver a meaningful, testable unit of progress.
-- **UI tasks:** No need to separate behavior from UI for review gating. All review happens when the full phase PR is opened. Focus task boundaries on logical units of work, not review checkpoints.
+- **Too big:** If a task requires work across multiple domains (e.g. backend + frontend + docs), or would take more than one agent session, split it into two task files.
+- **Too small:** If a task is just a rename or a single import, merge it into an adjacent task. A task should deliver a meaningful, testable unit of progress.
+- **UI tasks:** No need to separate behavior from UI for review gating. All review happens at the leaf story PR. Focus task boundaries on logical units of work.
 
 ## See also
 
-- [How we work](./how-we-work.md) — Backlog lifecycle and runner
-- [refine-backlog-item](./refine-backlog-item.md) — Workflow that produces `refined` items
-- [work-backlog-item](./work-backlog-item.md) — How agents execute individual Beads tasks
+- [How we work](./how-we-work.md) — Backlog lifecycle and hierarchy
+- [refine-backlog-item](./refine-backlog-item.md) — Produces `refined` stories ready for decomposition
+- [work-backlog-item](./work-backlog-item.md) — How agents execute individual tasks
+- [TEMPLATE.task.md](../../product/backlog/TEMPLATE.task.md) — Task file format
