@@ -10,7 +10,7 @@ This directory holds **product direction**, **backlog**, **devlogs**, and **road
 
 ## Roadmap
 
-The **roadmap** captures the current goal and the backlog items needed to achieve it. Update it via [plan-goal](../development/agents/plan-goal.md). Grouping by theme: [Themes](./themes/README.md). Visual status: [Backlog](./backlog/README.md#active) (generated; runs in predev and pre-commit).
+The **roadmap** captures the current goal and the backlog items needed to achieve it. Update it via [plan-goal](../development/agents/plan-goal.md). Grouping by theme: [Themes](./themes/).
 
 ### Current goal
 
@@ -26,14 +26,6 @@ The **roadmap** captures the current goal and the backlog items needed to achiev
 | [Markdown Viewer/Editor](./backlog/markdown-viewer-editor.md) | `planned` | local-folder-connection-type |
 | [Diff Viewer](./backlog/diff-viewer.md) | `planned` | local-folder-connection-type |
 
-<!-- generated -->
-
-## Active
-
-| ready to test | in progress | designing |
-|--------|--------|--------|
-| — | **[Tool Permission System](./backlog/tool-permission-system.md)** — Foundational tool definitions and user-controlled permissions (modes, runtime approval). Critical for trust and extensibility. [Feb 16 Tool Permission System Phase 1](./devlogs/2026-02-16-tool-permission-system-phase-1.md)<br>[Feb 23 Tool Permission Modes Ui And Shared Config](./devlogs/2026-02-23-tool-permission-modes-ui-and-shared-config.md)<br>[Mar 8 Tool Permission System Phase 8](./devlogs/2026-03-08-tool-permission-system-phase-8.md) | — |
-
 ## Themes
 
 - **[chat-ai](./themes/chat-ai.md)** — Chat interface, AI/LLM features, agents, tools, and related UX.
@@ -43,11 +35,8 @@ The **roadmap** captures the current goal and the backlog items needed to achiev
 - **[knowledge-graphs](./themes/knowledge-graphs.md)** — Neo4j, multiple knowledge graphs, and enterprise upgrade.
 - **[ui-features](./themes/ui-features.md)** — Layout system, sidebars, tabs, panels, drag-and-drop, and component composition.
 
-
-<!-- /generated -->
-
 ## See also
 
 - [How we work](../development/agents/how-we-work.md) — Backlog lifecycle and development loop
-- [Backlog](./backlog/README.md) — Backlog view (generated in predev and pre-commit)
+- [Backlog](./backlog/) — Backlog items
 - [Design](../development/design/README.md) — Visual system and UI patterns
