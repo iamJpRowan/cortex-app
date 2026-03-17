@@ -2,7 +2,7 @@
 type: story
 title: Tool Permission Runtime Approval
 alias: Tool Permission Runtime Approval
-status: next
+status: in progress
 summary: Inline approval UI for "ask" tools — execution pauses, user approves or denies in-conversation, sidebar indicator when chat not in focus.
 themes:
   - chat-ai
@@ -11,6 +11,8 @@ depends_on:
   - "[[tool-permission-system.story.md]]"
 milestones:
   - "[[app-reads-and-writes-files.milestone]]"
+devlogs:
+  - "[[2026-03-17-tool-permission-runtime-approval]]"
 ---
 
 [Docs](../../README.md) / [Product](../README.md) / [Backlog](./README.md) / Tool Permission Runtime Approval
@@ -51,3 +53,67 @@ When the LLM invokes a tool that has "ask" permission in the conversation's mode
 - [[tool-permission-system.story.md]] — Parent story; Phases 1–8 context and architecture.
 - [[content-and-token-guardrail-confirmations]] — Reuses this approval UI pattern for content/token guardrails.
 - [[deep-agents-adoption]] — `interrupt_on` hook from Deep Agents may be used for the interrupt mechanism.
+
+## Tasks
+
+### Task 1: Types and IPC stubs — `pending`
+
+**Scope:** Add `tool_approval_request` to `StreamEventType` in shared types; add `StreamToolApprovalEvent` type (carrying `toolCallId`, `toolName`, `toolDescription`, `args`); register `llm:approve-tool` and `llm:deny-tool` IPC handlers (stubs that return `{ success: true }`); expose them in preload as `window.api.llm.approveTool(streamId)` and `window.api.llm.denyTool(streamId)`; add `approveTool` and `denyTool` method stubs to `LLMAgent`.
+
+**Acceptance criteria:**
+- [ ] `StreamEventType` includes `'tool_approval_request'`
+- [ ] `StreamToolApprovalEvent` interface exists in `src/shared/types/llm.ts` with fields: `type: 'tool_approval_request'`, `streamId`, `conversationId`, `toolCallId`, `toolName`, `toolDescription`, `args`
+- [ ] `StreamEvent` union includes `StreamToolApprovalEvent`
+- [ ] `ipcMain.handle('llm:approve-tool', ...)` and `ipcMain.handle('llm:deny-tool', ...)` registered in `src/main/ipc/llm.ts`
+- [ ] `window.api.llm.approveTool` and `window.api.llm.denyTool` exposed in `src/preload/index.ts`
+- [ ] `LLMAgent` has `approveTool(streamId: string): void` and `denyTool(streamId: string, message?: string): void` stubs
+- [ ] TypeScript compiles without errors (`npm run type-check`)
+
+**References:** `src/shared/types/llm.ts`, `src/main/ipc/llm.ts`, `src/preload/index.ts`, `src/main/services/llm/agent.ts`
+
+---
+
+### Task 2: HITL interrupt mechanism in main process — `pending`
+
+**Scope:** Wire up `humanInTheLoopMiddleware` from `langchain` and implement the pause/resume loop in `streamQuery`. In `getExecutorForModel`: when `askToolNames` is non-empty, add `humanInTheLoopMiddleware({ interruptOn: Object.fromEntries(askToolNames.map(n => [n, { allowedDecisions: ['approve', 'reject'] }])) })` to `createAgent`. In `LLMAgent`: add a `Map<string, { resolve(d: Decision): void; reject(e: Error): void }>` for pending approvals; implement `approveTool` and `denyTool` to resolve entries in this map. Refactor the `streamQuery` loop: wrap the `for await` in a `while(true)` that detects `__interrupt__` in `values` chunks, emits a `tool_approval_request` stream event, awaits the pending approval, and calls `executor.stream(new Command({ resume: { decisions: [decision] } }), config)` to continue; handle `signal.aborted` to reject pending approvals. Import `Command` from `@langchain/langgraph` and `humanInTheLoopMiddleware`, `HITLResponse`, `Decision` from `langchain`.
+
+**Acceptance criteria:**
+- [ ] When a tool with "ask" permission is called by the LLM, a `tool_approval_request` stream event is emitted (verified via log or manual test)
+- [ ] `approveTool(streamId)` resolves the pending approval with `{ type: 'approve' }`, the tool runs, and the LLM receives its result
+- [ ] `denyTool(streamId)` resolves with `{ type: 'reject', message: 'Tool use denied by user.' }`, the tool does not run, the LLM receives the refusal
+- [ ] Cancelling the stream (AbortSignal) rejects any pending approval and cleans up the map entry
+- [ ] `npm run type-check` passes
+
+**References:** `src/main/services/llm/agent.ts`, `node_modules/langchain/dist/agents/middleware/hitl.d.ts`, `src/main/ipc/llm.ts`
+
+---
+
+### Task 3: Approval card UI in renderer — `pending`
+
+**Scope:** Add a `ToolApprovalCard` component in `src/renderer/src/components/ai-elements/`; wire `tool_approval_request` events in `ChatView.tsx` to display the card inline in the message stream. `ToolApprovalCard` renders tool name, description (from the event), and args (using the existing `ToolInvocationDetails` args block pattern); Approve and Deny buttons call `window.api.llm.approveTool(streamId)` and `window.api.llm.denyTool(streamId)` and disable themselves after click. In `ChatView`: track `pendingApproval: StreamToolApprovalEvent | null` state; on `tool_approval_request` set it; render the card below `streamingContent` in the streaming message area; clear on `complete`, `error`, `cancelled`, or when either button is clicked.
+
+**Acceptance criteria:**
+- [ ] `ToolApprovalCard` component exists; renders tool name, description, args, Approve and Deny buttons
+- [ ] Approval card appears in the message stream when an "ask" tool is invoked
+- [ ] Clicking Approve calls `window.api.llm.approveTool(streamId)`; clicking Deny calls `window.api.llm.denyTool(streamId)`
+- [ ] Buttons are disabled (or card removed) after user clicks
+- [ ] Card is removed when stream ends (`complete`, `error`, `cancelled`)
+- [ ] Follows existing `tool-invocation.tsx` visual patterns (icon, label, collapsible details)
+- [ ] `npm run type-check` passes; no lint errors
+
+**References:** `src/renderer/src/components/ai-elements/tool-invocation.tsx`, `src/renderer/src/components/ChatView.tsx`, `src/renderer/src/components/ai-elements/message.tsx`, `docs/development/design/ui-guide.md`
+
+---
+
+### Task 4: Sidebar pending-approval indicator — `pending`
+
+**Scope:** Track which conversations have a pending approval in `ChatView` state; pass the set to `ConversationList`; show an icon or badge on conversation rows awaiting approval, matching the existing "streaming" indicator pattern (`streamingConversationId`). Clear the indicator when the stream's approval is resolved or the stream ends.
+
+**Acceptance criteria:**
+- [ ] When conversation A has a pending approval and the user switches to conversation B, conversation A's row in the sidebar shows a pending-approval indicator (icon or badge)
+- [ ] The indicator is distinct from the streaming spinner
+- [ ] The indicator is cleared when the stream completes (approve, deny, cancel, or error)
+- [ ] No indicator shown for conversations without a pending approval
+- [ ] `npm run type-check` passes; no lint errors
+
+**References:** `src/renderer/src/components/ConversationList.tsx`, `src/renderer/src/components/ChatView.tsx`
