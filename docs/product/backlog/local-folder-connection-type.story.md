@@ -1,12 +1,13 @@
 ---
+type: story
+title: Local Folder Connection Type
 status: planned
 summary: First connection type Local Folder (path = all subfolders/files); agent tools list_directory, read_file, write_file.
-themes: [connections]
-implements: development/architecture/connections.md
-depends_on: [connections-foundation]
+themes: ["[[connections]]"]
+implements: "[[development/architecture/connections]]"
+depends_on:
+  - "[[connections-foundation.story.md]]"
 ---
-
-[Docs](../../README.md) / [Product](../README.md) / [Backlog](./README.md) / Local Folder Connection Type
 
 # Local Folder Connection Type
 
@@ -16,8 +17,8 @@ Implement the **Local Folder** connection type so users can add a folder as a co
 
 ## Prerequisites / Dependencies
 
-- **[Connections Foundation](./connections-foundation.md)** — Registration, instance store, mode extension, and tool wiring must be in place.
-- Concept: [Connections](../../development/architecture/connections.md) (Requirements-ready: path = all subfolders/files, format-agnostic v1, tool set).
+- **[[connections-foundation.story.md]]** — Registration, instance store, mode extension, and tool wiring must be in place.
+- Concept: [[connections]] (Requirements-ready: path = all subfolders/files, format-agnostic v1, tool set).
 
 ## Requirements and constraints
 
@@ -34,4 +35,4 @@ Implement the **Local Folder** connection type so users can add a folder as a co
 
 ## References
 
-- [Connections](../../development/architecture/connections.md) — First connection type (Local Folder) requirements-ready section.
+- [[connections]] — First connection type (Local Folder) requirements-ready section.

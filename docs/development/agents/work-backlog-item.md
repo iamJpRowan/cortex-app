@@ -58,12 +58,12 @@
 
 - **Definition of done:** Check the story's success criteria; in the devlog, note how each was met (or why not).
 - **Create or update the devlog** — **One devlog per story**. Append to the existing devlog as you complete tasks; do not create a new devlog per task. Create or update it in `docs/product/devlogs/` with **related_backlog** set to this story's slug. Update the story file's `devlogs` frontmatter with the devlog ID. See [Devlogs README](../../product/devlogs/README.md).
-- **Prepare to commit, commit, and push (per task):** Follow [prepare-to-commit](./prepare-to-commit.md) for all uncommitted changes, then [commit](./commit.md). Include the task filename or title in the commit body. If `git commit` fails (pre-commit hook), fix the reported issues and retry. Then `git push` — push after every task so work is never stranded locally.
+- **Prepare to commit, commit, and push (per task):** Run `/prepare-to-commit` for all uncommitted changes, then `/commit`. Include the task filename or title in the commit body. If `git commit` fails (pre-commit hook), fix the reported issues and retry. Then `git push` — push after every task so work is never stranded locally.
 
 ## See also
 
 - [App Components](../design/app-components.md) — Primitives vs app components; consistency → intuitiveness
 - [TEMPLATE.story.md](../../product/backlog/TEMPLATE.story.md) and [TEMPLATE.task.md](../../product/backlog/TEMPLATE.task.md) — Story and task formats
 - [create-pr-message](./create-pr-message.md) — Invoked by `/work` when all task files in a story are complete
-- [prepare-to-commit](./prepare-to-commit.md) and [commit](./commit.md) — Per-task commit before session end
+- `/prepare-to-commit` and `/commit` skills — Per-task commit before session end
 - [How we work](./how-we-work.md) — Backlog lifecycle and development loop

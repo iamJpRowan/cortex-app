@@ -1,12 +1,13 @@
 ---
+type: story
+title: Connections Foundation
 status: planned
 summary: Registration, connection instance store, and wiring so modes and agents can use connection-scoped tools.
-themes: [connections]
-implements: development/architecture/connections.md
-depends_on: [tool-permission-system]
+themes: ["[[connections]]"]
+implements: "[[development/architecture/connections]]"
+depends_on:
+  - "[[tool-permission-system.story.md]]"
 ---
-
-[Docs](../../README.md) / [Product](../README.md) / [Backlog](./README.md) / Connections Foundation
 
 # Connections Foundation
 
@@ -16,8 +17,8 @@ Implement the foundational framework for **connections**: connection type regist
 
 ## Prerequisites / Dependencies
 
-- **[Tool Permission System](./tool-permission-system.md)** — Modes and category/permission resolution exist; this work extends modes to support connection type and connection instance overrides within categories.
-- Concept: [Connections](../../development/architecture/connections.md) (requirements-ready decisions for registration, instance config, permissions, runtime resolution).
+- **[[tool-permission-system.story.md]]** — Modes and category/permission resolution exist; this work extends modes to support connection type and connection instance overrides within categories.
+- Concept: [[connections]] (requirements-ready decisions for registration, instance config, permissions, runtime resolution).
 
 ## Requirements and constraints
 
@@ -32,9 +33,9 @@ Implement the foundational framework for **connections**: connection type regist
 - Connection type registration API exists; at least one built-in type (e.g. Local Folder) can be registered with a manifest and handlers.
 - Connection instances can be created, read, updated, and deleted; stored in a dedicated store.
 - Mode editor supports per–connection type and per–connection instance permission overrides within categories.
-- `getToolsForAgent(conversation)` resolves allowed connection instances from the conversation’s mode and returns only tools for those instances; at tool-call time, the runner passes connection context (instance id + resolved config) to the handler.
+- `getToolsForAgent(conversation)` resolves allowed connection instances from the conversation's mode and returns only tools for those instances; at tool-call time, the runner passes connection context (instance id + resolved config) to the handler.
 - **Developer guide**: A guide for implementers is written: **Adding a connection type** (or equivalent), covering manifest shape, where to register, how to implement handlers that receive connection context, and how permissions apply.
 
 ## References
 
-- [Connections](../../development/architecture/connections.md) — Concept and requirements-ready decisions.
+- [[connections]] — Concept and requirements-ready decisions.

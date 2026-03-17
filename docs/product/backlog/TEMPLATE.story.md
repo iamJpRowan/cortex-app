@@ -79,18 +79,19 @@ Inline wikilinks to architecture, development, design docs implementers need. Us
 
 **Story structure:**
 
-All stories live at `<slug>/<slug>.story.md`. The folder's contents reveal the story type:
+Stories start as **flat files** (`<slug>.story.md`) and stay that way until decomposed. A folder is only created when a story is decomposed into child stories or tasks:
 
-- **Story with children** — has child story subfolders (each with their own `<slug>.story.md`). Decomposed into child stories via `decompose-backlog-item`.
-- **Story with tasks** — has task files (`01-slug.task.md`, `02-slug.task.md`, …). One set of tasks = one branch, one devlog, one PR.
+- **Flat story** (`<slug>.story.md`) — not yet decomposed; status `planned`, `refined`, or `considering`.
+- **Story with children** (`<slug>/<slug>.story.md` + child files) — decomposed into child stories, each starting as a flat file alongside the parent (`<child-slug>.story.md`). Decomposed via `decompose-backlog-item`.
+- **Story with tasks** (`<slug>/<slug>.story.md` + task files) — decomposed into task files (`01-slug.task.md`, `02-slug.task.md`, …). One set of tasks = one branch, one devlog, one PR.
 
-A story may have both child stories and tasks.
+When decomposing a flat story: create the `<slug>/` folder, move the story file into it, then add children or task files alongside.
 
 Find all stories anywhere in the repo: glob `**/*.story.md`. Find all tasks: glob `**/*.task.md`.
 
 Task files are named with a zero-padded numeric prefix for ordering. See [[TEMPLATE.task.md]] for the task file format. See [decompose-backlog-item](../../development/agents/decompose-backlog-item.md) for the child-stories-vs-tasks decision rule.
 
-Archiving is always at the folder level. A completed container story and all its children move to `archive/<slug>/` together.
+Archiving a flat (undecomposed) story: move `<slug>.story.md` to `archive/<slug>.story.md`. Archiving a decomposed story: move the `<slug>/` folder to `archive/<slug>/`. A container story and all its children always archive together.
 
 **Cross-references:** All links — frontmatter fields and body — use wikilink format with the filename slug only (no path, no extension): `[[how-we-work]]`, `[[decompose-backlog-item]]`, `[[other-slug.story.md]]`. Frontmatter fields (`parent`, `children`, `depends_on`, `devlogs`, `themes`) follow the same rule.
 

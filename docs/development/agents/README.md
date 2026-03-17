@@ -27,8 +27,8 @@ When the user references one of the workflow docs below (by name, file, or simil
 | Define or refine a core concept (product/system behavior)       | [defining-core-concepts.md](./defining-core-concepts.md)         |
 | Evaluate backlog (relevance, clarify, abandon, hygiene)         | [backlog-grooming.md](./backlog-grooming.md)                     |
 | Clean up docs (links, user vs dev, devlog links)                | [docs-cleanup.md](./docs-cleanup.md)                             |
-| Get ready to commit                                             | [prepare-to-commit.md](./prepare-to-commit.md)                   |
-| Commit (after prepare-to-commit)                                | [commit.md](./commit.md)                                         |
+| Get ready to commit                                             | `/prepare-to-commit` skill                                        |
+| Commit (after prepare-to-commit)                                | `/commit` skill                                                   |
 
 Use **one workflow per conversation** so the agent has clear intent.
 
@@ -59,11 +59,9 @@ Each workflow doc is a set of explicit instructions for that conversation type.
 - **[docs-cleanup.md](./docs-cleanup.md)** — Docs-only cleanup (links, user vs dev, devlog related_backlog).
   _Example phrases:_ "docs cleanup", "clean up the docs", "follow docs-cleanup".
 
-- **[prepare-to-commit.md](./prepare-to-commit.md)** — Review code before commit: apply all recommended fixes (workarounds, patterns, docs, session artifacts, UI/reuse), then report what was updated and what was not.
-  _Example phrases:_ "prepare to commit", "review before commit", "pre-commit review", "follow prepare-to-commit".
+- **`/prepare-to-commit` skill** — Review all uncommitted changes, apply fixes (patterns, docs, session artifacts, UI/reuse), and report what was updated. Run before committing.
 
-- **[commit.md](./commit.md)** — Produce a consistent commit message using the template. Use after prepare-to-commit when the user is satisfied.
-  _Example phrases:_ "commit", "commit message", "follow commit", "ready to commit".
+- **`/commit` skill** — Stage all changes and commit using the Conventional Commits format with a bullet-list body. Run after `/prepare-to-commit`.
 
 For workflow-based conversations, keep the relevant doc (epic, story, or devlog) as the source of truth—prefer updating it over long chat so new sessions can start from the doc.
 

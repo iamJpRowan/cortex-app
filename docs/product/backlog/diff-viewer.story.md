@@ -1,11 +1,12 @@
 ---
+type: story
+title: Diff Viewer
 status: planned
 summary: View diffs of changes agents make to files in a connected local folder.
-themes: [ui-features, connections]
-depends_on: [local-folder-connection-type]
+themes: ["[[ui-features]]", "[[connections]]"]
+depends_on:
+  - "[[local-folder-connection-type.story.md]]"
 ---
-
-[Docs](../../README.md) / [Product](../README.md) / [Backlog](./README.md) / Diff Viewer
 
 # Diff Viewer
 
@@ -15,7 +16,7 @@ Allow the user to see what an agent changed in files within a connected local fo
 
 ## Prerequisites / Dependencies
 
-- **[Local Folder Connection Type](./local-folder-connection-type.md)** — The app must be able to read files from a connected folder before it can compute or display diffs.
+- **[[local-folder-connection-type.story.md]]** — The app must be able to read files from a connected folder before it can compute or display diffs.
 
 ## Requirements and constraints
 
@@ -32,5 +33,5 @@ Allow the user to see what an agent changed in files within a connected local fo
 
 ## References
 
-- [Connections](../../development/architecture/connections.md) — Connection concept and Local Folder requirements.
-- [Local Folder Connection Type](./local-folder-connection-type.md) — Prerequisite backlog item.
+- [[connections]] — Connection concept and Local Folder requirements.
+- [[local-folder-connection-type.story.md]] — Prerequisite backlog item.

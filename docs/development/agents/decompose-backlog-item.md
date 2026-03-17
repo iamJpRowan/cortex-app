@@ -24,16 +24,18 @@ A story never has both child stories and task files. Decompose until every leaf 
 
 1. **Read the story.** Load `<slug>.story.md` and all referenced docs. Understand the goal, requirements, success criteria, and constraints.
 
-2. **Create a child story folder per phase or aspect.** For each `## Phase N: Title` or distinct aspect, create `<parent-folder>/<child-slug>/<child-slug>.story.md`. Each child story file must include:
+2. **Promote the story to a folder.** If the story is currently a flat file (`<slug>.story.md`), create the `<slug>/` directory and move the file into it as `<slug>/<slug>.story.md`.
+
+3. **Create a child story file per phase or aspect.** For each `## Phase N: Title` or distinct aspect, create `<slug>/<child-slug>.story.md` (flat inside the parent folder). Each child story file must include:
    - **Frontmatter:** `type: story`, `title`, `status: planned`, `summary`, `parent: <parent-slug>.story.md`.
    - **Goal** — What this child story delivers (scoped to this phase/aspect only).
    - **Out of scope** — What it explicitly does not cover.
    - **Success criteria** — Concrete and testable; derived from the parent's criteria for this scope.
    - **References** — The subset of the parent's references that apply to this child.
 
-3. **Update the parent story.** Add `children: [child-slug-1.story.md, child-slug-2.story.md]` to frontmatter in dependency order. Set parent status to `ready`.
+4. **Update the parent story.** Add `children: [child-slug-1.story.md, child-slug-2.story.md]` to frontmatter in dependency order. Set parent status to `ready`.
 
-4. **Pause for review.** After creating child stories, surface them to the user for scope validation before decomposing any child into tasks. Children start at `planned` — each is refined and decomposed separately.
+5. **Pause for review.** After creating child stories, surface them to the user for scope validation before decomposing any child into tasks. Children start at `planned` — each is refined and decomposed separately.
 
 ---
 
@@ -41,7 +43,9 @@ A story never has both child stories and task files. Decompose until every leaf 
 
 1. **Read the story.** Load `<slug>.story.md` and all referenced docs.
 
-2. **Create a task file per unit of work.** Name files `NN-slug.task.md` with a zero-padded numeric prefix for ordering (`01-`, `02-`, etc.). Each task file follows [TEMPLATE.task.md](../../product/backlog/TEMPLATE.task.md):
+2. **Promote the story to a folder.** If the story is currently a flat file (`<slug>.story.md`), create the `<slug>/` directory and move the file into it as `<slug>/<slug>.story.md`.
+
+3. **Create a task file per unit of work.** Name files `NN-slug.task.md` with a zero-padded numeric prefix for ordering (`01-`, `02-`, etc.). Each task file follows [TEMPLATE.task.md](../../product/backlog/TEMPLATE.task.md):
 
    ```markdown
    ---
@@ -69,7 +73,7 @@ A story never has both child stories and task files. Decompose until every leaf 
    - Use `depends_on` for tasks that must complete before this one can start (filenames including `.task.md`).
    - References in each task file are the minimal set needed — not the full story reference list.
 
-3. **Update the story.** Set status to `ready` in the story file's frontmatter.
+4. **Update the story.** Set status to `ready` in the story file's frontmatter.
 
 ---
 

@@ -1,13 +1,14 @@
 ---
+type: story
+title: Markdown Viewer/Editor
 status: planned
 summary: View and edit markdown files from a connected local folder within the app.
-themes: [ui-features, connections]
-depends_on: [local-folder-connection-type]
+themes: ["[[ui-features]]", "[[connections]]"]
+depends_on:
+  - "[[local-folder-connection-type.story.md]]"
 ---
 
-[Docs](../../README.md) / [Product](../README.md) / [Backlog](./README.md) / Markdown Viewer Editor
-
-# Markdown Viewer Editor
+# Markdown Viewer/Editor
 
 ## Goal
 
@@ -15,7 +16,7 @@ Allow the user to view and edit markdown files from a connected local folder dir
 
 ## Prerequisites / Dependencies
 
-- **[Local Folder Connection Type](./local-folder-connection-type.md)** — The app must be able to read and write files from a connected folder before it can render or edit them.
+- **[[local-folder-connection-type.story.md]]** — The app must be able to read and write files from a connected folder before it can render or edit them.
 
 ## Requirements and constraints
 
@@ -32,5 +33,5 @@ Allow the user to view and edit markdown files from a connected local folder dir
 
 ## References
 
-- [Connections](../../development/architecture/connections.md) — Connection concept and Local Folder requirements.
-- [Local Folder Connection Type](./local-folder-connection-type.md) — Prerequisite backlog item.
+- [[connections]] — Connection concept and Local Folder requirements.
+- [[local-folder-connection-type.story.md]] — Prerequisite backlog item.

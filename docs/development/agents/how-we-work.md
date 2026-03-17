@@ -9,10 +9,10 @@ This document describes the intended development loop so both the user and agent
 | Term | Role |
 |---|---|
 | **Theme** | High-level grouping of related stories. |
-| **Story** | A backlog item. Always a folder (`<slug>/<slug>.story.md`). Either a **container** (has child story subfolders) or a **leaf** (has task files). One leaf story = one branch, one devlog, one PR. |
+| **Story** | A backlog item. Starts as a flat file (`<slug>.story.md`); becomes a folder (`<slug>/<slug>.story.md` + children or tasks) only when decomposed. Either a **container** (has child story files) or a **leaf** (has task files). One leaf story = one branch, one devlog, one PR. |
 | **Task** | Single-agent workable unit. An individual file (`NN-slug.task.md`) inside a leaf story folder. Self-contained: scope, acceptance criteria, and references needed — nothing else. |
 
-Stories nest at any depth. Decompose until each story maps to a single PR. Archiving works at the folder level — a completed container story and all its children move to `archive/` together.
+Stories nest at any depth. Decompose until each story maps to a single PR. Archiving a flat story moves the file; archiving a decomposed story moves the folder. A container story and all its children always archive together under `archive/`.
 
 ## Backlog Lifecycle
 

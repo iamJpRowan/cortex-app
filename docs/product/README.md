@@ -21,10 +21,10 @@ The **roadmap** captures the current goal and the backlog items needed to achiev
 | Backlog item | Status | Depends on |
 |---|---|---|
 | [Tool Permission System](./backlog/tool-permission-system.md) (Phase 8+) | `in progress` | — |
-| [Connections Foundation](./backlog/connections-foundation.md) | `planned` | tool-permission-system |
-| [Local Folder Connection Type](./backlog/local-folder-connection-type.md) | `planned` | connections-foundation |
-| [Markdown Viewer/Editor](./backlog/markdown-viewer-editor.md) | `planned` | local-folder-connection-type |
-| [Diff Viewer](./backlog/diff-viewer.md) | `planned` | local-folder-connection-type |
+| [Connections Foundation](./backlog/connections-foundation.story.md) | `planned` | tool-permission-system |
+| [Local Folder Connection Type](./backlog/local-folder-connection-type.story.md) | `planned` | connections-foundation |
+| [Markdown Viewer/Editor](./backlog/markdown-viewer-editor.story.md) | `planned` | local-folder-connection-type |
+| [Diff Viewer](./backlog/diff-viewer.story.md) | `planned` | local-folder-connection-type |
 
 ## Themes
 
