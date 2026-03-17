@@ -44,8 +44,9 @@ No blocking story dependencies. Skills are self-contained files in `.claude/skil
 4. **Create worktree and branch.** Branch name: `claude/<story-slug>`. Worktree at `.claude/worktrees/<story-slug>`. All subsequent work happens in this worktree.
 5. **Create devlog.** `docs/product/devlogs/YYYY-MM-DD-<story-slug>.md` with the story slug in `related_backlog`. Update the story's `devlogs` frontmatter to point to it.
 6. **Decompose into tasks.** Write a `## Tasks` section into the story file. Each task is a structured entry (see §Task format below). Present the full task breakdown to the user for approval before beginning any implementation.
-7. **Work tasks sequentially.** On user approval, spawn a `/work-task` subagent for each task in order, passing: story file path, task index/title, devlog path, worktree path. Wait for each subagent to complete before starting the next (tasks may have dependencies).
-8. **Create PR.** When all tasks are complete, set the story's frontmatter status to `ready to review`, then open a pull request targeting `main` with the story title, a summary from the devlog, and test steps derived from the story's success criteria.
+7. **Commit setup.** After user approval of the task breakdown, commit the story file and devlog changes before beginning any implementation. Push to remote.
+8. **Work tasks sequentially.** Spawn a `/work-task` subagent for each task in order, passing: story file path, task index/title, devlog path, worktree path. Wait for each subagent to complete before starting the next (tasks may have dependencies).
+9. **Create PR.** When all tasks are complete, set the story's frontmatter status to `ready to review`, then open a pull request targeting `main` with the story title, a summary from the devlog, and test steps derived from the story's success criteria.
 
 ### 3. `/work-task` skill (subagent)
 
@@ -123,7 +124,7 @@ Tasks must be:
 
 ## Tasks
 
-### Task 1: Create `/refine-story` command — `pending`
+### Task 1: Create `/refine-story` command — `complete`
 
 **Scope:** Create `.claude/commands/refine-story.md`. The command accepts a story file path as `$ARGUMENTS`, reads the story and all wikilinked docs, flags broken links, evaluates all 6 readiness criteria (from the story spec), and for each failing criterion asks the user one focused question at a time. Updates the story file in place as the user answers. When all criteria pass, sets `status: refined` in frontmatter and confirms. Does not proceed to implementation — this is a pure refinement conversation skill.
 
@@ -159,6 +160,7 @@ Tasks must be:
 - [ ] Creates devlog with correct frontmatter and updates story's `devlogs` field
 - [ ] Writes `## Tasks` section to story file following the task format from the story spec
 - [ ] Presents full task breakdown and waits for user approval before implementation
+- [ ] Commits story file + devlog changes and pushes after user approval, before first task
 - [ ] Spawns `/work-task` for each task sequentially after approval
 - [ ] Sets story status to `ready to review` before opening PR
 - [ ] Opens a PR targeting `main` with title, devlog summary, and test steps from success criteria
