@@ -2,7 +2,9 @@
 
 # Decompose backlog item
 
-**Intent:** Take a `refined` story and decompose it — either into child stories or into task files. Fully automated; no human turn required. Apply the decision rule below to determine which output is appropriate.
+**Intent:** Take a `next` (or further) story and decompose it — either into child stories or into task files. Fully automated; no human turn required. Apply the decision rule below to determine which output is appropriate.
+
+> **Note:** When using the `/work-story` skill, inline task decomposition is handled automatically within the story file. This manual workflow is for cases where you want to decompose a story into separate child story files, or prefer the file-per-task structure over inline tasks.
 
 ---
 
@@ -33,7 +35,7 @@ A story never has both child stories and task files. Decompose until every leaf 
    - **Success criteria** — Concrete and testable; derived from the parent's criteria for this scope.
    - **References** — The subset of the parent's references that apply to this child.
 
-4. **Update the parent story.** Add `children: [child-slug-1.story.md, child-slug-2.story.md]` to frontmatter in dependency order. Set parent status to `ready`.
+4. **Update the parent story.** Add `children: [child-slug-1.story.md, child-slug-2.story.md]` to frontmatter in dependency order. Set parent status to `next`.
 
 5. **Pause for review.** After creating child stories, surface them to the user for scope validation before decomposing any child into tasks. Children start at `planned` — each is refined and decomposed separately.
 
@@ -73,7 +75,7 @@ A story never has both child stories and task files. Decompose until every leaf 
    - Use `depends_on` for tasks that must complete before this one can start (filenames including `.task.md`).
    - References in each task file are the minimal set needed — not the full story reference list.
 
-4. **Update the story.** Set status to `ready` in the story file's frontmatter.
+4. **Update the story.** Set status to `next` in the story file's frontmatter.
 
 ---
 
@@ -85,7 +87,7 @@ A story never has both child stories and task files. Decompose until every leaf 
 
 ## See also
 
-- [Agents guide](./README.md) — Backlog lifecycle and hierarchy
-- [refine-backlog-item](./refine-backlog-item.md) — Produces `refined` stories ready for decomposition
+- [How we work](./how-we-work.md) — Backlog lifecycle and hierarchy
+- [refine-backlog-item](./refine-backlog-item.md) — Produces `next` stories ready to be worked
 - [work-backlog-item](./work-backlog-item.md) — How agents execute individual tasks
 - [TEMPLATE.task.md](../../product/backlog/TEMPLATE.task.md) — Task file format

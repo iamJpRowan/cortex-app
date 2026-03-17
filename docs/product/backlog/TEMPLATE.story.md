@@ -53,7 +53,7 @@ Inline wikilinks to architecture, development, design docs implementers need. Us
 | ------------ | -------- | ----------- |
 | `type`       | Yes      | Always `story` for story files. (`task` for task files — see [[TEMPLATE.task.md]].) |
 | `title`      | Yes      | Human-readable story name. Used in PR titles, devlog headings, and agent context. |
-| `status`     | Yes      | One of: **active** `in progress`; **planning** `planned`, `refined`, `ready`; **inactive** `considering`. |
+| `status`     | Yes      | One of: `considering`, `planned`, `next`, `in progress`, `blocked`, `ready to review`, `completed`, `abandoned`. See status table below. |
 | `summary`    | Yes      | One short line for backlog view tables. |
 | `themes`     | No       | String list of theme IDs: `["connections", "chat-ai"]`. |
 | `parent`     | No       | Child stories only. Wikilink to parent story file: `"[[parent-slug.story.md]]"`. |
@@ -63,31 +63,28 @@ Inline wikilinks to architecture, development, design docs implementers need. Us
 | `milestones` | No       | List of wikilinks to milestone files (no extension): `["[[milestone-slug]]"]`. |
 | `devlogs`    | No       | Leaf stories only. Wikilinks to devlog files (no `.md`): `["[[YYYY-MM-DD-slug]]"]`. Bi-directional with devlog's `related_backlog`. |
 
-**Archived stories** (in `docs/product/backlog/archive/`): archive the whole folder. Only these in frontmatter:
+**Status values:**
 
-| Key             | Required | Description |
-| --------------- | -------- | ------------ |
-| `status`        | Yes      | One of: `completed`, `decomposed`, `merged`, `abandoned` |
-| `date_archived` | Yes      | ISO date (YYYY-MM-DD) when moved to archive. |
-| `summary`       | Yes      | One short line for backlog view. |
+| Status | Meaning |
+| --- | --- |
+| `considering` | An idea; not yet committed as required work. |
+| `planned` | Committed — identified as needed. Requirements may still be incomplete. |
+| `next` | Queued to be worked as soon as any blockers clear. May still need refinement before the agent can proceed autonomously. |
+| `in progress` | Actively being implemented. |
+| `blocked` | Cannot proceed without human input. Add a `## Blocked` section to the body explaining the blocker. |
+| `ready to review` | Implementation complete; a PR is open and awaiting human review. |
+| `completed` | PR merged into main. |
+| `abandoned` | No intent to build. Add a reason at the top of the body: e.g. _Duplicate of [[other-slug.story.md]]_, _Decomposed into [[child1.story.md]], [[child2.story.md]]_, or a free-form explanation. |
 
-**Do not put in frontmatter:** "Why archived", "Merged into", "Abandoned reason" — put those as a short paragraph at the top of the body.
+Typical flow: `considering` → `planned` → `next` → `in progress` → `ready to review` → `completed`. A story can move to `blocked` from `in progress`, or to `abandoned` from any state.
 
-**Status groups:**
-
-- **Active**: `in progress` — Being implemented. Review happens per leaf story via PR.
-- **Planning**: `planned` → `refined` → `ready`.
-  - `planned` — Identified as needed; needs refinement.
-  - `refined` — Requirements complete; ready for decomposition.
-  - `ready` — Leaf: task files written, `/work` can begin. Container: all children are planned.
-- **Inactive**: `considering` — Not part of the current goal.
-- **Done** (archive only): `completed` → `decomposed` → `merged` → `abandoned`.
+**Archiving:** `completed` and `abandoned` stories may be moved to `docs/product/backlog/archive/` for housekeeping. Status stays the same — no special archive frontmatter. Archiving a flat story: move the `.story.md` file. Archiving a decomposed story: move the `<slug>/` folder. Container stories and all their children always archive together.
 
 **Story structure:**
 
 Stories start as **flat files** (`<slug>.story.md`) and stay that way until decomposed. A folder is only created when a story is decomposed into child stories or tasks:
 
-- **Flat story** (`<slug>.story.md`) — not yet decomposed; status `planned`, `refined`, or `considering`.
+- **Flat story** (`<slug>.story.md`) — not yet decomposed; any pre-`in progress` status.
 - **Story with children** (`<slug>/<slug>.story.md` + child files) — decomposed into child stories, each starting as a flat file alongside the parent (`<child-slug>.story.md`). Decomposed via `decompose-backlog-item`.
 - **Story with tasks** (`<slug>/<slug>.story.md` + task files) — decomposed into task files (`01-slug.task.md`, `02-slug.task.md`, …). One set of tasks = one branch, one devlog, one PR.
 
