@@ -1,7 +1,7 @@
 ---
 type: story
 title: Create Skills for Working Stories
-status: in progress
+status: ready to review
 summary: Build /work-story, /refine-story, and /work-task skills that automate the full lifecycle from story validation through task execution to PR creation.
 themes: ['developer-experience']
 devlogs: [2026-03-17-create-skills-for-working-stories]
