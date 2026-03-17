@@ -56,18 +56,18 @@ When the LLM invokes a tool that has "ask" permission in the conversation's mode
 
 ## Tasks
 
-### Task 1: Types and IPC stubs — `pending`
+### Task 1: Types and IPC stubs — `complete`
 
 **Scope:** Add `tool_approval_request` to `StreamEventType` in shared types; add `StreamToolApprovalEvent` type (carrying `toolCallId`, `toolName`, `toolDescription`, `args`); register `llm:approve-tool` and `llm:deny-tool` IPC handlers (stubs that return `{ success: true }`); expose them in preload as `window.api.llm.approveTool(streamId)` and `window.api.llm.denyTool(streamId)`; add `approveTool` and `denyTool` method stubs to `LLMAgent`.
 
 **Acceptance criteria:**
-- [ ] `StreamEventType` includes `'tool_approval_request'`
-- [ ] `StreamToolApprovalEvent` interface exists in `src/shared/types/llm.ts` with fields: `type: 'tool_approval_request'`, `streamId`, `conversationId`, `toolCallId`, `toolName`, `toolDescription`, `args`
-- [ ] `StreamEvent` union includes `StreamToolApprovalEvent`
-- [ ] `ipcMain.handle('llm:approve-tool', ...)` and `ipcMain.handle('llm:deny-tool', ...)` registered in `src/main/ipc/llm.ts`
-- [ ] `window.api.llm.approveTool` and `window.api.llm.denyTool` exposed in `src/preload/index.ts`
-- [ ] `LLMAgent` has `approveTool(streamId: string): void` and `denyTool(streamId: string, message?: string): void` stubs
-- [ ] TypeScript compiles without errors (`npm run type-check`)
+- [x] `StreamEventType` includes `'tool_approval_request'`
+- [x] `StreamToolApprovalEvent` interface exists in `src/shared/types/llm.ts` with fields: `type: 'tool_approval_request'`, `streamId`, `conversationId`, `toolCallId`, `toolName`, `toolDescription`, `args`
+- [x] `StreamEvent` union includes `StreamToolApprovalEvent`
+- [x] `ipcMain.handle('llm:approve-tool', ...)` and `ipcMain.handle('llm:deny-tool', ...)` registered in `src/main/ipc/llm.ts`
+- [x] `window.api.llm.approveTool` and `window.api.llm.denyTool` exposed in `src/preload/index.ts`
+- [x] `LLMAgent` has `approveTool(streamId: string): void` and `denyTool(streamId: string, message?: string): void` stubs
+- [x] TypeScript compiles without errors (`npm run type-check`)
 
 **References:** `src/shared/types/llm.ts`, `src/main/ipc/llm.ts`, `src/preload/index.ts`, `src/main/services/llm/agent.ts`
 

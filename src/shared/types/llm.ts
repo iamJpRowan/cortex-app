@@ -393,6 +393,7 @@ export type StreamEventType =
   | 'start'
   | 'token'
   | 'trace'
+  | 'tool_approval_request'
   | 'complete'
   | 'error'
   | 'cancelled'
@@ -451,6 +452,26 @@ export interface StreamTraceEvent extends StreamEventBase {
    * When present, frontend pushes this as a text block then the trace block.
    */
   completedSegment?: string
+}
+
+/**
+ * Event sent when the agent needs user approval to invoke an "ask" tool.
+ * Execution is paused until the user approves or denies via IPC.
+ */
+export interface StreamToolApprovalEvent extends StreamEventBase {
+  type: 'tool_approval_request'
+
+  /** Tool call ID for correlating with approval/denial */
+  toolCallId: string
+
+  /** Name of the tool requesting approval */
+  toolName: string
+
+  /** Human-readable description of the tool */
+  toolDescription: string
+
+  /** Arguments the LLM is requesting to pass to the tool */
+  args: Record<string, unknown>
 }
 
 /**
@@ -519,6 +540,7 @@ export type StreamEvent =
   | StreamStartEvent
   | StreamTokenEvent
   | StreamTraceEvent
+  | StreamToolApprovalEvent
   | StreamCompleteEvent
   | StreamErrorEvent
   | StreamCancelledEvent

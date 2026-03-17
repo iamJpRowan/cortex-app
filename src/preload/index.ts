@@ -42,6 +42,18 @@ contextBridge.exposeInMainWorld('api', {
      * Cancel an active stream by stream ID.
      */
     cancelStream: (streamId: string) => ipcRenderer.invoke('llm:cancelStream', streamId),
+    /**
+     * Approve a pending tool execution request.
+     * @param streamId The stream ID with the pending approval
+     */
+    approveTool: (streamId: string) => ipcRenderer.invoke('llm:approve-tool', streamId),
+    /**
+     * Deny a pending tool execution request.
+     * @param streamId The stream ID with the pending approval
+     * @param message Optional denial message to return to the LLM
+     */
+    denyTool: (streamId: string, message?: string) =>
+      ipcRenderer.invoke('llm:deny-tool', streamId, message),
     toolsList: () => ipcRenderer.invoke('llm:tools:list'),
     toolsTest: (toolName: string, args: Record<string, unknown>) =>
       ipcRenderer.invoke('llm:tools:test', toolName, args),

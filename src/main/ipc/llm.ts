@@ -285,6 +285,27 @@ export function registerLLMHandlers() {
   )
 
   /**
+   * Approve a pending tool execution request (stub — wired in Task 2).
+   * @param streamId The stream ID associated with the pending approval
+   */
+  ipcMain.handle('llm:approve-tool', (_event, streamId: string) => {
+    console.log(`[LLM IPC] approve-tool: ${streamId}`)
+    getLLMAgentService().approveTool(streamId)
+    return { success: true }
+  })
+
+  /**
+   * Deny a pending tool execution request (stub — wired in Task 2).
+   * @param streamId The stream ID associated with the pending approval
+   * @param message Optional denial message passed back to the LLM
+   */
+  ipcMain.handle('llm:deny-tool', (_event, streamId: string, message?: string) => {
+    console.log(`[LLM IPC] deny-tool: ${streamId}`)
+    getLLMAgentService().denyTool(streamId, message)
+    return { success: true }
+  })
+
+  /**
    * Cancel an active stream by stream ID.
    */
   ipcMain.handle('llm:cancelStream', (_event, streamId: string) => {

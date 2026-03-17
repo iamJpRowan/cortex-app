@@ -30,4 +30,14 @@ Key architectural decision: rather than patching the LangGraph executor (which d
 
 # Outcome
 
-_To be filled as tasks complete._
+## Task 1: Types and IPC stubs — complete
+
+Added the foundational types and IPC plumbing for runtime tool approval:
+
+- Added `'tool_approval_request'` to `StreamEventType` in `src/shared/types/llm.ts`
+- Added `StreamToolApprovalEvent` interface (extends `StreamEventBase`) with fields: `type`, `toolCallId`, `toolName`, `toolDescription`, `args`
+- Added `StreamToolApprovalEvent` to the `StreamEvent` union type
+- Registered `llm:approve-tool` and `llm:deny-tool` IPC handlers in `src/main/ipc/llm.ts` (stubs that log and return `{ success: true }`)
+- Exposed `window.api.llm.approveTool(streamId)` and `window.api.llm.denyTool(streamId, message?)` in `src/preload/index.ts`
+- Added `approveTool(streamId: string): void` and `denyTool(streamId: string, message?: string): void` stub methods to `LLMAgentService` in `src/main/services/llm/agent.ts`
+- `npm run type-check` passes with no errors

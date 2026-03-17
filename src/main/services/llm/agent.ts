@@ -1380,6 +1380,31 @@ export class LLMAgentService {
   }
 
   /**
+   * Approve a pending tool execution request.
+   * Stub — the actual implementation (resolving a Promise in a pending-approval map)
+   * is wired in Task 2.
+   *
+   * @param streamId Stream ID associated with the pending approval
+   */
+  approveTool(streamId: string): void {
+    console.log(`[LLMAgent] approveTool called for stream: ${streamId} (stub — Task 2)`)
+  }
+
+  /**
+   * Deny a pending tool execution request.
+   * Stub — the actual implementation (resolving a Promise in a pending-approval map)
+   * is wired in Task 2.
+   *
+   * @param streamId Stream ID associated with the pending approval
+   * @param message Optional denial message to return to the LLM
+   */
+  denyTool(streamId: string, message?: string): void {
+    console.log(
+      `[LLMAgent] denyTool called for stream: ${streamId}, message: ${message ?? '(none)'} (stub — Task 2)`
+    )
+  }
+
+  /**
    * True when checkpointer is ready; executors are created per model on demand.
    */
   isInitialized(): boolean {
