@@ -24,4 +24,4 @@
 
 - [UI Guide](./ui-guide.md) — Styling and reuse (primitives first, then app components)
 - [Terminology](./terminology.md) — Primitive vs app component
-- [Work a backlog item](../agents/work-backlog-item.md) — When the item includes UI
+- [Agents guide](../agents/README.md) — Workflow and commands for implementing stories

@@ -73,11 +73,9 @@ Phases overlap — as soon as one leaf story reaches `next`, `/work-story` can b
 ## Workflow docs
 Each doc is a set of explicit instructions for that conversation type. When the user references one by name or phrase, read and follow it.
 
-- **`/refine-story` skill** / **[refine-backlog-item](./refine-backlog-item.md)** — Refine a story until it meets all readiness criteria. Does not change status.
-- **`/work-story` skill** / **[work-backlog-item](./work-backlog-item.md)** — Validate readiness, create worktree/branch, decompose into tasks, drive implementation to a PR.
+- **`/refine-story` skill** — Refine a story until it meets all readiness criteria. Does not change status.
+- **`/work-story` skill** — Validate readiness, create branch, decompose into tasks, drive implementation to a PR.
 - **`/work-task` skill** — Subagent worker invoked by `/work-story` for each task. Not invoked directly by the user.
-- **[decompose-backlog-item](./decompose-backlog-item.md)** — Manual workflow: decompose a story into child stories or task files.
-- **[create-pr-message](./create-pr-message.md)** — Open a PR when all tasks are complete; invoked by `/work-story`.
 - **[defining-core-concepts](./defining-core-concepts.md)** — Define or refine how the product works; trickle-down to architecture, user docs, backlog.
 - **[backlog-grooming](./backlog-grooming.md)** — Backlog hygiene (clarify, abandon, archive).
 - **[docs-cleanup](./docs-cleanup.md)** — Docs-only cleanup (links, user vs dev, devlog related_backlog).

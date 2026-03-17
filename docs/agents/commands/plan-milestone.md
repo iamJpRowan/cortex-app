@@ -77,7 +77,7 @@ Do not summarize the contents of the milestone in chat.
 |---|---|
 | Gap stories identified | Invoke `/create-story` for each |
 | Milestone touches an unsettled concept | Use `defining-core-concepts` workflow first |
-| Goal is confirmed and stories are refined | Use `/refine-backlog-item` on each `planned` story |
+| Goal is confirmed and stories are refined | Use `/refine-story` on each `planned` story |
 
 ## Constraints
 

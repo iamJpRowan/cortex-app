@@ -58,7 +58,7 @@ Before writing any implementation code, append to the devlog under the task titl
 
 Build the task as defined by its Scope and Acceptance criteria. Follow the story's Requirements and constraints throughout.
 
-Guiding principles (from `docs/agents/work-backlog-item.md`):
+Guiding principles:
 - Functionality first — get it working before polishing.
 - Use existing patterns — prefer reusing or extending what is already in the codebase over new abstractions.
 - No over-engineering — minimum complexity needed to satisfy the acceptance criteria.
