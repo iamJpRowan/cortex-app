@@ -3,7 +3,13 @@ date: 2025-01-31
 developer: Jp Rowan
 agent: Cursor
 model: claude-sonnet-4-20250514
-tags: [chat, ui, streaming, langchain, electron, ai-elements]
+tags:
+  - chat
+  - ui
+  - streaming
+  - langchain
+  - electron
+  - ai-elements
 related_files:
   - src/renderer/src/components/ChatView.tsx
   - src/renderer/src/components/ConversationList.tsx
@@ -14,7 +20,7 @@ related_files:
   - src/renderer/src/components/ui/sidebar.tsx
   - src/renderer/src/main.css
 related_issues: []
-related_devlogs:
+devlogs:
   - 2025-01-27-chat-interface-scoping.md
 session_duration: ~8 hours (multi-session)
 iterations: 15+

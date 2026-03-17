@@ -79,13 +79,10 @@ date: YYYY-MM-DD
 developer:
 agent: Claude
 model: claude-sonnet-4-6
+session_id:
 tags: []
-related_backlog: [<story-slug>]
-related_files: []
+backlog_items: ["[[<story-slug>]]"]
 related_issues: []
-related_devlogs: []
-session_duration:
-iterations:
 outcome: in-progress
 ---
 

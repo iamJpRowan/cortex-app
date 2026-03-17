@@ -3,16 +3,10 @@ date: 2026-03-17
 developer: jprowan
 agent: Claude
 model: claude-sonnet-4-6
+session_id:
 tags: [dx, skills, agents]
-related_backlog: [create-skills-for-working-stories]
-related_files:
-  - .claude/commands/refine-story.md
-  - .claude/commands/work-story.md
-  - .claude/commands/work-task.md
+backlog_items: ["[[create-skills-for-working-stories]]"]
 related_issues: []
-related_devlogs: []
-session_duration:
-iterations:
 outcome: complete
 
 ---
@@ -55,9 +49,9 @@ The story requires tasks run sequentially (each `/work-task` must complete befor
 
 All three command files created and committed:
 
-- `.claude/commands/refine-story.md` — reads story, resolves wikilinks, evaluates 6 readiness criteria, asks one question per failing criterion, updates story in place, confirms when all pass without changing status.
-- `.claude/commands/work-story.md` — full orchestrator: validates links, checks readiness, creates worktree + branch, creates devlog, decomposes into inline tasks, waits for user approval, commits setup, spawns `/work-task` sequentially, sets `ready to review`, opens PR.
-- `.claude/commands/work-task.md` — subagent worker: parses args (story path, task ID, devlog path), reads inline task entry from `## Tasks` section, records approach in devlog before implementing, marks task complete, runs `/prepare-to-commit` + `/commit` + push, handles blockers with devlog note.
+- [.claude/commands/refine-story.md](.claude/commands/refine-story.md) — reads story, resolves wikilinks, evaluates 6 readiness criteria, asks one question per failing criterion, updates story in place, confirms when all pass without changing status.
+- [.claude/commands/work-story.md](.claude/commands/work-story.md) — full orchestrator: validates links, checks readiness, creates worktree + branch, creates devlog, decomposes into inline tasks, waits for user approval, commits setup, spawns `/work-task` sequentially, sets `ready to review`, opens PR.
+- [.claude/commands/work-task.md](.claude/commands/work-task.md) — subagent worker: parses args (story path, task ID, devlog path), reads inline task entry from `## Tasks` section, records approach in devlog before implementing, marks task complete, runs `/prepare-to-commit` + `/commit` + push, handles blockers with devlog note.
 
 Also updated the story spec to fix status lifecycle: `/refine-story` does not change status; `/work-story` sets `in progress` on setup and `ready to review` before PR. Story spec and success criteria are now consistent.
 

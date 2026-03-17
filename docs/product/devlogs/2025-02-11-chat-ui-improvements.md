@@ -3,8 +3,22 @@ date: 2025-02-11
 developer: jprowan
 agent: Cursor (Composer)
 model: —
-tags: [chat, chat-turn, metadata, copy-action, design-tokens, timestamps, ai-elements, conversation-state, draft-persistence, sidebar-indicators, user-background, resizable-sidebar, title-generation]
-related_backlog: [cursor-style-chat-ui]
+tags:
+  - chat
+  - chat-turn
+  - metadata
+  - copy-action
+  - design-tokens
+  - timestamps
+  - ai-elements
+  - conversation-state
+  - draft-persistence
+  - sidebar-indicators
+  - user-background
+  - resizable-sidebar
+  - title-generation
+backlog_items:
+  - cursor-style-chat-ui
 related_files:
   - src/renderer/src/components/ChatView.tsx
   - src/renderer/src/components/ConversationList.tsx
@@ -16,7 +30,7 @@ related_files:
   - docs/development/design/design-tokens.md
   - docs/product/backlog/README.md
 related_issues: []
-related_devlogs: []
+devlogs: []
 session_duration: —
 iterations: Chat turn refinements; metadata layout; copy feedback; success colors; avatar icons; pre-commit; backlog close-out; per-conversation state; draft persistence; sidebar indicators; user background to divider; resizable chat sidebar; auto-generated chat titles
 outcome: Chat turn layout polished; agent timestamps from checkpoint; copy action with feedback; success tokens; model avatar; backlog item closed; per-conversation state fixes; draft persistence; sidebar indicators (draft, streaming, unread); delete selects next; user turn background extends to divider; chat sidebar resizable (180–480px, persisted); conversation title generated from first message (local Ollama, "Generating title..." indicator)

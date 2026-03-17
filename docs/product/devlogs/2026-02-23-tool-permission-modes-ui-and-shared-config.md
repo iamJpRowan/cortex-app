@@ -2,9 +2,17 @@
 date: 2026-02-23
 developer: cortex-app
 agent: Cursor (Auto)
-model: -
-tags: [settings, agents, modes, permission-ui, mode-registry, file-watcher]
-related_backlog: [tool-permission-system]
+model:
+  - 
+tags:
+  - settings
+  - agents
+  - modes
+  - permission-ui
+  - mode-registry
+  - file-watcher
+backlog_items:
+  - tool-permission-system
 related_files:
   - src/main/services/modes/registry.ts
   - src/main/services/modes/builtins.ts
@@ -15,7 +23,7 @@ related_files:
   - src/renderer/src/components/ModeSelector.tsx
   - src/shared/types/llm.ts
 related_issues: []
-related_devlogs:
+devlogs:
   - 2026-02-16-tool-permission-system-phase-1
 session_duration: single
 iterations: multiple (Phase 4 backend → IPC → Phase 7 UI → enhancements → shared card → backlog)

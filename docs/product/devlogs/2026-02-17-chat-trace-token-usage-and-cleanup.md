@@ -2,9 +2,16 @@
 date: 2026-02-17
 developer: cortex-app
 agent: Cursor (Auto)
-model: -
-tags: [chat, trace, token-usage, streaming, cleanup]
-related_backlog: [agent-streaming-llm]
+model:
+  - 
+tags:
+  - chat
+  - trace
+  - token-usage
+  - streaming
+  - cleanup
+backlog_items:
+  - agent-streaming-llm
 related_files:
   - src/renderer/src/components/ChatView.tsx
   - src/main/services/llm/agent.ts
@@ -12,7 +19,7 @@ related_files:
   - src/renderer/src/components/ai-elements/tool-invocation.tsx
   - src/shared/types/llm.ts
 related_issues: []
-related_devlogs:
+devlogs:
   - 2025-02-11-chat-ui-improvements
   - 2026-02-16-chat-rich-markdown-input
 session_duration: multi-session

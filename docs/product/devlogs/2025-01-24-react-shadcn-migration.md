@@ -3,8 +3,17 @@ date: 2025-01-24
 developer: Jp Rowan
 agent: Auto (Cursor)
 model: claude-sonnet-4.5
-tags: [react, shadcn-ui, migration, electron, typescript, eslint, frameless-window, ui-components]
-related_backlog: [react-shadcn-migration]
+tags:
+  - react
+  - shadcn-ui
+  - migration
+  - electron
+  - typescript
+  - eslint
+  - frameless-window
+  - ui-components
+backlog_items:
+  - react-shadcn-migration
 related_files:
   - src/renderer/src/App.tsx
   - src/renderer/src/components/TitleBar.tsx
@@ -20,7 +29,7 @@ related_files:
   - tsconfig.json
   - src/renderer/src/main.css
 related_issues: []
-related_devlogs: []
+devlogs: []
 session_duration: ~6 hours
 iterations: 3 phases with incremental testing and cleanup
 outcome: Complete migration to React + shadcn/ui with frameless window, all linting errors resolved, ESLint integrated into pre-commit hooks

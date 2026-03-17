@@ -2,8 +2,15 @@
 date: 2026-02-23
 developer: cortex-app
 agent: Cursor (Auto)
-model: -
-tags: [chat, streaming, thinking, tool-result, trace, blocks]
+model:
+  - 
+tags:
+  - chat
+  - streaming
+  - thinking
+  - tool-result
+  - trace
+  - blocks
 related_files:
   - src/renderer/src/components/ChatView.tsx
   - src/renderer/src/lib/chat-blocks.ts
@@ -11,7 +18,7 @@ related_files:
   - src/shared/lib/chat-blocks.ts
   - docs/development/architecture/chat-streaming-and-blocks.md
 related_issues: []
-related_devlogs:
+devlogs:
   - 2026-02-22-bounded-tool-results.md
   - 2026-02-17-chat-trace-token-usage-and-cleanup.md
 session_duration: single
