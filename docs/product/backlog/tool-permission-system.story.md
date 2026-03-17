@@ -1,9 +1,13 @@
 ---
 type: story
 title: Tool Permission System
+alias: Tool Permission System
 status: in progress
 summary: Foundational tool definitions and user-controlled permissions (modes, runtime approval). Critical for trust and extensibility.
-themes: ["chat-ai"]
+themes:
+  - chat-ai
+milestones:
+  - "[[app-reads-and-writes-files.milestone]]"
 depends_on:
   - "[[configuration-system.md]]"
 children:

@@ -1,9 +1,13 @@
 ---
 type: story
 title: Connections Foundation
+alias: Connections Foundation
 status: planned
 summary: Registration, connection instance store, and wiring so modes and agents can use connection-scoped tools.
-themes: ["connections"]
+themes:
+  - connections
+milestones:
+  - "[[app-reads-and-writes-files.milestone]]"
 implements: "[[development/architecture/connections]]"
 depends_on:
   - "[[tool-permission-system.story.md]]"

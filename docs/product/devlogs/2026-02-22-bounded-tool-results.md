@@ -70,7 +70,7 @@ Tool results (e.g. Neo4j Cypher returning nodes with hour-long transcripts in pr
 - **Agent constants:** The agent keeps its own IPC-specific constants (4k, 8k, etc.) in `agent.ts`; they serve a different purpose (payloads to the renderer) than the context cap (32k) in content-guardrails. Unifying them in content-guardrails is optional if you want a single place to tune all limits.
 - **Testing:** No test runner in the project yet. Manual: use a tool that returns a string >32k and confirm truncation; for Neo4j, return a node with a very long property and confirm per-property and total cap. Optional script or Vitest tests can assert `capToolResult` / `capPropertyValue` behavior.
 - **Commit:** Use Conventional Commits, e.g. `feat(llm): bounded tool results — factory cap, Neo4j at-source cap, capResultLength opt-out`.
-- **Pre-commit:** Assessment done per [prepare-to-commit.md](../../development/agents/prepare-to-commit.md); see below.
+- **Pre-commit:** Assessment done per [prepare-to-commit.md](../../agents/prepare-to-commit.md); see below.
 ---
 
 # Pre-commit assessment (prepare-to-commit)

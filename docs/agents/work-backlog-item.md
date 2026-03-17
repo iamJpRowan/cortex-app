@@ -1,4 +1,4 @@
-[Docs](../../README.md) / [Development](../README.md) / [Agents](./README.md) / Work a backlog item
+[Docs](../README.md) / [Agents](./README.md) / Work a backlog item
 
 # Work a backlog item
 
@@ -66,4 +66,4 @@
 - [TEMPLATE.story.md](../../product/backlog/TEMPLATE.story.md) and [TEMPLATE.task.md](../../product/backlog/TEMPLATE.task.md) — Story and task formats
 - [create-pr-message](./create-pr-message.md) — Invoked by `/work` when all task files in a story are complete
 - `/prepare-to-commit` and `/commit` skills — Per-task commit before session end
-- [How we work](./how-we-work.md) — Backlog lifecycle and development loop
+- [Agents guide](./README.md) — Backlog lifecycle and development loop

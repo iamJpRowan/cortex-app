@@ -18,11 +18,11 @@ Welcome to the Cortex documentation. This directory is organized by **purpose**:
 
 **Implementing a feature?**
 1. Check the [roadmap](./product/README.md#roadmap) for **current focus** (what to work on now)
-2. Follow [work-backlog-item](./development/agents/work-backlog-item.md) for that item
+2. Follow [work-backlog-item](./agents/work-backlog-item.md) for that item
 3. Consult [Feature Development](./development/development-patterns/feature-development.md) and [Guardrails](./development/quality-and-release/guardrails.md) for patterns and constraints
 
 **Working with AI Agents?**
-1. Read [Agents Guide](./development/agents/README.md) for generic instructions and workflow-based conversations
+1. Read [Agents Guide](./agents/README.md) for generic instructions and workflow-based conversations
 
 ## Quick Reference
 

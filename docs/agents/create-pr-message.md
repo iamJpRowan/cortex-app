@@ -1,4 +1,4 @@
-[Docs](../../README.md) / [Development](../README.md) / [Agents](./README.md) / Create PR message
+[Docs](../README.md) / [Agents](./README.md) / Create PR message
 
 # Create PR message
 
@@ -32,5 +32,5 @@ You will be given:
 
 ## See also
 
-- [how-we-work](./how-we-work.md) — Full lifecycle and hierarchy description
+- [Agents guide](./README.md) — Full lifecycle and hierarchy
 - [work-backlog-item](./work-backlog-item.md) — How implementation tasks are worked

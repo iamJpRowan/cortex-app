@@ -1,4 +1,4 @@
-[Docs](../../README.md) / [Development](../README.md) / [Agents](./README.md) / Docs cleanup
+[Docs](../README.md) / [Agents](./README.md) / Docs cleanup
 
 # Docs cleanup
 

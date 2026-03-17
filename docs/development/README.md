@@ -2,7 +2,7 @@
 
 # Development Guide
 
-Development docs include [architecture](./architecture/README.md), [design](./design/README.md), and [agents](./agents/README.md) workflows.
+Development docs include [architecture](./architecture/README.md), [design](./design/README.md), and [agents](../agents/README.md) workflows.
 
 This guide covers the development workflow for building Cortex as a native Electron desktop application with embedded Neo4j and Ollama. The architecture prioritizes rapid iteration, clear separation of concerns, and a streamlined developer experience.
 

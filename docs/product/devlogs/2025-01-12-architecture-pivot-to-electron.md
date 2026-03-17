@@ -7,7 +7,7 @@ tags: [architecture, electron, phase-0, tech-stack]
 related_files: 
   - docs/development/architecture/README.md
   - docs/development/README.md
-  - docs/development/agents/README.md
+  - docs/agents/README.md
 related_issues: []
 related_devlogs: []
 session_duration: ~2 hours
@@ -110,7 +110,7 @@ Renderer Process (Chromium)
 1. **Complete documentation rewrite**:
    - [Architecture](../../development/architecture/README.md): Electron native app with subprocess model
    - [Development](../../development/README.md): Dev workflow, IPC patterns
-   - [Agents](../../development/agents/README.md): AI collaboration patterns for Electron development
+   - [Agents](../../agents/README.md): AI collaboration patterns for Electron development
    - `PHASE_0.md`: NEW - Step-by-step implementation guide
 
 2. **Clear Phase 0 path**:

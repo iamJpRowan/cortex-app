@@ -1,4 +1,4 @@
-[Docs](../../README.md) / [Development](../README.md) / [Agents](./README.md) / Decompose backlog item
+[Docs](../README.md) / [Agents](./README.md) / Decompose backlog item
 
 # Decompose backlog item
 
@@ -85,7 +85,7 @@ A story never has both child stories and task files. Decompose until every leaf 
 
 ## See also
 
-- [How we work](./how-we-work.md) — Backlog lifecycle and hierarchy
+- [Agents guide](./README.md) — Backlog lifecycle and hierarchy
 - [refine-backlog-item](./refine-backlog-item.md) — Produces `refined` stories ready for decomposition
 - [work-backlog-item](./work-backlog-item.md) — How agents execute individual tasks
 - [TEMPLATE.task.md](../../product/backlog/TEMPLATE.task.md) — Task file format

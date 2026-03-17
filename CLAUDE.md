@@ -123,13 +123,15 @@ Before implementing: ask whether the approach preserves user data sovereignty, i
 
 ## Agent Workflows
 
-Development is organized as **Theme → Story → Task** with docs as the source of truth. When the user references a workflow by name, see [docs/development/agents/README.md](docs/development/agents/README.md) for the full table of workflows and when to apply them (refine, decompose, work, groom, plan-goal, etc.).
+Development is organized as **Theme → Story → Task** with docs as the source of truth. When the user references a workflow by name, see [docs/agents/README.md](docs/agents/README.md) for the full table of workflows and when to apply them (refine, decompose, work, groom, plan-milestone, etc.).
 
 Backlog:
-When the user mentions the backlog the are referring to the files within `docs/product/backlog` Review the product [README](docs/product/README.md) and [How we work](docs/development/agents/how-we-work.md)
+When the user mentions the backlog the are referring to the files within `docs/product/backlog` Review the product [README](docs/product/README.md) and [Agents guide](docs/agents/README.md)
 
 Key skills available:
 
+- `/plan-milestone` — define a target capability as a milestone, map to existing stories, flag gaps
+- `/create-story` — scaffold a new `planned` story in the backlog (user or agent invokable)
 - `/prepare-to-commit` — review changes, apply fixes, report before committing
 - `/commit` — stage and commit with Conventional Commits format
 

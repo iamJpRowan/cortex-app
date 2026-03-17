@@ -1,10 +1,10 @@
-[Docs](../../README.md) / [Development](../README.md) / [Agents](./README.md) / Refine backlog item
+[Docs](../README.md) / [Agents](./README.md) / Refine backlog item
 
 # Refine backlog item
 
 **Intent:** Take a `planned` epic (or story) and refine it to the point where an agent can decompose it without further human input. The item moves from `planned` to `refined`.
 
-**How the user may start:** The user points at a `planned` epic or story (by name, file, or link). They may have context from the `plan-goal` session or may be picking up a `planned` item cold.
+**How the user may start:** The user points at a `planned` epic or story (by name, file, or link). They may have context from the `plan-milestone` session or may be picking up a `planned` item cold.
 
 **Doc as state:** The backlog doc is the source of truth. Prefer updating the doc over long chat replies. Use chat for questions and short summaries.
 
@@ -23,7 +23,7 @@ Implementation approach is **not** decided here — that happens when the work i
 
 ## Process
 
-1. **Open the epic or story doc.** Read the current state. If it's a lightweight placeholder from `plan-goal`, it may only have a goal statement.
+1. **Open the epic or story doc.** Read the current state. If it's a lightweight placeholder from `plan-milestone`, it may only have a goal statement.
 
 2. **Clarify and flesh out.** Work through each element of "refined" above. Ask the user when requirements are ambiguous. If a concept doc needs refinement first, stop and suggest a [defining-core-concepts](./defining-core-concepts.md) session for that concept before continuing.
 
@@ -37,8 +37,7 @@ Implementation approach is **not** decided here — that happens when the work i
 
 ## See also
 
-- [How we work](./how-we-work.md) — Backlog lifecycle and hierarchy
-- [plan-goal](./plan-goal.md) — Workflow that produces `planned` epics
+- [Agents guide](./README.md) — Backlog lifecycle and hierarchy
 - [decompose-backlog-item](./decompose-backlog-item.md) — Next workflow (automated)
-- [Backlog TEMPLATE](../../product/backlog/story.TEMPLATE.md) — Structure and frontmatter
+- [Backlog TEMPLATE](../../product/backlog/TEMPLATE.story.md) — Structure and frontmatter
 - [defining-core-concepts](./defining-core-concepts.md) — Use when a concept needs refinement first

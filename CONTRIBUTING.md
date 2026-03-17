@@ -4,12 +4,12 @@ This document provides guidelines for developers and AI agents working on Cortex
 
 ## How development works
 
-Development follows a consistent loop: **concepts** (define how the product works → doc trickle-down) → **roadmap** (you sequence and set current focus) → **implementation** (agent works current-focus item until **ready to test**) → **you test and refine** (via UI, and/or refine requirements) → **complete** (you mark done and archive). For the full picture, see [how we work](docs/development/agents/how-we-work.md) and the [agents guide](docs/development/agents/README.md).
+Development follows a consistent loop: **concepts** (define how the product works → doc trickle-down) → **roadmap** (you sequence and set current focus) → **implementation** (agent works current-focus item until **ready to test**) → **you test and refine** (via UI, and/or refine requirements) → **complete** (you mark done and archive). For the full picture, see the [agents guide](docs/agents/README.md).
 
 ## AI Agents
 
-If you're an AI agent (Cursor, Claude, GitHub Copilot, etc.), see the [agents guide](docs/development/agents/README.md) for:
-- [How we work](docs/development/agents/how-we-work.md) — Intended development loop and who does what
+If you're an AI agent (Cursor, Claude, GitHub Copilot, etc.), see the [agents guide](docs/agents/README.md) for:
+- [Agents guide](docs/agents/README.md) — Development loop, lifecycle, and workflow routing
 - Workflow-based conversations (work backlog item, design features, roadmap review, backlog grooming, docs cleanup, define core concepts, prepare to commit)
 - When to pause vs proceed
 - Implementation reference (development guide, guardrails)

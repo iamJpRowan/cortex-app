@@ -1,4 +1,4 @@
-[Docs](../../README.md) / [Development](../README.md) / [Agents](./README.md) / Defining core concepts
+[Docs](../README.md) / [Agents](./README.md) / Defining core concepts
 
 # Defining core concepts
 
@@ -27,7 +27,7 @@ Create or open the appropriate file; that file is the **source of truth** you re
 
 ## See also
 
-- [How we work](./how-we-work.md) — Your role and the development loop
+- [Agents guide](./README.md) — Development loop and lifecycle
 - [Story TEMPLATE](../../product/backlog/TEMPLATE.story.md) — Backlog structure and frontmatter (`implements`, `depends_on`, `devlogs`, `themes`)
 - [User docs](../feature-guides/user-docs.md) — Creating user docs
 - [Architecture](../architecture/README.md) — Architecture docs index

@@ -1,9 +1,14 @@
 ---
 type: story
 title: Diff Viewer
-status: planned
+alias: Diff Viewer
+status: considering
 summary: View diffs of changes agents make to files in a connected local folder.
-themes: ["ui-features", "connections"]
+themes:
+  - ui-features
+  - connections
+milestones:
+  - "[[app-reads-and-writes-files.milestone]]"
 depends_on:
   - "[[local-folder-connection-type.story.md]]"
 ---

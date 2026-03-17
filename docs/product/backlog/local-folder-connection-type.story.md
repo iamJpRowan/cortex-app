@@ -1,9 +1,13 @@
 ---
 type: story
 title: Local Folder Connection Type
+alias: Local Folder Connection Type
 status: planned
 summary: First connection type Local Folder (path = all subfolders/files); agent tools list_directory, read_file, write_file.
-themes: ["connections"]
+themes:
+  - connections
+milestones:
+  - "[[app-reads-and-writes-files.milestone]]"
 implements: "[[development/architecture/connections]]"
 depends_on:
   - "[[connections-foundation.story.md]]"

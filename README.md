@@ -8,7 +8,7 @@ AI-powered personal knowledge management system that integrates all your data—
 - [Architecture](docs/development/architecture/README.md) - Technical principles and design decisions
 - [Development Setup](docs/development/README.md) - How to get started and run locally
 - [Feature Development](docs/development/development-patterns/feature-development.md) - How to implement features incrementally
-- [AI Agents](docs/development/agents/README.md) - Collaboration workflow for AI agents
+- [AI Agents](docs/agents/README.md) - Collaboration workflow for AI agents
 - [Contributing](CONTRIBUTING.md) - Guidelines for developers and AI agents
 
 ## Quick Start
@@ -63,7 +63,7 @@ See [Development Setup](docs/development/README.md) for current status and next 
 - **[Architecture](docs/development/architecture/README.md)**: Core principles guiding all technical decisions
 - **[Development](docs/development/README.md)**: Practical setup, tooling, and conventions
 - **[Feature Development](docs/development/development-patterns/feature-development.md)**: Step-by-step guide for implementing features
-- **[AI Agents](docs/development/agents/README.md)**: How AI agents should collaborate with developers
+- **[AI Agents](docs/agents/README.md)**: How AI agents should collaborate with developers
 - **[Contributing](CONTRIBUTING.md)**: How to work on Cortex (humans and AI agents)
 
 For a complete overview of all documentation, see [docs/README.md](docs/README.md).

@@ -1,33 +1,34 @@
----
-current_focus: []
----
-
 [Docs](../README.md) / Product
 
 # Product
 
-This directory holds **product direction**, **backlog**, **devlogs**, and **roadmap**—what we're building and in what order. For visual/UI design (tokens, components, accessibility), see [Design](../development/design/README.md).
+This directory holds documentation that drives the design and development of the Cortex App forward.  For visual/UI design (tokens, components, accessibility), see [Design](../development/design/README.md).
 
-## Roadmap
+## [Milestones](./milestones/README.md) 
+Milestones are larger goals that group related backlog items. Each milestone file describes a target capability, the stories needed to achieve it, and their delivery order. ([TEMPLATE](./milestones/TEMPLATE.milestone.md))
 
-The **roadmap** captures the current goal and the backlog items needed to achieve it. Update it via [plan-goal](../development/agents/plan-goal.md).
+**Processes:**
+- [Plan Milestone](../agents/plan-milestone.md) — Define a target capability as a milestone and map it to stories (`/plan-milestone`)
 
-### Current goal
+## [Backlog](./backlog/README.md)
+The backlog contains the units of work for building. See [How we work](../agents/README.md) for the full lifecycle and workflows.
+- **Stories** - Are the most common unit of work and used to describe a fully functional and testable iteration of the app. ([TEMPLATE](./backlog/TEMPLATE.story.md))
+- **Tasks** - Are used for breaking stories down into units that an agent can work autonomously with all the needed context to do so ([TEMPLATE](./backlog/TEMPLATE.task.md))
 
-**App reads and writes files.** The app can connect to a local folder (the project repo), agents can read and write files via connection-scoped tools with permissions, and the user can view/edit markdown files and see diffs of agent changes.
+**Processes:**
+- [Create Story](../agents/create-story.md) — Scaffold a new `planned` story in the backlog (`/create-story`)
+- [Refine Backlog Item](../agents/refine-backlog-item.md) — Refine a `planned` story to `refined` (ready for decomposition)
+- [Decompose Backlog Item](../agents/decompose-backlog-item.md) — Decompose a `refined` story into child stories or task files
+- [Work Backlog Item](../agents/work-backlog-item.md) — Implement all tasks in a story
+- [Backlog Grooming](../agents/backlog-grooming.md) — Evaluate relevance, clarify, abandon, or archive backlog items
 
-### Items for this goal
+## [Devlogs](./devlogs/README.md)
+Devlogs capture what happened during implementation — decisions made, tradeoffs, and outcomes. Each devlog is written during or after a leaf story's branch and linked from that story's `devlogs` field.
 
-| Backlog item | Status | Depends on |
-|---|---|---|
-| [Tool Permission System](./backlog/tool-permission-system.story.md) | `in progress` | — |
-| [Connections Foundation](./backlog/connections-foundation.story.md) | `planned` | tool-permission-system |
-| [Local Folder Connection Type](./backlog/local-folder-connection-type.story.md) | `planned` | connections-foundation |
-| [Markdown Viewer/Editor](./backlog/markdown-viewer-editor.story.md) | `planned` | local-folder-connection-type |
-| [Diff Viewer](./backlog/diff-viewer.story.md) | `planned` | local-folder-connection-type |
+**Processes:**
+- [Work Backlog Item](../agents/work-backlog-item.md) — Creates and appends to the devlog as implementation progresses
+- [Create PR Message](../agents/create-pr-message.md) — Reads the devlog to write the PR body and test steps
 
 ## See also
-
-- [How we work](../development/agents/how-we-work.md) — Backlog lifecycle and development loop
-- [Backlog](./backlog/) — Backlog items
+- [How we work](../agents/README.md) — Backlog lifecycle and development loop
 - [Design](../development/design/README.md) — Visual system and UI patterns

@@ -1,12 +1,16 @@
 ---
 type: story
 title: Tool Permission Runtime Approval
-status: planned
+alias: Tool Permission Runtime Approval
+status: next
 summary: Inline approval UI for "ask" tools — execution pauses, user approves or denies in-conversation, sidebar indicator when chat not in focus.
-themes: ["chat-ai"]
+themes:
+  - chat-ai
 parent: "[[tool-permission-system.story.md]]"
 depends_on:
   - "[[tool-permission-system.story.md]]"
+milestones:
+  - "[[app-reads-and-writes-files.milestone]]"
 ---
 
 [Docs](../../README.md) / [Product](../README.md) / [Backlog](./README.md) / Tool Permission Runtime Approval

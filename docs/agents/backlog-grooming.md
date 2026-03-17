@@ -1,4 +1,4 @@
-[Docs](../../README.md) / [Development](../README.md) / [Agents](./README.md) / Backlog grooming
+[Docs](../README.md) / [Agents](./README.md) / Backlog grooming
 
 # Backlog grooming
 
@@ -31,4 +31,4 @@ For each item (or a subset the user chooses), evaluate:
 
 - [Backlog README](../../product/backlog/README.md) — Backlog view (generated); [TEMPLATE](../../product/backlog/story.TEMPLATE.md) — structure, frontmatter, archive
 - [Roadmap](../../product/README.md#roadmap) — Current focus (grooming may inform roadmap-review)
-- [How we work](./how-we-work.md) — Intended development loop
+- [Agents guide](./README.md) — Development loop and lifecycle
