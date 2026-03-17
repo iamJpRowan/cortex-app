@@ -20,7 +20,7 @@ This feature builds on LangChain Deep Agents' native sub-agent capabilities, add
 
 - **[Custom Agents](./custom-agents.md)** - Must be complete. Provides agent configuration, registry, and management.
 - **[Deep Agents Adoption](./deep-agents-adoption.md)** - Must be complete. Provides native sub-agent capabilities via `task()` tool.
-- **[Tool Permission System](./tool-permission-system.md)** - Should be complete for permission scoping.
+- **[Tool Permission System](./tool-permission-system.story.md)** - Should be complete for permission scoping.
 
 ## Key Capabilities
 
@@ -287,7 +287,7 @@ When a parent agent calls `delegate()`:
 
 **Depends on:**
 - [Custom Agents](./custom-agents.md) - Agent configuration and registry
-- [Tool Permission System](./tool-permission-system.md) - Permission model
+- [Tool Permission System](./tool-permission-system.story.md) - Permission model
 - [Deep Agents Adoption](./deep-agents-adoption.md) - Provides runtime sub-agent capabilities
 
 **Related:**

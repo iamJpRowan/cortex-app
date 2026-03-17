@@ -155,7 +155,7 @@ Decisions below are grouped into **Requirements-ready** (clear enough to write i
 
 ## Backlog and theme
 
-Backlog items that implement or extend this concept are grouped under the **connections** theme. See [Themes](../../product/themes/README.md) (theme: `connections`); the theme doc lists those items and is kept in sync via frontmatter.
+Backlog items that implement or extend this concept are tagged `themes: ["connections"]` in frontmatter.
 
 ---
 

@@ -3,10 +3,12 @@ type: story
 title: Diff Viewer
 status: planned
 summary: View diffs of changes agents make to files in a connected local folder.
-themes: ["[[ui-features]]", "[[connections]]"]
+themes: ["ui-features", "connections"]
 depends_on:
   - "[[local-folder-connection-type.story.md]]"
 ---
+
+[Docs](../../README.md) / [Product](../README.md) / [Backlog](./README.md) / Diff Viewer
 
 # Diff Viewer
 

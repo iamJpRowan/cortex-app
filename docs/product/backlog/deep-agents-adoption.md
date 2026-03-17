@@ -142,7 +142,7 @@ The migration is straightforward because Deep Agents are built on top of LangGra
 - [Sub-Agent Delegation](./sub-agent-delegation.md) - Agent-to-agent delegation
 
 **Related:**
-- [Tool Permission System](./tool-permission-system.md) - Permission model used by agents. **Phase 6 (runtime approval)** depends on a minimal Deep Agents slice: harness + `interrupt_on` for tool calls. Implement that MVP for this single use case so "ask" tools use Deep Agents' human-in-the-loop instead of custom interrupt logic.
+- [Tool Permission System](./tool-permission-system.story.md) - Permission model used by agents. **Phase 6 (runtime approval)** depends on a minimal Deep Agents slice: harness + `interrupt_on` for tool calls. Implement that MVP for this single use case so "ask" tools use Deep Agents' human-in-the-loop instead of custom interrupt logic.
 
 ## Notes
 

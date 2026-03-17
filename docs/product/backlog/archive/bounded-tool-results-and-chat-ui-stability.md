@@ -47,5 +47,5 @@ User-facing "allow full result" and "confirm oversized prompt" are **not** part 
 ## Related
 
 - [Content and Token Guardrail Confirmations](../content-and-token-guardrail-confirmations.md) — user-facing "allow full result" and "confirm oversized prompt"; depends on this item's factory cap and opt-out.
-- [Tool Permission System](../tool-permission-system.md) — runtime approval for "ask" tools; Content and Token Guardrail Confirmations reuses that approval UI.
+- [Tool Permission System](../tool-permission-system.story.md) — runtime approval for "ask" tools; Content and Token Guardrail Confirmations reuses that approval UI.
 - [Context Window and Costs](../context-window-and-costs.md) — token estimation and "used / limit" display; prerequisite for oversized-prompt confirmation.

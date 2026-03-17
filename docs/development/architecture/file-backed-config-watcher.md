@@ -47,5 +47,5 @@ Shared service for config that lives in files or directories (e.g. `settings.jso
 
 ## Related
 
-- Tool permission system: [Phase 7](../../product/backlog/tool-permission-system.md#phase-7-shared-user-config--file-watcher-next) (shared user-config / file watcher).
+- Tool permission system: [Phase 7](../../product/backlog/tool-permission-system.story.md#phase-7-shared-user-config--file-watcher-next) (shared user-config / file watcher).
 - Settings: [settings.md](../feature-guides/settings.md)

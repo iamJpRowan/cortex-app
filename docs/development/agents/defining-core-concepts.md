@@ -22,14 +22,12 @@ Create or open the appropriate file; that file is the **source of truth** you re
    - **Architecture** — Ensure the concept doc is linked from [architecture/README.md](../architecture/README.md). Update other architecture docs (e.g. principles, data-flow) if they reference this concept.
    - **User docs** — Add or update `docs/user/` so users understand the concept (e.g. extend [concepts.md](../../user/concepts.md) or add a dedicated user-facing doc). Use [user-docs](../feature-guides/user-docs.md) for conventions.
    - **Developer docs** — Add or update guides so implementers follow the concept (e.g. "when adding a connection type…" in a development doc). Put mandatory rules in developer docs, not only in the concept doc.
-   - **Themes** — If the concept maps to a set of backlog items that benefit from a theme, create or update a [theme doc](../../product/themes/README.md) in `docs/product/themes/`. Theme ID = file name (e.g. `chat-ai.md` → id `chat-ai`). Theme doc lists backlog items; those items get `themes: [theme-id]` in frontmatter (bi-directional).
-   - **Backlog** — Create or update backlog items that implement or refine the concept. Link the **concept doc** from those items (e.g. in frontmatter: `implements: architecture/connections.md`). Add **themes** in frontmatter if a theme doc exists (see [Themes](../../product/themes/README.md)). In the concept doc, add or update **implemented_by** in frontmatter (list of backlog slugs/paths) or a "Backlog items" section. See [Backlog TEMPLATE](../../product/backlog/story.TEMPLATE.md) for structure and frontmatter.
-5. **Checklist** — Confirm: concept doc updated; architecture linked; user docs updated; developer docs updated; theme doc created/updated if useful; backlog items created/updated and linked both ways (concept + themes).
+   - **Backlog** — Create or update backlog items that implement or refine the concept. Link the **concept doc** from those items (e.g. in frontmatter: `implements: "[[development/architecture/connections]]"`). Add **themes** in frontmatter if applicable (plain string IDs, e.g. `["connections"]`). In the concept doc, add or update **implemented_by** in frontmatter (list of backlog slugs/paths) or a "Backlog items" section. See [Backlog TEMPLATE](../../product/backlog/TEMPLATE.story.md) for structure and frontmatter.
+5. **Checklist** — Confirm: concept doc updated; architecture linked; user docs updated; developer docs updated; backlog items created/updated and linked both ways (concept + themes).
 
 ## See also
 
 - [How we work](./how-we-work.md) — Your role and the development loop
-- [Backlog TEMPLATE](../../product/backlog/story.TEMPLATE.md) — Backlog structure and frontmatter (`implements`, `depends_on`, `devlogs`, `themes`)
-- [Themes](../../product/themes/README.md) — Theme docs (trickle-down when grouping items by outcome/area)
+- [Story TEMPLATE](../../product/backlog/TEMPLATE.story.md) — Backlog structure and frontmatter (`implements`, `depends_on`, `devlogs`, `themes`)
 - [User docs](../feature-guides/user-docs.md) — Creating user docs
 - [Architecture](../architecture/README.md) — Architecture docs index

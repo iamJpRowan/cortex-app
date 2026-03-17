@@ -1,6 +1,6 @@
 # Adding a New Tool
 
-This guide describes how to add a built-in or domain tool using the declarative definition + handler pattern. Tools are defined as **data** (name, description, schema, handler key, metadata) and bound to implementations at registration. See [Tool Permission System](../../product/backlog/tool-permission-system.md) for the full design.
+This guide describes how to add a built-in or domain tool using the declarative definition + handler pattern. Tools are defined as **data** (name, description, schema, handler key, metadata) and bound to implementations at registration. See [Tool Permission System](../../product/backlog/tool-permission-system.story.md) for the full design.
 
 ## Tool name format
 

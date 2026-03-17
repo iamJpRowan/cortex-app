@@ -62,7 +62,7 @@ Tool results (e.g. Neo4j Cypher returning nodes with hour-long transcripts in pr
 # Outcome
 
 - Tool results are capped by default at two layers: at source for structured data (Neo4j per-property and total) and in the factory for all tools. Conversation state no longer grows unbounded from a single tool call.
-- "Allow full result" and "confirm oversized prompt" are out of scope here; they are planned for the [Tool Permission System](../backlog/tool-permission-system.md) Phase 6 runtime approval flow.
+- "Allow full result" and "confirm oversized prompt" are out of scope here; they are planned for the [Tool Permission System](../backlog/tool-permission-system.story.md) Phase 6 runtime approval flow.
 - Backlog item success criteria for 1.1, 1.2, 1.4 are met. Status can be set to `ready to test` or `completed` after manual verification.
 
 # Notes
@@ -75,7 +75,7 @@ Tool results (e.g. Neo4j Cypher returning nodes with hour-long transcripts in pr
 
 # Pre-commit assessment (prepare-to-commit)
 
-**Scope:** All uncommitted changes (bounded-tool work + prior streaming/trace/docs). Bounded-tool–specific files: `content-guardrails.ts`, `factory.ts`, `definition-types.ts`, `neo4j/handlers.ts`, `bounded-tool-results-and-chat-ui-stability.md`, `adding-a-tool.md`; tool-permission-system.md (Phase 6 content/token addition). Other modified files (agent.ts, ChatView.tsx, tool-invocation.tsx, llm.ts, chat-history-load doc, backlog README) may mix streaming/trace and bounded-tool edits.
+**Scope:** All uncommitted changes (bounded-tool work + prior streaming/trace/docs). Bounded-tool–specific files: `content-guardrails.ts`, `factory.ts`, `definition-types.ts`, `neo4j/handlers.ts`, `bounded-tool-results-and-chat-ui-stability.md`, `adding-a-tool.md`; tool-permission-system.story.md (Phase 6 content/token addition). Other modified files (agent.ts, ChatView.tsx, tool-invocation.tsx, llm.ts, chat-history-load doc, backlog README) may mix streaming/trace and bounded-tool edits.
 
 **1. Workarounds / complexity**  
 - No hacks or brittle fixes. Guardrails are pure functions; factory wrapper is straightforward; Neo4j caps at serialization. Agent keeps its own IPC constants (4k, 8k)—intentional separate layer; optional later: share limits from content-guardrails if you want one place to tune.

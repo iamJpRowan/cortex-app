@@ -17,7 +17,7 @@ Enable users to create and manage custom AI agents—bespoke configurations of i
 
 - **[Chat Interface (MVP)](./archive/chat-interface-mvp.md)** - Must be complete. Provides agent type definitions and agent parameter wiring.
 - **[Deep Agents Adoption](./deep-agents-adoption.md)** - Must be complete. Provides runtime harness for agent execution.
-- **[Tool Permission System](./tool-permission-system.md)** - Should be complete so that modes exist for agents to reference (mode OR custom permissions). Defines the permission hierarchy and mode format; this backlog defines how agents use a mode or supply a custom set.
+- **[Tool Permission System](./tool-permission-system.story.md)** - Should be complete so that modes exist for agents to reference (mode OR custom permissions). Defines the permission hierarchy and mode format; this backlog defines how agents use a mode or supply a custom set.
 
 ## Key Capabilities
 
@@ -89,16 +89,16 @@ You are a research assistant specialized in exploring knowledge graphs...
 - `ask`: Tool requires human approval before each use (human-in-the-loop)
 - `deny`: Tool is never available to the agent
 
-**Tool IDs:** Entries in `tools.allow` / `ask` / `deny` are **canonical tool names** from the tool registry (see [Tool Permission System](./tool-permission-system.md) Part I: Tool Definitions)—e.g. `neo4j.count_nodes`, `web.search`, `command.invoke`. The agent editor gets the list of available tools from the registry (same source as the permission UI) so users assign allow/ask/deny from the current set. On save or load, validate that every referenced tool ID exists in the registry; see Notes → Validation for behavior when a tool is missing (e.g. plugin uninstalled).
+**Tool IDs:** Entries in `tools.allow` / `ask` / `deny` are **canonical tool names** from the tool registry (see [Tool Permission System](./tool-permission-system.story.md) Part I: Tool Definitions)—e.g. `neo4j.count_nodes`, `web.search`, `command.invoke`. The agent editor gets the list of available tools from the registry (same source as the permission UI) so users assign allow/ask/deny from the current set. On save or load, validate that every referenced tool ID exists in the registry; see Notes → Validation for behavior when a tool is missing (e.g. plugin uninstalled).
 
 **Agent permission model: mode OR custom**
 
 Each agent uses **mode** OR **custom** permissions—not both. This keeps the model explicit for users.
 
-- **Mode**: The agent references a named permission mode from the [Tool Permission System](./tool-permission-system.md) (e.g. Local Read Only, Read Only, or a user-defined mode). The agent's effective tool set is that mode's definition (category → connection type → connection → tool hierarchy). Here "connection" means **data-source connections** only (e.g. Folder, Slack); **graph access** (which knowledge graphs the agent can read) is a separate axis.
+- **Mode**: The agent references a named permission mode from the [Tool Permission System](./tool-permission-system.story.md) (e.g. Local Read Only, Read Only, or a user-defined mode). The agent's effective tool set is that mode's definition (category → connection type → connection → tool hierarchy). Here "connection" means **data-source connections** only (e.g. Folder, Slack); **graph access** (which knowledge graphs the agent can read) is a separate axis.
 - **Custom**: The agent has its own permission definition with the **same structure as a mode**: category-level defaults (eight categories: read local, write local, read external, write external, read graph, write graph, read app, write app) plus optional overrides at connection type, connection, and tool level. Stored in the agent's frontmatter or a linked definition; same resolution hierarchy as a mode file.
 
-Effective permissions for a chat = most restrictive of **conversation's mode** and **agent's mode or custom set**. The conversation's mode caps what is available in that chat; the agent's mode or custom set defines what that agent can use (and may further restrict). The [Tool Permission System](./tool-permission-system.md) defines modes and the resolution hierarchy; this backlog defines how agents reference a mode or supply a custom permission set.
+Effective permissions for a chat = most restrictive of **conversation's mode** and **agent's mode or custom set**. The conversation's mode caps what is available in that chat; the agent's mode or custom set defines what that agent can use (and may further restrict). The [Tool Permission System](./tool-permission-system.story.md) defines modes and the resolution hierarchy; this backlog defines how agents reference a mode or supply a custom permission set.
 
 **Permission Inheritance (when Tool Permission System exists):**
 - Agent tool permissions **intersect** with the conversation's mode (principle of least privilege)
@@ -307,8 +307,8 @@ Our custom layer on top of Deep Agents provides:
 - [Deep Agents Adoption](./deep-agents-adoption.md) - Provides runtime capabilities
 
 **Related:**
-- [Tool Permission System](./tool-permission-system.md) - Tool definitions (Part I) and registry as source for canonical tool names and agent editor tool list; permission modes and resolution.
-- [Tool Permission System](./tool-permission-system.md) - Defines modes and resolution hierarchy; agents use a mode or a custom permission set (mode OR custom), and effective permissions intersect with the conversation's mode
+- [Tool Permission System](./tool-permission-system.story.md) - Tool definitions (Part I) and registry as source for canonical tool names and agent editor tool list; permission modes and resolution.
+- [Tool Permission System](./tool-permission-system.story.md) - Defines modes and resolution hierarchy; agents use a mode or a custom permission set (mode OR custom), and effective permissions intersect with the conversation's mode
 - [Chat Quick Launcher](./chat-quick-launcher.md) - Uses agent selector
 - [Multi-Provider Model Selection](./archive/multi-provider-model-selection.md) - Agents can have default model preference
 - [Sub-Agent Delegation](./sub-agent-delegation.md) - Agents can delegate to other agents

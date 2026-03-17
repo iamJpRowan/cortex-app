@@ -53,4 +53,4 @@ Use local storage as primary with optional LangSmith export for advanced analysi
 
 ## Related
 
-- [Tool Permission System](./tool-permission-system.md) - Audit logging may share infrastructure
+- [Tool Permission System](./tool-permission-system.story.md) - Audit logging may share infrastructure

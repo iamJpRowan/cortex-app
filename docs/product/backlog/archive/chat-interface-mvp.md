@@ -178,7 +178,7 @@ Note: Context implementation (views implementing `getContextForAI()` and context
 - [Chat Quick Launcher](../chat-quick-launcher.md) - Dedicated hotkey + overlay with controls
 - [Custom Agents](../custom-agents.md) - Agent management and switching
 - [Multi-Provider Model Selection](./multi-provider-model-selection.md) - Support for multiple LLM providers and models
-- [Tool Permission System](../tool-permission-system.md) - Per-tool permissions (uses `getToolsForAgent()`)
+- [Tool Permission System](../tool-permission-system.story.md) - Per-tool permissions (uses `getToolsForAgent()`)
 - [Deep Agents Adoption](../deep-agents-adoption.md) - Enhanced context management, filesystem tools (optional upgrade)
 
 ## Notes

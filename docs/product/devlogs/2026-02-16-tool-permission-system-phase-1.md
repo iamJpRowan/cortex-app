@@ -8,7 +8,7 @@ outcome: Phase 1 (Factory and Types) implemented; minimal test delayed.
 
 # Context
 
-Started implementing the [Tool Permission System](../backlog/tool-permission-system.md) backlog item. Phase 1 establishes the foundational tool definition shape and factory so tools can be defined declaratively and metadata (scope, access, category) is the single source of truth for the future permission system.
+Started implementing the [Tool Permission System](../backlog/tool-permission-system.story.md) backlog item. Phase 1 establishes the foundational tool definition shape and factory so tools can be defined declaratively and metadata (scope, access, category) is the single source of truth for the future permission system.
 
 # Solution
 

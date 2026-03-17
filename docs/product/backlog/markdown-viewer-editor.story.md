@@ -3,10 +3,12 @@ type: story
 title: Markdown Viewer/Editor
 status: planned
 summary: View and edit markdown files from a connected local folder within the app.
-themes: ["[[ui-features]]", "[[connections]]"]
+themes: ["ui-features", "connections"]
 depends_on:
   - "[[local-folder-connection-type.story.md]]"
 ---
+
+[Docs](../../README.md) / [Product](../README.md) / [Backlog](./README.md) / Markdown Viewer/Editor
 
 # Markdown Viewer/Editor
 

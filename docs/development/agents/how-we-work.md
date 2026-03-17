@@ -69,4 +69,4 @@ See [work-backlog-item](./work-backlog-item.md) for how individual tasks are imp
 ## See also
 
 - [Agent workflows](./README.md#workflow-based-conversations) — Which workflow to use when
-- [Backlog README](../../product/backlog/README.md) — Backlog structure and status definitions
+- [Backlog Template](../../product/backlog/TEMPLATE.story.md) — Backlog structure, status definitions, and frontmatter reference

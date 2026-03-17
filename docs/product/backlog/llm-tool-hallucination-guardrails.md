@@ -53,4 +53,4 @@ Document that tool reliability improves with more capable models and treat guard
 ## Related
 
 - **[multi-provider-model-selection.md](./archive/multi-provider-model-selection.md)** - Better models may reduce hallucination; guardrails still valuable for edge cases.
-- **[tool-permission-system.md](./tool-permission-system.md)** - User-controlled tool permissions could overlap with confirmation flows.
+- **[tool-permission-system.story.md](./tool-permission-system.story.md)** - User-controlled tool permissions could overlap with confirmation flows.

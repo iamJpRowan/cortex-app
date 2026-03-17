@@ -93,7 +93,7 @@ Identified and documented additional chat features not yet in backlog:
 **Updated (persona → agent references):**
 - `docs/product/backlog/README.md`
 - `docs/product/backlog/chat-interface-mvp.md`
-- `docs/product/backlog/tool-permission-system.md`
+- `docs/product/backlog/tool-permission-system.story.md`
 - `docs/product/backlog/chat-quick-launcher.md`
 - `docs/product/backlog/archive/multi-provider-model-selection.md`
 - `docs/product/backlog/kbar-smart-chat-detection.md`

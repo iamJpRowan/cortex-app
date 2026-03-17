@@ -3,7 +3,7 @@ type: story
 title: Story title
 status: considering
 summary: One-line description for backlog view tables (required).
-themes: []
+themes: []  # string values, e.g. ["connections", "chat-ai"]
 # parent: "[[parent-slug.story.md]]"   # child stories only: wikilink to parent story file
 # children:                             # container stories only: in dependency order
 #   - "[[slug1.story.md]]"
@@ -14,6 +14,8 @@ themes: []
 # devlogs:                              # leaf stories only
 #   - "[[YYYY-MM-DD-slug]]"
 ---
+
+[Docs](../../README.md) / [Product](../README.md) / [Backlog](./README.md) / Story title
 
 # Story title
 
@@ -50,7 +52,7 @@ Inline wikilinks to architecture, development, design docs implementers need. Us
 | `title`      | Yes      | Human-readable story name. Used in PR titles, devlog headings, and agent context. |
 | `status`     | Yes      | One of: **active** `in progress`; **planning** `planned`, `refined`, `ready`; **inactive** `considering`. |
 | `summary`    | Yes      | One short line for backlog view tables. |
-| `themes`     | No       | Wikilinks to theme files: `["[[theme-id]]"]`. Theme ID = filename (no `.md`) in [docs/product/themes/](../themes/README.md). |
+| `themes`     | No       | String list of theme IDs: `["connections", "chat-ai"]`. |
 | `parent`     | No       | Child stories only. Wikilink to parent story file: `"[[parent-slug.story.md]]"`. |
 | `children`   | No       | Container stories only. List of wikilinks to child story files in dependency order. |
 | `implements` | No       | Path-qualified wikilink to concept doc (no `.md`): `"[[architecture/connections]]"`. |
@@ -93,6 +95,6 @@ Task files are named with a zero-padded numeric prefix for ordering. See [[TEMPL
 
 Archiving a flat (undecomposed) story: move `<slug>.story.md` to `archive/<slug>.story.md`. Archiving a decomposed story: move the `<slug>/` folder to `archive/<slug>/`. A container story and all its children always archive together.
 
-**Cross-references:** All links — frontmatter fields and body — use wikilink format with the filename slug only (no path, no extension): `[[how-we-work]]`, `[[decompose-backlog-item]]`, `[[other-slug.story.md]]`. Frontmatter fields (`parent`, `children`, `depends_on`, `devlogs`, `themes`) follow the same rule.
+**Cross-references:** All links — frontmatter fields and body — use wikilink format with the filename slug only (no path, no extension): `[[how-we-work]]`, `[[decompose-backlog-item]]`, `[[other-slug.story.md]]`. Frontmatter fields (`parent`, `children`, `depends_on`, `devlogs`) follow the same rule. Exception: `themes` uses plain string IDs (not wikilinks), e.g. `["connections", "chat-ai"]`.
 
-**Sequence:** Order of delivery is in the [Product README](../README.md#roadmap). Grouping by theme: [themes](../themes/README.md).
+**Sequence:** Order of delivery is in the [Product README](../README.md#roadmap).

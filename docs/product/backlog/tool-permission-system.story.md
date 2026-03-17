@@ -1,9 +1,17 @@
 ---
-status: refined
-themes: [chat-ai]
+type: story
+title: Tool Permission System
+status: in progress
 summary: Foundational tool definitions and user-controlled permissions (modes, runtime approval). Critical for trust and extensibility.
-depends_on: [configuration-system]
-devlogs: [2026-02-16-tool-permission-system-phase-1, 2026-02-23-tool-permission-modes-ui-and-shared-config, 2026-03-08-tool-permission-system-phase-8]
+themes: ["chat-ai"]
+depends_on:
+  - "[[configuration-system.md]]"
+children:
+  - "[[tool-permission-runtime-approval.story.md]]"
+devlogs:
+  - "[[2026-02-16-tool-permission-system-phase-1]]"
+  - "[[2026-02-23-tool-permission-modes-ui-and-shared-config]]"
+  - "[[2026-03-08-tool-permission-system-phase-8]]"
 ---
 
 [Docs](../../README.md) / [Product](../README.md) / [Backlog](./README.md) / Tool Permission System
@@ -14,7 +22,7 @@ devlogs: [2026-02-16-tool-permission-system-phase-1, 2026-02-23-tool-permission-
 
 Establish a **foundational tool system** (declarative definitions + factory, single source of truth for metadata) and a **user-controlled permission system** so that (1) tools are defined consistently and scale to many tools and plugins, and (2) users authorize which tools the LLM can use via pre-configuration or runtime approval. Critical for user trust, safety, and extensibility.
 
-## Prerequisites
+## Prerequisites / Dependencies
 
 - **[Chat Interface (MVP)](./archive/chat-interface-mvp.md)** - Must be complete. Includes `getToolsForAgent()` helper function that this system enhances.
 - **[Configuration System](./configuration-system.md)** - Should be complete. Main settings stores only the default mode key (e.g. `agents.defaultModeId`) for new chats; mode definitions live in separate files.
@@ -27,7 +35,7 @@ Tools are defined as **data** (schema, metadata, handler reference) and instanti
 
 ### Why declarative definitions
 
-The current pattern—one file per tool with a `DynamicStructuredTool` instance plus separate registration with duplicated metadata—does not scale: hundreds of tools or dozens of graph-DB tools make manual imports and `toolRegistry.register()` unmaintainable; plugins need a consistent way to define tools without reimplementing registration. A declarative approach separates **what** a tool is (name, description, schema, category) from **how** it runs (handler implementation). Definitions are easy to scan and generate; the registry’s `list()` is the single source for permission UI and mode builder.
+The current pattern—one file per tool with a `DynamicStructuredTool` instance plus separate registration with duplicated metadata—does not scale: hundreds of tools or dozens of graph-DB tools make manual imports and `toolRegistry.register()` unmaintainable; plugins need a consistent way to define tools without reimplementing registration. A declarative approach separates **what** a tool is (name, description, schema, category) from **how** it runs (handler implementation). Definitions are easy to scan and generate; the registry's `list()` is the single source for permission UI and mode builder.
 
 ### Constraints
 
@@ -57,7 +65,7 @@ Definitions live in **definition files** (e.g. per-domain: `neo4j/tools.ts`, `co
 ### Discovery
 
 - Definitions can be walked to generate docs or a UI list of tools without loading handlers.
-- The tool registry’s `list()` (name + metadata for every registered tool) is the single source for “all available tools.” Permission settings UI, mode builder, and agent editor use this list. When new tools are registered (built-in or plugin), they appear automatically.
+- The tool registry's `list()` (name + metadata for every registered tool) is the single source for "all available tools." Permission settings UI, mode builder, and agent editor use this list. When new tools are registered (built-in or plugin), they appear automatically.
 
 ### Architectural choices
 
@@ -114,10 +122,10 @@ Each prebuilt mode defines allow/ask/deny for all eight categories:
 - All tools (from registry `list()`) must have a category; permission UI is organized by category and connection. Tools are defined via the foundation in Part I (Tool Definitions) above.
 
 ### Runtime Approval Flow
-- LLM requests tool with "ask" permission; execution pauses until user acts.
-- User must be able to (1) see that a chat is awaiting approval when that chat is not in focus (e.g. sidebar indicator), and (2) see and use the approval UI when they switch to that chat (approval lives in-conversation, not in a global modal).
-- Approval UI shows: tool name, description, arguments the LLM wants to pass; Approve and Deny actions.
-- User approves or denies; result returned to LLM (tool runs) or request blocked (LLM receives refusal).
+
+See child story: **[[tool-permission-runtime-approval.story.md]]**.
+
+When the LLM invokes a tool with "ask" permission, execution pauses and the user approves or denies via an inline card in the message stream. A sidebar indicator shows when any chat is awaiting approval.
 
 ### Permission Storage
 
@@ -145,7 +153,7 @@ Tool registry requires permission metadata per tool as specified in **Part I: To
 ### Approach (Phase 1)
 
 - **Scope**
-  - **Declarative tool type:** Add a new type for the declarative definition (name, description, schema, handler key, metadata with required `scope` and `access`, optional connectionType, connection, risk, permissionExplanation). The registry currently uses `ToolDefinition` for the *registered* pair `{ tool, metadata }`; we will rename that to `RegisteredTool` (or `ToolEntry`) and use `ToolDefinition` for the declarative shape so the backlog’s naming is the source of truth.
+  - **Declarative tool type:** Add a new type for the declarative definition (name, description, schema, handler key, metadata with required `scope` and `access`, optional connectionType, connection, risk, permissionExplanation). The registry currently uses `ToolDefinition` for the *registered* pair `{ tool, metadata }`; we will rename that to `RegisteredTool` (or `ToolEntry`) and use `ToolDefinition` for the declarative shape so the backlog's naming is the source of truth.
   - **Factory:** New module `src/main/services/llm/tools/factory.ts` with:
     - `createToolFromDefinition(def, handlers)` → `{ tool, metadata }` (category derived from def.scope + def.access; no separate category parameter).
     - `createToolsFromDefinitions(defs, handlers)` → `{ tool, metadata }[]`.
@@ -156,7 +164,7 @@ Tool registry requires permission metadata per tool as specified in **Part I: To
   - Place declarative types and factory in `tools/` (e.g. `tools/definition-types.ts` and `tools/factory.ts`) so definition files can import types without importing the registry.
   - Handler type: `Record<string, (input: unknown) => Promise<string>>` or a generic keyed by handler key; handler receives parsed schema output so the factory binds the correct handler by key.
 - **Decisions**
-  - Registry’s current `ToolDefinition` → `RegisteredTool`. (No preference; chosen for clarity.)
+  - Registry's current `ToolDefinition` → `RegisteredTool`. (No preference; chosen for clarity.)
   - Minimal test delayed until project has a test framework; Phase 1 does not add Vitest.
 
 1. Add `ToolDefinition` type (name, description, schema, handler key, metadata including required **scope** and **access** and optional connectionType/connection).
@@ -174,7 +182,7 @@ Tool registry requires permission metadata per tool as specified in **Part I: To
 **Status:** Done.
 1. **Remove the echo tool** — No longer needed (was only for testing); delete `builtin/echo/` and its registration. **Done:** Removed `builtin/echo/` and echo registration.
 2. Migrate command and any other built-in domains to the definition + handler pattern. Built-in index: for each domain, `createToolsFromDefinitions(domainDefs, domainHandlers)` then register each result. **Done:** `builtin/command/tools.ts` (getCommandToolDefinitions), `builtin/command/handlers.ts`; tool name `command_invoke`. Deleted `invoke-command.tool.ts`.
-3. No per-tool `toolRegistry.register()` calls; only domain-level loops. Document the definition shape and “adding a new tool” guide (add definition, add handler, register the domain). **Done:** [docs/development/feature-guides/adding-a-tool.md](../../development/feature-guides/adding-a-tool.md).
+3. No per-tool `toolRegistry.register()` calls; only domain-level loops. Document the definition shape and "adding a new tool" guide (add definition, add handler, register the domain). **Done:** [docs/development/feature-guides/adding-a-tool.md](../../development/feature-guides/adding-a-tool.md).
 
 ## Phase 4: Mode Storage & Permission Service
 **Status:** Done.
@@ -206,70 +214,35 @@ Tool registry requires permission metadata per tool as specified in **Part I: To
 10. deleteMode (non–built-in only: unlink file, clear from disabled list); modes:delete; Delete first in actions for custom modes; confirm before delete; clear agents.defaultModeId if deleted mode was default. **Done.**
 11. Shared **SettingsExpandableCard**: title, description, actionIcons, chevron, collapsible body; provider and mode cards use it; expand/collapse animation (CSS grid 0fr/1fr, always-mounted content). Action order: Delete (custom only), Reset (built-in when differs), Copy, Disable. **Done.**
 
-## Phase 7: Shared user-config / file watcher (next)
+## Phase 7: Shared user-config / file watcher
 
 **Status:** Done. Shared `UserConfigWatcher` service; settings and modes use it; renderer subscribes via `user-config:changed` and refetches; see [File-backed config watcher](../../development/architecture/file-backed-config-watcher.md).
 
 **Goal:** Mode configuration (and future user-managed config such as custom agents) should listen to file updates the same way the settings view does, so external edits to mode JSON files are reflected without switching tabs or triggering an in-app action.
 
-**Scope:**
-
-1. **Shared pattern:** Settings today uses a file watcher inside `SettingsService` (watch directory, debounce, emit `change`, IPC forwards to renderer, renderer subscribes and reloads). There is no shared "user config watcher" service. Implement one of:
-   - **Option A (minimal):** Add a directory watcher in the modes layer; emit a generic "modes changed" event; IPC sends to renderer; renderer subscribes and calls `loadModes()`. Same pattern as settings but no shared abstraction.
-   - **Option B (reusable):** Introduce a small shared service (e.g. `UserConfigWatcher` or `FileBackedConfigService`) that can watch a path per "domain" (file or directory), debounce, and emit a domain-level event. Consumers (modes, future custom agents) register their path and subscribe; IPC forwards domain events to renderer; each feature subscribes and refetches. Enables consistent behavior for modes, custom agents, and other file-backed user config.
-2. **Modes:** Use the chosen approach so that when `userData/modes/*.json` (or the modes directory) changes on disk, the Settings mode list and any open mode editor state refresh (e.g. reload list, refresh builtin defaults; if a mode file was edited externally, show updated data).
-3. **Documentation:** Document the pattern so future additions (e.g. custom agents in a directory) can reuse it.
-
-**Depends on:** Phase 6 done. No dependency on Phase 8/9.
-
 ## Phase 8: Enhance `getToolsForAgent()` Function
 
 **Status:** Done. Mode is loaded from registry; permissions resolved per tool; deny filtered, ask returned for Phase 9; executor cache key includes `modeId`.
 
-**Beads:** Phase 8 was decomposed into tasks under epic `cortex-app-8an` (Tool Permission System). All beads complete.
-
-1. Extend signature to accept conversation context so the chat's mode can be applied. (When Custom Agents exist, callers will also pass agent; see [Custom Agents](./custom-agents.md).)
+1. Extend signature to accept conversation context so the chat's mode can be applied.
 2. Load conversation's mode from mode registry.
 3. Resolve effective permissions per tool using the mode's hierarchy: category → connection type → connection → tool. No global permission store.
 4. Filter tools: remove "deny", mark "ask" for runtime approval; pass only allowed tools to agent.
-5. **Single touch point**: Callers pass conversation; executor cache key includes `modeId`. (When Custom Agents affect tool sets, cache key will include `agentId`; see Custom Agents backlog.)
+5. **Single touch point**: Callers pass conversation; executor cache key includes `modeId`.
 
 ## Phase 9: Runtime Approval Flow
 
-**Goal:** When the LLM invokes a tool that has "ask" permission in the conversation's mode, execution pauses, the user sees approval UI (in-conversation), and on approve the tool runs and its result is returned to the LLM; on deny the request is blocked and the LLM receives a refusal. No persistence of approval decisions—each "ask" invocation is prompted. The user must be able to tell when a chat is awaiting approval even when that chat is not in focus, and when they switch to that chat the approval UI must be visible and usable there.
-
-**Functional scope (what must be implemented):**
-
-1. **Interrupt on "ask" tool invocation.** When the executor would run a tool whose name is in `getToolsForAgent()`'s `askToolNames`, pause before executing the tool and hand control to the app (callback, event, or harness hook). Implementation may use a framework that supports interrupt (e.g. LangChain Deep Agents' `interrupt_on`) or a minimal custom interrupt layer; this backlog does not depend on another backlog item.
-2. **Sidebar indicator for awaiting approval.** When a conversation has a pending "ask" tool approval, the conversation list must show that state (e.g. icon or badge on the conversation row), using the same pattern as existing "streaming" and "unread" indicators, so the user knows which chat needs attention without having it focused.
-3. **Approval UI in-conversation.** When the user has the conversation in focus, the approval UI must appear in the context of that conversation (not as a global modal). It must show: tool name, tool description, and the arguments the LLM is requesting; Approve and Deny actions. When the user switches to a chat that is awaiting approval, the approval UI must be visible and actionable immediately in that view. UI should follow [design README](../../development/design/README.md) and [ui-guide](../../development/design/ui-guide.md) where applicable.
-4. **Approve path.** User clicks Approve → run the tool with the requested arguments, return the tool result to the executor so the LLM receives it as the tool response.
-5. **Deny path.** User clicks Deny → do not run the tool; return a refusal message to the executor so the LLM sees that the tool use was denied (e.g. short ToolMessage indicating user denied).
-6. **Single flow.** All "ask" tools go through this same interrupt → approval UI → approve/deny path. No per-tool or per-conversation persistence of decisions.
-
-**Out of scope for Phase 9:** Content-length and token-limit confirmations (see [Content and Token Guardrail Confirmations](./content-and-token-guardrail-confirmations.md)). Any "remember this decision" or approval-override persistence.
-
-**Approval UI approach:** Use the **inline approval card**. Render the pending tool request as a card in the message stream (same area as existing tool steps: collapsible row with icon, label, then expanded content). The card shows tool name, description, arguments, and Approve/Deny buttons. When the user switches to the chat, they see the approval in place with the rest of the turn; no separate overlay. Aligns with existing `TraceDisplay` / `ToolInvocationDetails` patterns and keeps context in one scrollable view.
-
-**Success criteria (testable):**
-
-- With a mode where a tool (e.g. `command_invoke`) is "ask", when the LLM requests that tool the run pauses before execution.
-- Conversation list shows an indicator for conversations that have a pending approval (when that conversation is not selected).
-- When the user selects a conversation that is awaiting approval, the approval UI is visible in that conversation view and shows the tool's name, description, and requested arguments; Approve and Deny are available.
-- Approve: tool runs with those arguments; the LLM receives the tool result and can continue.
-- Deny: tool does not run; the LLM receives a clear refusal and can continue the conversation.
+**Status:** Extracted — see child story **[[tool-permission-runtime-approval.story.md]]**.
 
 ## Phase 10 (Skipped): Audit & History
 
 **Decision:** Skipped for now. Per-conversation trace provides visibility of tool use within each chat; control and runtime approval (Phases 1–9) deliver the core permission-system goal. A dedicated audit log (persistent store, cross-conversation viewer, permission decision history, export, clear) is cost-heavy for current use; may be revisited when plugins or compliance needs justify it.
 
-*Original scope:* Log tool invocations and permission decisions; audit log viewer UI; tool usage and permission decision history; export; clear.
-
 ## Phase 11 (Future): User and Plugin Tools
 - When [Plugin Extensibility Framework](./plugin-extensibility-framework.md) or user-defined tools are implemented, load definitions (and optionally handlers) from plugin manifests or user directories.
 - Use the same factory to produce tools; register them with a distinct category (e.g. `plugin`, `user`). Permission system treats user/plugin tools with appropriate defaults (e.g. ask or deny until explicitly allowed in a mode).
 
-## Success Criteria
+## Success criteria
 
 **Tool definitions (foundation):**
 - [ ] `ToolDefinition` type and factory exist; a single definition + handler produce a working tool with metadata (category, etc.) in the registry
@@ -284,14 +257,14 @@ Tool registry requires permission metadata per tool as specified in **Part I: To
 - [ ] Agents tab: LLM providers + Agent Permission (mode) management; mode editor uses category → connection type → connection → tool hierarchy
 - [ ] `getToolsForAgent()` resolves permissions from the conversation's mode
 - [ ] Executor cache key includes `modeId` (and later `agentId` when Custom Agents affect tools; see Custom Agents backlog)
-- [ ] Runtime approval UI for "ask" tools (in-conversation; sidebar indicator when chat not in focus); user can approve or deny each request (no persistence of decisions)
+- [ ] Runtime approval UI for "ask" tools — see [[tool-permission-runtime-approval.story.md]]
 - [ ] Permission settings (mode files) persist across restarts; tool use is visible per conversation in the trace (dedicated audit log deferred)
 - [ ] User can select and change mode per chat; default mode for new chats; loading a conversation restores its last mode
 - [ ] Export/import permission profiles and mode files
 
 ## Implementation note: Interrupt and Deep Agents
 
-The "ask" permission level requires pausing execution when the LLM requests an "ask" tool, showing the approval UI (in-conversation; see Phase 9), then resuming with the tool result or a refusal. A framework that provides an interrupt/human-in-the-loop hook (e.g. LangChain Deep Agents' `interrupt_on` for tool calls) can be used to implement this; if so, tools in `askToolNames` are registered with that hook and the approval UI is shown when the framework yields control. Alternatively, a minimal custom interrupt layer can be implemented within the existing executor flow. This backlog does not add a dependency on the [Deep Agents Adoption](./deep-agents-adoption.md) backlog; Phase 9's scope is the behavior above, however it is implemented.
+The "ask" permission level requires pausing execution when the LLM requests an "ask" tool, showing the approval UI (in-conversation; see [[tool-permission-runtime-approval.story.md]]), then resuming with the tool result or a refusal. A framework that provides an interrupt/human-in-the-loop hook (e.g. LangChain Deep Agents' `interrupt_on` for tool calls) can be used to implement this; if so, tools in `askToolNames` are registered with that hook and the approval UI is shown when the framework yields control. Alternatively, a minimal custom interrupt layer can be implemented within the existing executor flow. This backlog does not add a dependency on the [Deep Agents Adoption](./deep-agents-adoption.md) backlog.
 
 ## Related Backlog Items
 
@@ -305,7 +278,7 @@ The "ask" permission level requires pausing execution when the LLM requests an "
 **Related:**
 - [Custom Agents](./custom-agents.md) - When implemented, per-agent permissions (mode or custom set) are defined there and combined with the conversation's mode. Agent editor gets tool list from registry (same source as permission UI).
 - [Configuration System](./configuration-system.md) - Per-tool or per-plugin config can be keyed by tool name from definitions.
-- [Content and Token Guardrail Confirmations](./content-and-token-guardrail-confirmations.md) - "Allow full tool result" and "confirm oversized prompt" are tracked there; they reuse this item's approval UI pattern but are out of scope for this backlog.
+- [Content and Token Guardrail Confirmations](./content-and-token-guardrail-confirmations.md) - "Allow full tool result" and "confirm oversized prompt" are tracked there; they reuse the approval UI pattern from [[tool-permission-runtime-approval.story.md]] but are out of scope for this backlog.
 
 ## Notes
 
@@ -357,7 +330,6 @@ The LLM executor is created with a fixed set of tools and is cached to avoid reb
 ### Tool definitions (foundation)
 
 - **Incremental**: Phase 1 is additive (factory + types); Phase 2 migrates one domain; existing tools can stay on the old pattern until migrated. No big-bang rewrite required.
-- **Zod in definitions**: Preserves type safety and reuse with LangChain’s structured tools; if plugin authors use JSON schema, a small adapter can convert or the factory can accept both.
+- **Zod in definitions**: Preserves type safety and reuse with LangChain's structured tools; if plugin authors use JSON schema, a small adapter can convert or the factory can accept both.
 - **Handler key**: Use namespaced string (e.g. `neo4j.countNodes`) to avoid collisions when merging user and built-in handlers later.
 - **Single source of truth**: Definition metadata (category, connectionType, connection, risk, permissionExplanation) is copied into the registry at registration; permission UI and resolution use the registry only.
-
