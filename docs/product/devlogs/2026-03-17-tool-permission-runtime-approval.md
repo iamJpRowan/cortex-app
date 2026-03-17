@@ -41,3 +41,26 @@ Added the foundational types and IPC plumbing for runtime tool approval:
 - Exposed `window.api.llm.approveTool(streamId)` and `window.api.llm.denyTool(streamId, message?)` in `src/preload/index.ts`
 - Added `approveTool(streamId: string): void` and `denyTool(streamId: string, message?: string): void` stub methods to `LLMAgentService` in `src/main/services/llm/agent.ts`
 - `npm run type-check` passes with no errors
+
+## Task 2: HITL interrupt mechanism in main process — complete
+
+Wired up the full human-in-the-loop interrupt mechanism using `humanInTheLoopMiddleware` from the installed `langchain` package (confirmed available at `langchain/dist/agents/middleware/hitl`). The implementation avoids a custom interrupt layer because the framework middleware is already present.
+
+**Changes to `src/main/services/llm/agent.ts`:**
+
+- Imported `Command` from `@langchain/langgraph` and `humanInTheLoopMiddleware`, `HITLRequest`, `HITLResponse` from `langchain`
+- Added `ApprovalResult` interface and `pendingApprovals: Map<string, { resolve, reject }>` to `LLMAgentService`
+- In `getExecutorForModel`: when `askToolNames` is non-empty, pass a `humanInTheLoopMiddleware({ interruptOn: { [toolName]: { allowedDecisions: ['approve', 'reject'] } } })` instance in the `middleware` array of `createAgent`
+- Refactored `queryStream` to a `while(true)` loop that re-streams with `Command({ resume })` after each interrupt:
+  - On first iteration, streams from initial `{ messages }` input
+  - Detects `__interrupt__` in `values` stream chunks; when found, breaks out of the `for await` and enters interrupt-handling logic
+  - For each action in the HITLRequest, emits a `tool_approval_request` stream event (with `toolCallId`, `toolName`, `toolDescription` from registry, `args`) then awaits the `pendingApprovals` promise
+  - Abort signal is observed: if aborted while waiting, the pending promise is rejected and the loop throws, triggering the existing `cancelled` event path
+  - After all decisions are collected, resumes with `Command({ resume: HITLResponse })`
+  - When no interrupt is detected, breaks out of the `while(true)` and emits the `complete` event as before
+- `approveTool(streamId)`: resolves the pending approval with `{ approved: true }`, removing the entry from the map
+- `denyTool(streamId, message?)`: resolves with `{ approved: false, message }`, removing the entry
+- `catch` block: cleans up any remaining pending approval entry to prevent promise leaks
+- The IPC handlers in `src/main/ipc/llm.ts` already forward to `getLLMAgentService().approveTool/denyTool` from Task 1; no changes needed there
+
+`npm run type-check` passes with no errors.

@@ -9,7 +9,9 @@ import { LLMServiceConfig, getDefaultLLMConfig } from '@main/config/defaults'
 import { toolRegistry } from './tools/registry'
 import { initializeStatePersistence } from './state'
 import { SqliteSaver } from '@langchain/langgraph-checkpoint-sqlite'
-import { createAgent, type ReactAgent } from 'langchain'
+import { Command } from '@langchain/langgraph'
+import { createAgent, humanInTheLoopMiddleware, type ReactAgent } from 'langchain'
+import type { HITLRequest, HITLResponse } from 'langchain'
 import type {
   LLMQueryOptions,
   TraceEntry,
@@ -196,11 +198,27 @@ function extractTokenUsage(msg: {
  */
 type AgentExecutor = ReactAgent
 
+/** Internal approval result stored in pendingApprovals. */
+interface ApprovalResult {
+  approved: boolean
+  /** Rejection message returned to the LLM when denied. */
+  message?: string
+}
+
 export class LLMAgentService {
   private checkpointer: SqliteSaver | null = null
   private executorCache = new Map<string, AgentExecutor>()
   private config: LLMServiceConfig
   private settingsUnsubscribe: (() => void) | null = null
+  /**
+   * Map of streamId → pending approval resolve/reject pair.
+   * Each entry is created when the HITL middleware interrupts execution for an
+   * "ask" tool call, and resolved when the user approves or denies via IPC.
+   */
+  private pendingApprovals = new Map<
+    string,
+    { resolve: (result: ApprovalResult) => void; reject: (err: Error) => void }
+  >()
 
   constructor(config?: Partial<LLMServiceConfig>) {
     const defaults = getDefaultLLMConfig()
@@ -293,15 +311,27 @@ export class LLMAgentService {
       )
     }
     if (askToolNames.length > 0) {
-      // Ask tools are included in the executor's tool set but will require runtime
-      // approval in Phase 9 (interrupt_on). Logged here for observability.
-      console.log(`[LLMAgent] Ask tools pending runtime approval: ${askToolNames.join(', ')}`)
+      console.log(`[LLMAgent] Ask tools requiring runtime approval: ${askToolNames.join(', ')}`)
     }
+    const middleware =
+      askToolNames.length > 0
+        ? [
+            humanInTheLoopMiddleware({
+              interruptOn: Object.fromEntries(
+                askToolNames.map(name => [
+                  name,
+                  { allowedDecisions: ['approve', 'reject'] as const },
+                ])
+              ),
+            }),
+          ]
+        : undefined
     executor = createAgent({
       model: llm,
       tools,
       systemPrompt: this.config.llm.systemPrompt,
       checkpointer: this.checkpointer!,
+      ...(middleware ? { middleware } : {}),
     })
     this.executorCache.set(cacheKey, executor)
     console.log(`[LLMAgent] Cached executor for model: ${prefixedModelId}, mode: ${modeId ?? '(none)'}`)
@@ -746,12 +776,30 @@ export class LLMAgentService {
     }
 
     try {
-      const stream = await executor.stream(
-        { messages },
-        { ...config, streamMode: ['messages', 'values'] }
-      )
+      /**
+       * Streaming loop with HITL support.
+       * On the first iteration we stream from the initial `messages` input.
+       * If the HITL middleware interrupts (values chunk has `__interrupt__`), we:
+       *   1. Emit a `tool_approval_request` stream event and wait for user input.
+       *   2. Resume the graph with `Command({ resume: HITLResponse })`.
+       * We repeat until the agent completes (no more interrupts).
+       */
+      let streamInput: { messages: BaseMessage[] } | InstanceType<typeof Command> = { messages }
+      // eslint-disable-next-line no-constant-condition
+      while (true) {
+        if (signal?.aborted) {
+          throw new Error('The operation was aborted')
+        }
 
-      for await (const chunk of stream) {
+        const stream = await executor.stream(streamInput, {
+          ...config,
+          streamMode: ['messages', 'values'],
+        })
+
+        /** Set to the HITLRequest value if an interrupt is detected in this iteration. */
+        let pendingInterrupt: HITLRequest | null = null
+
+        for await (const chunk of stream) {
         // The chunk format depends on which mode emitted it
         // [0] = stream mode identifier, [1] = data
         const [mode, data] = chunk as unknown as [string, unknown]
@@ -826,8 +874,26 @@ export class LLMAgentService {
           }
         } else if (mode === 'values') {
           // Step update - data contains full state
-          const stateData = data as { messages?: BaseMessage[] }
+          const stateData = data as { messages?: BaseMessage[]; __interrupt__?: unknown[] }
           const allMessages = stateData.messages || []
+
+          // Detect HITL interrupt from humanInTheLoopMiddleware
+          if (
+            stateData.__interrupt__ &&
+            Array.isArray(stateData.__interrupt__) &&
+            stateData.__interrupt__.length > 0
+          ) {
+            const interruptValue = (stateData.__interrupt__[0] as { value?: HITLRequest })?.value
+            if (
+              interruptValue &&
+              Array.isArray(interruptValue.actionRequests) &&
+              interruptValue.actionRequests.length > 0
+            ) {
+              pendingInterrupt = interruptValue
+              // We'll break out of the for-await loop and handle below
+              break
+            }
+          }
 
           // On first values chunk, capture initial message count
           if (lastMessageCount === -1) {
@@ -938,7 +1004,85 @@ export class LLMAgentService {
 
           lastMessageCount = allMessages.length
         }
+      } // end for await (inner chunk loop)
+
+      if (!pendingInterrupt) {
+        // No interrupt — the agent completed this iteration normally. Exit the while loop.
+        break
       }
+
+      // --- HITL interrupt handling ---
+      // The HITL middleware interrupted execution; ask the user to approve or deny.
+      const hitlRequest = pendingInterrupt
+      pendingInterrupt = null
+
+      // Emit one approval request per action (for now we take the first and handle sequentially).
+      // Build HITLResponse decisions in the same order as actionRequests.
+      const decisions: HITLResponse['decisions'] = []
+
+      for (const action of hitlRequest.actionRequests) {
+        if (signal?.aborted) {
+          // Stream was cancelled while waiting; clean up and throw
+          this.pendingApprovals.delete(streamId)
+          throw new Error('The operation was aborted')
+        }
+
+        const toolName = action.name
+        const toolCallId = `hitl-${toolName}-${Date.now()}`
+        const toolDescription =
+          toolRegistry.getMetadata(toolName)?.description ??
+          action.description ??
+          toolName
+
+        console.log(
+          `[LLMAgent] HITL interrupt for tool "${toolName}" (stream: ${streamId})`
+        )
+
+        // Emit tool_approval_request event so the renderer can show the card
+        onEvent({
+          type: 'tool_approval_request',
+          streamId,
+          conversationId: convId,
+          toolCallId,
+          toolName,
+          toolDescription,
+          args: action.args,
+        })
+
+        // Wait for the user to approve or deny via IPC (or for cancellation)
+        const approvalResult = await new Promise<ApprovalResult>((resolve, reject) => {
+          this.pendingApprovals.set(streamId, { resolve, reject })
+
+          // Handle abort while waiting
+          if (signal) {
+            const onAbort = () => {
+              this.pendingApprovals.delete(streamId)
+              reject(new Error('The operation was aborted'))
+            }
+            if (signal.aborted) {
+              onAbort()
+            } else {
+              signal.addEventListener('abort', onAbort, { once: true })
+            }
+          }
+        })
+
+        if (approvalResult.approved) {
+          console.log(`[LLMAgent] Tool "${toolName}" approved (stream: ${streamId})`)
+          decisions.push({ type: 'approve' })
+        } else {
+          const msg = approvalResult.message ?? 'Tool use denied by user.'
+          console.log(
+            `[LLMAgent] Tool "${toolName}" denied: ${msg} (stream: ${streamId})`
+          )
+          decisions.push({ type: 'reject', message: msg })
+        }
+      }
+
+      // Resume the graph with the user's decisions
+      const resumeResponse: HITLResponse = { decisions }
+      streamInput = new Command({ resume: resumeResponse })
+    } // end while(true)
 
       // Flush any reasoning left in buffer (e.g. stream ended before text chunk)
       flushReasoningFromChunks()
@@ -974,6 +1118,13 @@ export class LLMAgentService {
         `[LLMAgent] Streaming complete. Response length: ${finalResponse.length}`
       )
     } catch (error) {
+      // Clean up any pending approval promise for this stream (prevents leaks)
+      const pending = this.pendingApprovals.get(streamId)
+      if (pending) {
+        this.pendingApprovals.delete(streamId)
+        pending.reject(new Error('Stream ended'))
+      }
+
       // User cancelled: emit cancelled event with partial content
       const isAbort =
         signal?.aborted ||
@@ -1381,27 +1532,44 @@ export class LLMAgentService {
 
   /**
    * Approve a pending tool execution request.
-   * Stub — the actual implementation (resolving a Promise in a pending-approval map)
-   * is wired in Task 2.
+   * Resolves the pending approval promise so the HITL loop can resume the graph.
    *
    * @param streamId Stream ID associated with the pending approval
    */
   approveTool(streamId: string): void {
-    console.log(`[LLMAgent] approveTool called for stream: ${streamId} (stub — Task 2)`)
+    const pending = this.pendingApprovals.get(streamId)
+    if (!pending) {
+      console.warn(
+        `[LLMAgent] approveTool: no pending approval for stream: ${streamId}`
+      )
+      return
+    }
+    this.pendingApprovals.delete(streamId)
+    console.log(`[LLMAgent] approveTool: approving stream: ${streamId}`)
+    pending.resolve({ approved: true })
   }
 
   /**
    * Deny a pending tool execution request.
-   * Stub — the actual implementation (resolving a Promise in a pending-approval map)
-   * is wired in Task 2.
+   * Resolves the pending approval promise with denied=false so the HITL loop
+   * sends a rejection decision back to the LLM.
    *
    * @param streamId Stream ID associated with the pending approval
    * @param message Optional denial message to return to the LLM
    */
   denyTool(streamId: string, message?: string): void {
+    const pending = this.pendingApprovals.get(streamId)
+    if (!pending) {
+      console.warn(
+        `[LLMAgent] denyTool: no pending approval for stream: ${streamId}`
+      )
+      return
+    }
+    this.pendingApprovals.delete(streamId)
     console.log(
-      `[LLMAgent] denyTool called for stream: ${streamId}, message: ${message ?? '(none)'} (stub — Task 2)`
+      `[LLMAgent] denyTool: denying stream: ${streamId}, message: ${message ?? '(none)'}`
     )
+    pending.resolve({ approved: false, message })
   }
 
   /**

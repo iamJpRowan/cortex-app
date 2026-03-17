@@ -73,16 +73,16 @@ When the LLM invokes a tool that has "ask" permission in the conversation's mode
 
 ---
 
-### Task 2: HITL interrupt mechanism in main process — `pending`
+### Task 2: HITL interrupt mechanism in main process — `complete`
 
 **Scope:** Wire up `humanInTheLoopMiddleware` from `langchain` and implement the pause/resume loop in `streamQuery`. In `getExecutorForModel`: when `askToolNames` is non-empty, add `humanInTheLoopMiddleware({ interruptOn: Object.fromEntries(askToolNames.map(n => [n, { allowedDecisions: ['approve', 'reject'] }])) })` to `createAgent`. In `LLMAgent`: add a `Map<string, { resolve(d: Decision): void; reject(e: Error): void }>` for pending approvals; implement `approveTool` and `denyTool` to resolve entries in this map. Refactor the `streamQuery` loop: wrap the `for await` in a `while(true)` that detects `__interrupt__` in `values` chunks, emits a `tool_approval_request` stream event, awaits the pending approval, and calls `executor.stream(new Command({ resume: { decisions: [decision] } }), config)` to continue; handle `signal.aborted` to reject pending approvals. Import `Command` from `@langchain/langgraph` and `humanInTheLoopMiddleware`, `HITLResponse`, `Decision` from `langchain`.
 
 **Acceptance criteria:**
-- [ ] When a tool with "ask" permission is called by the LLM, a `tool_approval_request` stream event is emitted (verified via log or manual test)
-- [ ] `approveTool(streamId)` resolves the pending approval with `{ type: 'approve' }`, the tool runs, and the LLM receives its result
-- [ ] `denyTool(streamId)` resolves with `{ type: 'reject', message: 'Tool use denied by user.' }`, the tool does not run, the LLM receives the refusal
-- [ ] Cancelling the stream (AbortSignal) rejects any pending approval and cleans up the map entry
-- [ ] `npm run type-check` passes
+- [x] When a tool with "ask" permission is called by the LLM, a `tool_approval_request` stream event is emitted (verified via log or manual test)
+- [x] `approveTool(streamId)` resolves the pending approval with `{ type: 'approve' }`, the tool runs, and the LLM receives its result
+- [x] `denyTool(streamId)` resolves with `{ type: 'reject', message: 'Tool use denied by user.' }`, the tool does not run, the LLM receives the refusal
+- [x] Cancelling the stream (AbortSignal) rejects any pending approval and cleans up the map entry
+- [x] `npm run type-check` passes
 
 **References:** `src/main/services/llm/agent.ts`, `node_modules/langchain/dist/agents/middleware/hitl.d.ts`, `src/main/ipc/llm.ts`
 
