@@ -90,5 +90,6 @@ Invokable via `/command-name`. Files are in [`commands/`](./commands/) and are t
 - **[/work-task](./commands/work-task.md)** — Subagent worker for a single inline task. Invoked by `/work-story`; not invoked directly by the user.
 - **[/plan-milestone](./commands/plan-milestone.md)** — Define a milestone and map to existing stories; flag gaps.
 - **[/create-story](./commands/create-story.md)** — Scaffold a new `planned` story (user or agent invokable).
+- **[/merge-story](./commands/merge-story.md)** — Archive the story, squash-merge the PR, delete the branch, and return main worktree to main.
 - **[/prepare-to-commit](./commands/prepare-to-commit.md)** — Review changes and apply fixes before committing.
 - **[/commit](./commands/commit.md)** — Stage and commit with Conventional Commits format.
