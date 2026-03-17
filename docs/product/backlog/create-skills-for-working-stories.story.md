@@ -174,7 +174,7 @@ Tasks must be:
 
 ---
 
-### Task 3: Create `/work-task` command — `pending`
+### Task 3: Create `/work-task` command — `complete`
 
 **Scope:** Create `.claude/commands/work-task.md`. This is the subagent worker invoked by `/work-story` for each individual task. It receives story file path, task identifier (e.g. "Task 1: Create `/refine-story` command"), and devlog path as `$ARGUMENTS`. Tasks are inline entries in the story's `## Tasks` section — there are no separate task files. The command reads the full story file to get goal, requirements, and success criteria, then locates the specific task entry by its heading to get scope, acceptance criteria, and references. It implements the task, records approach/decisions in the devlog, marks the task `complete` in the `## Tasks` section, runs `/prepare-to-commit` then `/commit`, and pushes. If implementation reveals something that materially changes the overall approach, it marks the task `blocked`, adds a `## Blocked` note in the devlog, and surfaces the issue rather than silently continuing.
 
