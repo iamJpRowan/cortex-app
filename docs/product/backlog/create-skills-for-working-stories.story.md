@@ -146,7 +146,7 @@ Tasks must be:
 
 ---
 
-### Task 2: Create `/work-story` command — `pending`
+### Task 2: Create `/work-story` command — `complete`
 
 **Scope:** Create `.claude/commands/work-story.md`. The command accepts a story file path as `$ARGUMENTS` and implements the full orchestration flow: validate wikilinks (attempt auto-fix or flag), check all 6 readiness criteria (offer `/refine-story` if any fail), create a git worktree + branch (`claude/<story-slug>` / `.claude/worktrees/<story-slug>`), create a devlog (`docs/product/devlogs/YYYY-MM-DD-<story-slug>.md`), update the story's `devlogs` frontmatter, decompose into a `## Tasks` section inline in the story file, present the task breakdown to the user for approval, then on approval spawn `/work-task` subagents sequentially for each task, and finally open a PR.
 
