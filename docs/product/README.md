@@ -17,17 +17,15 @@ The backlog contains the units of work for building. See [How we work](../agents
 
 **Processes:**
 - [Create Story](../agents/create-story.md) — Scaffold a new `planned` story in the backlog (`/create-story`)
-- [Refine Backlog Item](../agents/refine-backlog-item.md) — Refine a `planned` story to `refined` (ready for decomposition)
-- [Decompose Backlog Item](../agents/decompose-backlog-item.md) — Decompose a `refined` story into child stories or task files
-- [Work Backlog Item](../agents/work-backlog-item.md) — Implement all tasks in a story
+- `/refine-story` — Refine a `planned` story until it meets readiness criteria
+- `/work-story` — Implement all tasks in a story and open a PR
 - [Backlog Grooming](../agents/backlog-grooming.md) — Evaluate relevance, clarify, abandon, or archive backlog items
 
 ## [Devlogs](./devlogs/README.md)
 Devlogs capture what happened during implementation — decisions made, tradeoffs, and outcomes. Each devlog is written during or after a leaf story's branch and linked from that story's `devlogs` field.
 
 **Processes:**
-- [Work Backlog Item](../agents/work-backlog-item.md) — Creates and appends to the devlog as implementation progresses
-- [Create PR Message](../agents/create-pr-message.md) — Reads the devlog to write the PR body and test steps
+- `/work-story` — Creates and appends to the devlog as implementation progresses; opens the PR when complete
 
 ## See also
 - [How we work](../agents/README.md) — Backlog lifecycle and development loop

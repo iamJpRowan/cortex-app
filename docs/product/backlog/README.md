@@ -33,7 +33,7 @@ Find all stories anywhere in the repo: glob `**/*.story.md`. Find all tasks: glo
 
 **Never modify the number prefix:** If you need to insert between 02 and 03, use `02b` or renumber all subsequent tasks. Prefer appending.
 
-**Cross-references:** All links — frontmatter and body — use wikilink format with filename slug only (no path, no extension): `[[refine-backlog-item]]`, `[[other-slug.story.md]]`. Frontmatter: `story: "[[parent-slug.story.md]]"`, `depends_on: ["[[01-dep.task.md]]"]`.
+**Cross-references:** All links — frontmatter and body — use wikilink format with filename slug only (no path, no extension): `[[other-slug.story.md]]`. Frontmatter: `story: "[[parent-slug.story.md]]"`, `depends_on: ["[[01-dep.task.md]]"]`.
 
 ## Task status values
 

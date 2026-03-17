@@ -3,7 +3,13 @@ date: 2025-01-25
 developer: Jp Rowan
 agent: Auto (Cursor)
 model: claude-sonnet-4.5
-tags: [settings, command-palette, hotkeys, kbar, electron, preferences]
+tags:
+  - settings
+  - command-palette
+  - hotkeys
+  - kbar
+  - electron
+  - preferences
 related_files:
   - src/main/services/settings.ts
   - src/main/ipc/settings.ts
@@ -19,7 +25,7 @@ related_files:
   - docs/development/feature-guides/settings.md
   - docs/product/backlog/archive/settings-command-palette-hotkeys.md
 related_issues: []
-related_devlogs:
+devlogs:
   - 2025-01-25-sidebar-layout-implementation.md
   - 2025-01-24-react-shadcn-migration.md
 session_duration: Multiple sessions across Phases 1–6

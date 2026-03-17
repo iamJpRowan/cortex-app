@@ -3,11 +3,21 @@ date: 2025-01-27
 developer: jprowan
 agent: Claude (Cursor)
 model: claude-sonnet-4.5
-tags: [scoping, planning, chat-interface, backlog-decomposition]
-related_backlog: [chat-interface-mvp, chat-sidebar-integration, kbar-smart-chat-detection, chat-quick-launcher, custom-agents, chat-interface]
+tags:
+  - scoping
+  - planning
+  - chat-interface
+  - backlog-decomposition
+backlog_items:
+  - chat-interface-mvp
+  - chat-sidebar-integration
+  - kbar-smart-chat-detection
+  - chat-quick-launcher
+  - custom-agents
+  - chat-interface
 related_files: []
 related_issues: []
-related_devlogs: []
+devlogs: []
 session_duration: ~2 hours
 iterations: 10 clarifying questions, iterative refinement
 outcome: success

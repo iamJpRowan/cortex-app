@@ -1,10 +1,16 @@
 ---
 date: 2026-02-16
 developer: jprowan
-tags: [chat, composer, markdown, tiptap]
-related_backlog: [chat-rich-markdown-input]
+tags:
+  - chat
+  - composer
+  - markdown
+  - tiptap
+backlog_items:
+  - chat-rich-markdown-input
 related_files: []
-related_devlogs: [2025-02-11-chat-ui-improvements]
+devlogs:
+  - 2025-02-11-chat-ui-improvements
 outcome: Implemented rich markdown input per backlog; follow-up fixes for mode persistence, styling, width, and nbsp normalization.
 ---
 

@@ -19,8 +19,9 @@ Use the [TEMPLATE.md](./TEMPLATE.md) to create new entries with format: `YYYY-MM
 
 **Linking (bi-directional):**
 
-- **Devlog → backlog:** Set `related_backlog` in frontmatter to the **backlog slug(s)** (filename without `.md`), e.g. `[tool-permission-system]`. Path: `docs/product/backlog/{slug}.md` (or `docs/product/backlog/archive/{slug}.md` for archived items).
-- **Backlog → devlog:** The backlog item lists this devlog by **devlog ID** (filename without `.md`) in frontmatter `devlogs`, e.g. `devlogs: [2026-02-17-chat-trace-token-usage-and-cleanup]`. Path: `docs/product/devlogs/{id}.md`. [work-backlog-item](../../agents/work-backlog-item.md) close-out adds the new devlog ID to the backlog item so the link is bi-directional. **One devlog per phase** (or per backlog item if there are no phases); append to it as beads within that phase complete. Do not create a new devlog per bead. The devlog for a phase is the primary source the [create-pr-message](../../agents/create-pr-message.md) agent reads to write the PR body and test steps.
+- **Devlog → backlog:** Set `backlog_items` in frontmatter as a list of wikilinks to the story slug(s), e.g. `["[[tool-permission-system]]"]`.
+- **Backlog → devlog:** The backlog item lists this devlog by **devlog ID** (filename without `.md`) in frontmatter `devlogs`, e.g. `devlogs: [2026-02-17-chat-trace-token-usage-and-cleanup]`. `/work-story` sets this link automatically. **One devlog per story**; append to it as tasks complete. Do not create a new devlog per task.
+- **File references in content:** When mentioning a specific file in the devlog body, use a markdown link, e.g. [work-story.md](.claude/commands/work-story.md).
 
 Devlogs are where **implementation** for a backlog item is documented as it occurs: approach taken, decisions, what was built, what's remaining. The backlog item holds requirements and success criteria; the devlog holds the narrative of how the work was done.
 

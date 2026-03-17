@@ -3,8 +3,16 @@ date: 2026-03-08
 developer: Jp Rowan
 agent: Claude Sonnet 4.6
 model: claude-sonnet-4-6
-tags: [tools, permissions, agent, modes, executor, cache, closeout]
-related_backlog: [tool-permission-system]
+tags:
+  - tools
+  - permissions
+  - agent
+  - modes
+  - executor
+  - cache
+  - closeout
+backlog_items:
+  - tool-permission-system
 related_files:
   - src/main/services/llm/tools/registry.ts
   - src/main/services/llm/tools/permission-resolver.ts
@@ -13,7 +21,7 @@ related_files:
   - src/main/ipc/llm.ts
   - src/renderer/src/components/ChatView.tsx
 related_issues: []
-related_devlogs:
+devlogs:
   - 2026-02-16-tool-permission-system-phase-1
   - 2026-02-23-tool-permission-modes-ui-and-shared-config
 session_duration: multiple

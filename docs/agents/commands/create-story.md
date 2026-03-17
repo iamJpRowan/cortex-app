@@ -77,7 +77,7 @@ Confirm in one message:
 > Story created at `docs/product/backlog/<slug>.story.md` with status `planned`.
 >
 > Next steps:
-> - `/refine-backlog-item` — flesh out requirements and success criteria so it can be decomposed
+> - `/refine-story` — flesh out requirements and success criteria
 > - Return to `/plan-milestone` — if this was created to fill a gap in a milestone
 
 Do not write more than this in chat.
@@ -88,12 +88,12 @@ Do not write more than this in chat.
 
 | When | Action |
 |---|---|
-| Always (when invoked by user) | Offer `/refine-backlog-item` to get to `refined` in the same session |
+| Always (when invoked by user) | Offer `/refine-story` to flesh out requirements in the same session |
 | Story touches an unsettled concept | Recommend `defining-core-concepts` before refining |
 | Created as gap fill during planning | Return context to `/plan-milestone` so it can link the new story |
 
 ## Constraints
 
 - Status is always `planned` on creation — never `refined` or beyond
-- Do not write task files; that is `decompose-backlog-item`'s job
-- Keep the body minimal — stub sections only; full requirements come from `refine-backlog-item`
+- Do not write task files; task decomposition happens in `/work-story`
+- Keep the body minimal — stub sections only; full requirements come from `/refine-story`

@@ -2,9 +2,17 @@
 date: 2026-02-22
 developer: cortex-app
 agent: Cursor (Auto)
-model: -
-tags: [tools, guardrails, context-window, neo4j, factory, content-length]
-related_backlog: [bounded-tool-results-and-chat-ui-stability]
+model:
+  - 
+tags:
+  - tools
+  - guardrails
+  - context-window
+  - neo4j
+  - factory
+  - content-length
+backlog_items:
+  - bounded-tool-results-and-chat-ui-stability
 related_files:
   - src/main/services/llm/content-guardrails.ts
   - src/main/services/llm/tools/factory.ts
@@ -14,7 +22,7 @@ related_files:
   - src/renderer/src/components/ai-elements/tool-invocation.tsx
   - docs/development/feature-guides/adding-a-tool.md
 related_issues: []
-related_devlogs:
+devlogs:
   - 2026-02-17-chat-trace-token-usage-and-cleanup
   - 2026-02-16-tool-permission-system-phase-1
 session_duration: multi-session

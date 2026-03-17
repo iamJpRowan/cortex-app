@@ -73,11 +73,9 @@ Phases overlap — as soon as one leaf story reaches `next`, `/work-story` can b
 ## Workflow docs
 Each doc is a set of explicit instructions for that conversation type. When the user references one by name or phrase, read and follow it.
 
-- **`/refine-story` skill** / **[refine-backlog-item](./refine-backlog-item.md)** — Refine a story until it is ready to be worked autonomously. Sets status to `next`.
-- **`/work-story` skill** / **[work-backlog-item](./work-backlog-item.md)** — Validate readiness, create worktree/branch, decompose into tasks, drive implementation to a PR.
+- **`/refine-story` skill** — Refine a story until it meets all readiness criteria. Does not change status.
+- **`/work-story` skill** — Validate readiness, create branch, decompose into tasks, drive implementation to a PR.
 - **`/work-task` skill** — Subagent worker invoked by `/work-story` for each task. Not invoked directly by the user.
-- **[decompose-backlog-item](./decompose-backlog-item.md)** — Manual workflow: decompose a story into child stories or task files.
-- **[create-pr-message](./create-pr-message.md)** — Open a PR when all tasks are complete; invoked by `/work-story`.
 - **[defining-core-concepts](./defining-core-concepts.md)** — Define or refine how the product works; trickle-down to architecture, user docs, backlog.
 - **[backlog-grooming](./backlog-grooming.md)** — Backlog hygiene (clarify, abandon, archive).
 - **[docs-cleanup](./docs-cleanup.md)** — Docs-only cleanup (links, user vs dev, devlog related_backlog).
@@ -85,7 +83,11 @@ Each doc is a set of explicit instructions for that conversation type. When the 
 ## Commands
 Invokable via `/command-name`. Files are in [`commands/`](./commands/) and are the authoritative definition for each command.
 
+- **[/refine-story](./commands/refine-story.md)** — Evaluate a story's readiness criteria, ask targeted questions, and update the file. Does not change status.
+- **[/work-story](./commands/work-story.md)** — Full orchestrator: validate links, check readiness, create story branch in main worktree, decompose into tasks, wait for approval, create agent worktree, drive implementation, open PR, remove worktree.
+- **[/work-task](./commands/work-task.md)** — Subagent worker for a single inline task. Invoked by `/work-story`; not invoked directly by the user.
 - **[/plan-milestone](./commands/plan-milestone.md)** — Define a milestone and map to existing stories; flag gaps.
 - **[/create-story](./commands/create-story.md)** — Scaffold a new `planned` story (user or agent invokable).
+- **[/merge-story](./commands/merge-story.md)** — Archive the story, squash-merge the PR, delete the branch, and return main worktree to main.
 - **[/prepare-to-commit](./commands/prepare-to-commit.md)** — Review changes and apply fixes before committing.
 - **[/commit](./commands/commit.md)** — Stage and commit with Conventional Commits format.

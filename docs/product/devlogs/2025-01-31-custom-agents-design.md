@@ -3,11 +3,20 @@ date: 2025-01-31
 developer: jprowan
 agent: Claude (Cursor)
 model: claude-sonnet-4-20250514
-tags: [design, planning, chat, agents, terminology, backlog]
-related_backlog: [custom-agents, sub-agent-delegation, deep-agents-adoption]
+tags:
+  - design
+  - planning
+  - chat
+  - agents
+  - terminology
+  - backlog
+backlog_items:
+  - custom-agents
+  - sub-agent-delegation
+  - deep-agents-adoption
 related_files: []
 related_issues: []
-related_devlogs:
+devlogs:
   - 2025-01-27-chat-interface-scoping
 session_duration: ~1.5 hours
 iterations: collaborative discussion with iterative refinement
