@@ -14,14 +14,6 @@ The story file and devlog are the source of truth. Keep chat responses minimal; 
 
 ## Process
 
-### Step 0: Resolve story path
-
-If `$ARGUMENTS` is empty, ask the user:
-
-> Which story would you like to work on? Please provide the path to the story file (e.g. `docs/product/backlog/my-feature.story.md`).
-
-Wait for their reply before proceeding. Use the provided path as the story path for all subsequent steps.
-
 ### Step 1: Validate wikilinks
 
 Read the story file. Identify all wikilinks in the body and frontmatter (format: `[[slug]]` or `[[slug|Display Text]]`).

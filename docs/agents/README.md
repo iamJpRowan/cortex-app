@@ -86,7 +86,7 @@ Each doc is a set of explicit instructions for that conversation type. When the 
 Invokable via `/command-name`. Files are in [`commands/`](./commands/) and are the authoritative definition for each command.
 
 - **[/refine-story](./commands/refine-story.md)** — Evaluate a story's readiness criteria, ask targeted questions, and update the file. Does not change status.
-- **[/work-story](./commands/work-story.md)** — Full orchestrator: validate links, check readiness, create worktree + devlog, decompose into tasks, drive implementation, open PR.
+- **[/work-story](./commands/work-story.md)** — Full orchestrator: validate links, check readiness, create story branch in main worktree, decompose into tasks, wait for approval, create agent worktree, drive implementation, open PR, remove worktree.
 - **[/work-task](./commands/work-task.md)** — Subagent worker for a single inline task. Invoked by `/work-story`; not invoked directly by the user.
 - **[/plan-milestone](./commands/plan-milestone.md)** — Define a milestone and map to existing stories; flag gaps.
 - **[/create-story](./commands/create-story.md)** — Scaffold a new `planned` story (user or agent invokable).
