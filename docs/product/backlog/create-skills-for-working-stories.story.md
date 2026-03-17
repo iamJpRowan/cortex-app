@@ -1,9 +1,10 @@
 ---
 type: story
 title: Create Skills for Working Stories
-status: planned
+status: in progress
 summary: Build /work-story, /refine-story, and /work-task skills that automate the full lifecycle from story validation through task execution to PR creation.
-themes: ["dx"]
+themes: ['developer-experience']
+devlogs: [2026-03-17-create-skills-for-working-stories]
 ---
 
 [Docs](../../README.md) / [Product](../README.md) / [Backlog](./README.md) / Create Skills for Working Stories
@@ -33,7 +34,7 @@ No blocking story dependencies. Skills are self-contained files in `.claude/skil
 3. Evaluate each **readiness criterion** (see §Readiness criteria below) and report which are satisfied and which are missing.
 4. For each missing criterion, ask the user one focused question at a time. Do not ask about multiple things in one turn.
 5. Update the story file in place as the user provides answers — keep the doc as state.
-6. When all criteria are met, set `status: refined` in frontmatter and confirm.
+6. When all criteria are met, confirm — do not change the story's status.
 
 ### 2. `/work-story` skill
 
@@ -44,12 +45,12 @@ No blocking story dependencies. Skills are self-contained files in `.claude/skil
 5. **Create devlog.** `docs/product/devlogs/YYYY-MM-DD-<story-slug>.md` with the story slug in `related_backlog`. Update the story's `devlogs` frontmatter to point to it.
 6. **Decompose into tasks.** Write a `## Tasks` section into the story file. Each task is a structured entry (see §Task format below). Present the full task breakdown to the user for approval before beginning any implementation.
 7. **Work tasks sequentially.** On user approval, spawn a `/work-task` subagent for each task in order, passing: story file path, task index/title, devlog path, worktree path. Wait for each subagent to complete before starting the next (tasks may have dependencies).
-8. **Create PR.** When all tasks are complete, open a pull request targeting `main` with the story title, a summary from the devlog, and test steps derived from the story's success criteria.
+8. **Create PR.** When all tasks are complete, set the story's frontmatter status to `ready to review`, then open a pull request targeting `main` with the story title, a summary from the devlog, and test steps derived from the story's success criteria.
 
 ### 3. `/work-task` skill (subagent)
 
-1. Receive context: story file path, task identifier, devlog path. All paths are in the worktree.
-2. Read the story file (goal, requirements, success criteria), the specific task entry, and the devlog (existing decisions and approach).
+1. Receive context: story file path, task identifier (heading title, e.g. "Task 1: Create `/refine-story` command"), devlog path. All paths are in the worktree.
+2. Read the story file to get goal, requirements, and success criteria. Locate the task entry by its heading in the `## Tasks` section to get scope, acceptance criteria, and references. Read the devlog for existing decisions and approach.
 3. Implement the task. Follow the same principles as `work-backlog-item.md`: functionality first, use existing patterns, prefer reuse over new abstractions.
 4. Record approach and any decisions in the devlog before and during implementation.
 5. When the task is testable, mark it complete in the story's `## Tasks` section.
@@ -81,6 +82,7 @@ Tasks live in a `## Tasks` section appended to the story file during decompositi
 **Scope:** What this task covers — specific enough to implement without reading beyond the story file.
 
 **Acceptance criteria:**
+
 - [ ] Criterion one
 - [ ] Criterion two
 
@@ -90,6 +92,7 @@ Tasks live in a `## Tasks` section appended to the story file during decompositi
 Status values: `pending` → `in-progress` → `complete` | `blocked`.
 
 Tasks must be:
+
 - Completable in a single agent session (~10–30 min of agent work).
 - Ordered so that each task's dependencies are complete before it begins.
 - Sized to deliver a meaningful, testable unit of progress (not a single rename; not a full subsystem).
@@ -102,7 +105,7 @@ Tasks must be:
 
 ## Success criteria
 
-- `/refine-story docs/product/backlog/some-story.story.md` reads the story, identifies missing readiness criteria, asks targeted questions, updates the file, and sets `status: next` when all criteria are met.
+- `/refine-story docs/product/backlog/some-story.story.md` reads the story, identifies missing readiness criteria, asks targeted questions, updates the file, and confirms when all criteria are met (story status unchanged).
 - `/work-story docs/product/backlog/some-story.story.md` on a ready story: validates links, evaluates readiness (passes), creates a worktree and branch, creates a devlog, proposes a `## Tasks` section, and waits for user approval before working.
 - After user approval, `/work-story` spawns `/work-task` for each task in order. Each task is implemented, committed, and pushed before the next begins.
 - The devlog is created before any implementation begins and is updated by each `/work-task` subagent with approach, decisions, and completion notes.
@@ -117,3 +120,74 @@ Tasks must be:
 - [[refine-backlog-item]] — Definition of "refined" and the refinement process; `/refine-story` implements this as a skill.
 - [[how-we-work]] — Backlog lifecycle, status values, and the Theme → Story → Task hierarchy.
 - [[TEMPLATE.story.md]] — Story file format including frontmatter fields and status values.
+
+## Tasks
+
+### Task 1: Create `/refine-story` command — `pending`
+
+**Scope:** Create `.claude/commands/refine-story.md`. The command accepts a story file path as `$ARGUMENTS`, reads the story and all wikilinked docs, flags broken links, evaluates all 6 readiness criteria (from the story spec), and for each failing criterion asks the user one focused question at a time. Updates the story file in place as the user answers. When all criteria pass, sets `status: refined` in frontmatter and confirms. Does not proceed to implementation — this is a pure refinement conversation skill.
+
+**Acceptance criteria:**
+
+- [ ] File exists at `.claude/commands/refine-story.md` with correct frontmatter (`name`, `description`, `allowed-tools`)
+- [ ] Command reads story path from `$ARGUMENTS`
+- [ ] Evaluates all 6 readiness criteria defined in the story spec
+- [ ] Reports which criteria pass and which fail before asking questions
+- [ ] Asks exactly one question per turn for each failing criterion
+- [ ] Updates story file in place as answers are received
+- [ ] Confirms all criteria are met; does not change story status
+
+**References:**
+
+- `docs/agents/refine-backlog-item.md`
+- `docs/product/backlog/create-skills-for-working-stories.story.md` (§Readiness criteria, §Requirements 1)
+- `.claude/commands/plan-milestone.md` (command format reference)
+
+---
+
+### Task 2: Create `/work-story` command — `pending`
+
+**Scope:** Create `.claude/commands/work-story.md`. The command accepts a story file path as `$ARGUMENTS` and implements the full orchestration flow: validate wikilinks (attempt auto-fix or flag), check all 6 readiness criteria (offer `/refine-story` if any fail), create a git worktree + branch (`claude/<story-slug>` / `.claude/worktrees/<story-slug>`), create a devlog (`docs/product/devlogs/YYYY-MM-DD-<story-slug>.md`), update the story's `devlogs` frontmatter, decompose into a `## Tasks` section inline in the story file, present the task breakdown to the user for approval, then on approval spawn `/work-task` subagents sequentially for each task, and finally open a PR.
+
+**Acceptance criteria:**
+
+- [ ] File exists at `.claude/commands/work-story.md` with correct frontmatter
+- [ ] Reads story path from `$ARGUMENTS`
+- [ ] Validates wikilinks; attempts auto-fix before flagging to user
+- [ ] Evaluates all 6 readiness criteria; offers `/refine-story` if any fail
+- [ ] Creates worktree at `.claude/worktrees/<story-slug>` on branch `claude/<story-slug>`
+- [ ] Creates devlog with correct frontmatter and updates story's `devlogs` field
+- [ ] Writes `## Tasks` section to story file following the task format from the story spec
+- [ ] Presents full task breakdown and waits for user approval before implementation
+- [ ] Spawns `/work-task` for each task sequentially after approval
+- [ ] Sets story status to `ready to review` before opening PR
+- [ ] Opens a PR targeting `main` with title, devlog summary, and test steps from success criteria
+
+**References:**
+
+- `docs/agents/work-backlog-item.md`
+- `docs/agents/decompose-backlog-item.md`
+- `docs/product/backlog/create-skills-for-working-stories.story.md` (§Requirements 2, §Task format, §Readiness criteria)
+- `.claude/commands/plan-milestone.md` (command format reference)
+
+---
+
+### Task 3: Create `/work-task` command — `pending`
+
+**Scope:** Create `.claude/commands/work-task.md`. This is the subagent worker invoked by `/work-story` for each individual task. It receives story file path, task identifier (e.g. "Task 1: Create `/refine-story` command"), and devlog path as `$ARGUMENTS`. Tasks are inline entries in the story's `## Tasks` section — there are no separate task files. The command reads the full story file to get goal, requirements, and success criteria, then locates the specific task entry by its heading to get scope, acceptance criteria, and references. It implements the task, records approach/decisions in the devlog, marks the task `complete` in the `## Tasks` section, runs `/prepare-to-commit` then `/commit`, and pushes. If implementation reveals something that materially changes the overall approach, it marks the task `blocked`, adds a `## Blocked` note in the devlog, and surfaces the issue rather than silently continuing.
+
+**Acceptance criteria:**
+
+- [ ] File exists at `.claude/commands/work-task.md` with correct frontmatter
+- [ ] Reads story path, task identifier, and devlog path from `$ARGUMENTS`
+- [ ] Reads the full story file for goal/requirements/success criteria, then locates the task entry by heading in `## Tasks`
+- [ ] Records approach in devlog before implementation begins
+- [ ] Sets task status to `in-progress` at start, `complete` on finish
+- [ ] Invokes `/prepare-to-commit` then `/commit` and pushes after task completion
+- [ ] On material blocker: sets task to `blocked`, adds `## Blocked` note to devlog, surfaces to user
+
+**References:**
+
+- `docs/agents/work-backlog-item.md`
+- `docs/product/backlog/create-skills-for-working-stories.story.md` (§Requirements 3)
+- `.claude/commands/prepare-to-commit.md`, `.claude/commands/commit.md`
