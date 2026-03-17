@@ -64,3 +64,31 @@ Wired up the full human-in-the-loop interrupt mechanism using `humanInTheLoopMid
 - The IPC handlers in `src/main/ipc/llm.ts` already forward to `getLLMAgentService().approveTool/denyTool` from Task 1; no changes needed there
 
 `npm run type-check` passes with no errors.
+
+## Task 3: Approval card UI in renderer — complete
+
+Added the inline `ToolApprovalCard` component and wired `tool_approval_request` events into `ChatView`.
+
+**New file: `src/renderer/src/components/ai-elements/tool-approval-card.tsx`**
+
+- `ToolApprovalCard` component renders: tool name with a `ShieldQuestion` icon, `toolDescription`, args via `ToolInvocationDetails`, and Approve/Deny buttons
+- Approve/Deny buttons disable themselves (`clicked` state) immediately on click to prevent double-submits
+- Exported props: `event: StreamToolApprovalEvent`, `onApprove: () => void`, `onDeny: () => void`
+- Follows `tool-invocation.tsx` visual patterns (icon, label, `ToolInvocationDetails` args block)
+
+**Changes to `src/renderer/src/types/api.d.ts`**
+
+- Added `StreamToolApprovalEvent` to the import and re-export list
+- Added `approveTool(streamId)` and `denyTool(streamId, message?)` method stubs to the `llm` API namespace
+
+**Changes to `src/renderer/src/components/ChatView.tsx`**
+
+- Imported `ToolApprovalCard` and `StreamToolApprovalEvent`
+- Added `pendingApproval: StreamToolApprovalEvent | null` state (cleared on `complete`, `error`, `cancelled`, or button click)
+- Added `case 'tool_approval_request'` in `handleStreamEvent` — sets `pendingApproval`
+- Cleared `pendingApproval` in `complete`, `cancelled`, and `error` cases
+- Added `handleApproveTool` and `handleDenyTool` callbacks (call `window.api.llm.approveTool/denyTool`, clear state)
+- Added `pendingApproval`, `onApproveTool`, `onDenyTool` props to `ChatTurn` (optional, only the streaming turn passes them)
+- `ToolApprovalCard` is rendered inside `ChatTurn` after the `Message` block when `pendingApproval` is set
+
+`npm run type-check` passes; no new lint errors.

@@ -88,18 +88,18 @@ When the LLM invokes a tool that has "ask" permission in the conversation's mode
 
 ---
 
-### Task 3: Approval card UI in renderer — `pending`
+### Task 3: Approval card UI in renderer — `complete`
 
 **Scope:** Add a `ToolApprovalCard` component in `src/renderer/src/components/ai-elements/`; wire `tool_approval_request` events in `ChatView.tsx` to display the card inline in the message stream. `ToolApprovalCard` renders tool name, description (from the event), and args (using the existing `ToolInvocationDetails` args block pattern); Approve and Deny buttons call `window.api.llm.approveTool(streamId)` and `window.api.llm.denyTool(streamId)` and disable themselves after click. In `ChatView`: track `pendingApproval: StreamToolApprovalEvent | null` state; on `tool_approval_request` set it; render the card below `streamingContent` in the streaming message area; clear on `complete`, `error`, `cancelled`, or when either button is clicked.
 
 **Acceptance criteria:**
-- [ ] `ToolApprovalCard` component exists; renders tool name, description, args, Approve and Deny buttons
-- [ ] Approval card appears in the message stream when an "ask" tool is invoked
-- [ ] Clicking Approve calls `window.api.llm.approveTool(streamId)`; clicking Deny calls `window.api.llm.denyTool(streamId)`
-- [ ] Buttons are disabled (or card removed) after user clicks
-- [ ] Card is removed when stream ends (`complete`, `error`, `cancelled`)
-- [ ] Follows existing `tool-invocation.tsx` visual patterns (icon, label, collapsible details)
-- [ ] `npm run type-check` passes; no lint errors
+- [x] `ToolApprovalCard` component exists; renders tool name, description, args, Approve and Deny buttons
+- [x] Approval card appears in the message stream when an "ask" tool is invoked
+- [x] Clicking Approve calls `window.api.llm.approveTool(streamId)`; clicking Deny calls `window.api.llm.denyTool(streamId)`
+- [x] Buttons are disabled (or card removed) after user clicks
+- [x] Card is removed when stream ends (`complete`, `error`, `cancelled`)
+- [x] Follows existing `tool-invocation.tsx` visual patterns (icon, label, collapsible details)
+- [x] `npm run type-check` passes; no lint errors
 
 **References:** `src/renderer/src/components/ai-elements/tool-invocation.tsx`, `src/renderer/src/components/ChatView.tsx`, `src/renderer/src/components/ai-elements/message.tsx`, `docs/development/design/ui-guide.md`
 
