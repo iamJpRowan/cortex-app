@@ -7,6 +7,7 @@ import {
   Loader2,
   FileEdit,
   MessageSquareDot,
+  ShieldQuestion,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -38,6 +39,8 @@ interface ConversationListProps {
   modelList?: ListModelsResult | null
   /** Conversation currently receiving a stream (shows spinner). */
   streamingConversationId?: string
+  /** Set of conversation IDs with a pending tool approval (shows approval badge). */
+  pendingApprovalConversationIds?: Set<string>
   /** Conversation ID currently generating title (shows "Generating title..." in list). */
   generatingTitleConversationId?: string
   /** Whether the selected conversation has an unsaved draft. */
@@ -77,6 +80,7 @@ export const ConversationList = React.forwardRef<
     onTitleUpdate,
     modelList,
     streamingConversationId,
+    pendingApprovalConversationIds,
     generatingTitleConversationId,
     selectedConversationHasDraft = false,
     lastMessageAt = {},
@@ -336,6 +340,8 @@ export const ConversationList = React.forwardRef<
           <div className="flex flex-col gap-1 p-2">
             {filteredConversations.map(conversation => {
               const isStreaming = streamingConversationId === conversation.id
+              const hasPendingApproval =
+                pendingApprovalConversationIds?.has(conversation.id) ?? false
               const isGeneratingTitle = generatingTitleConversationId === conversation.id
               const hasDraftIcon = hasDraft(conversation.id)
               const unread = isUnread(conversation)
@@ -401,6 +407,11 @@ export const ConversationList = React.forwardRef<
                               <Loader2
                                 className="h-3 w-3 animate-spin text-muted-foreground"
                               />
+                            </span>
+                          )}
+                          {hasPendingApproval && (
+                            <span title="Awaiting tool approval">
+                              <ShieldQuestion className="h-3 w-3 text-warning-600" />
                             </span>
                           )}
                           {unread && (

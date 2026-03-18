@@ -37,6 +37,7 @@ import {
   MessageAction,
 } from '@/components/ai-elements/message'
 import { ToolInvocationDetails } from '@/components/ai-elements/tool-invocation'
+import { ToolApprovalCard } from '@/components/ai-elements/tool-approval-card'
 import {
   Collapsible,
   CollapsibleContent,
@@ -48,6 +49,7 @@ import { ProviderIcon, getProviderIdFromModelId } from './ProviderIcon'
 import type {
   ChatMessage,
   StreamEvent,
+  StreamToolApprovalEvent,
   TraceEntry,
   ConversationMetadata,
   TurnBlock,
@@ -136,6 +138,12 @@ export function ChatView() {
     React.useState<string | null>(null)
   /** Stream ID of the active stream (for cancel). Cleared on complete/error/cancelled. */
   const [currentStreamId, setCurrentStreamId] = React.useState<string | null>(null)
+  /** Pending tool approval request (for "ask" tools). Cleared on complete/error/cancelled or button click. */
+  const [pendingApproval, setPendingApproval] =
+    React.useState<StreamToolApprovalEvent | null>(null)
+  /** Set of conversation IDs that have a pending tool approval (for sidebar indicator). */
+  const [pendingApprovalConversationIds, setPendingApprovalConversationIds] =
+    React.useState<Set<string>>(new Set())
   /** Chat sidebar width in px (resizable, persisted). */
   const [sidebarWidth, setSidebarWidth] = React.useState(() => {
     const stored = localStorage.getItem(CHAT_SIDEBAR_WIDTH_KEY)
@@ -471,6 +479,12 @@ export function ChatView() {
       setStreamingConversationId(prev =>
         prev === event.conversationId ? undefined : prev
       )
+      setPendingApprovalConversationIds(prev => {
+        if (!prev.has(event.conversationId)) return prev
+        const next = new Set(prev)
+        next.delete(event.conversationId)
+        return next
+      })
       setCurrentStreamId(null)
       if (streamingThrottleTimeoutRef.current) {
         clearTimeout(streamingThrottleTimeoutRef.current)
@@ -572,7 +586,18 @@ export function ChatView() {
         break
       }
 
+      case 'tool_approval_request': {
+        setPendingApproval(event)
+        setPendingApprovalConversationIds(prev => {
+          const next = new Set(prev)
+          next.add(event.conversationId)
+          return next
+        })
+        break
+      }
+
       case 'complete': {
+        setPendingApproval(null)
         setGeneratingTitleConversationId(prev =>
           prev === event.conversationId ? null : prev
         )
@@ -606,6 +631,7 @@ export function ChatView() {
       }
 
       case 'cancelled': {
+        setPendingApproval(null)
         setGeneratingTitleConversationId(prev =>
           prev === event.conversationId ? null : prev
         )
@@ -628,6 +654,7 @@ export function ChatView() {
       }
 
       case 'error': {
+        setPendingApproval(null)
         console.error('Stream error:', event.error)
         setStreamingContent('')
         setStreamingBlocks([])
@@ -928,6 +955,38 @@ export function ChatView() {
     }
   }
 
+  const handleApproveTool = React.useCallback(() => {
+    if (!currentStreamId) return
+    setPendingApproval(null)
+    if (conversationId) {
+      setPendingApprovalConversationIds(prev => {
+        if (!prev.has(conversationId)) return prev
+        const next = new Set(prev)
+        next.delete(conversationId)
+        return next
+      })
+    }
+    window.api.llm.approveTool(currentStreamId).catch(err => {
+      console.error('approveTool failed:', err)
+    })
+  }, [currentStreamId, conversationId])
+
+  const handleDenyTool = React.useCallback(() => {
+    if (!currentStreamId) return
+    setPendingApproval(null)
+    if (conversationId) {
+      setPendingApprovalConversationIds(prev => {
+        if (!prev.has(conversationId)) return prev
+        const next = new Set(prev)
+        next.delete(conversationId)
+        return next
+      })
+    }
+    window.api.llm.denyTool(currentStreamId).catch(err => {
+      console.error('denyTool failed:', err)
+    })
+  }, [currentStreamId])
+
   /** Memoized streaming message so we don't create a new object on every unrelated re-render. */
   const streamingMessage = React.useMemo((): ChatMessage | null => {
     if (!streamingContent && !isLoading) return null
@@ -984,6 +1043,7 @@ export function ChatView() {
           onTitleUpdate={() => {}}
           modelList={modelList}
           streamingConversationId={streamingConversationId}
+          pendingApprovalConversationIds={pendingApprovalConversationIds}
           generatingTitleConversationId={generatingTitleConversationId ?? undefined}
           selectedConversationHasDraft={input.trim().length > 0}
           lastMessageAt={lastMessageAt}
@@ -1101,6 +1161,9 @@ export function ChatView() {
                   showStillWorking={showStillWorking}
                   toolMetadataMap={toolMetadataMap}
                   defaultStepsExpanded={true}
+                  pendingApproval={pendingApproval}
+                  onApproveTool={handleApproveTool}
+                  onDenyTool={handleDenyTool}
                 />
               )}
             </ConversationContent>
@@ -1328,6 +1391,9 @@ const ChatTurn = React.memo(function ChatTurn({
   showStillWorking = false,
   toolMetadataMap,
   defaultStepsExpanded = false,
+  pendingApproval = null,
+  onApproveTool,
+  onDenyTool,
 }: {
   message: ChatMessage
   modelList?: ListModelsResult | null
@@ -1337,6 +1403,9 @@ const ChatTurn = React.memo(function ChatTurn({
   showStillWorking?: boolean
   toolMetadataMap: Map<string, { displayName?: string; icon?: string }>
   defaultStepsExpanded?: boolean
+  pendingApproval?: StreamToolApprovalEvent | null
+  onApproveTool?: () => void
+  onDenyTool?: () => void
 }) {
   const isUser = message.role === 'user'
   const [restoring, setRestoring] = React.useState(false)
@@ -1482,6 +1551,17 @@ const ChatTurn = React.memo(function ChatTurn({
           </MessageActions>
         )}
       </Message>
+
+      {/* Inline tool approval card — shown only during streaming when an "ask" tool fires */}
+      {pendingApproval && onApproveTool && onDenyTool && (
+        <div className="mt-2">
+          <ToolApprovalCard
+            event={pendingApproval}
+            onApprove={onApproveTool}
+            onDeny={onDenyTool}
+          />
+        </div>
+      )}
 
       {/* Message details below actions: model, tokens, timestamp (both AI and user) */}
       <div className="flex items-start justify-between pt-0.5 pb-0.5">

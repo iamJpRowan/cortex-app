@@ -5,6 +5,7 @@ import type {
   StreamEvent,
   StreamEventHandler,
   StreamQueryResult,
+  StreamToolApprovalEvent,
   ListModelsResult,
   ConversationMetadata,
   ListConversationsOptions,
@@ -59,6 +60,13 @@ export interface API {
      * Cancel an active stream by stream ID.
      */
     cancelStream: (streamId: string) => Promise<void>
+    /** Approve a pending tool approval request by stream ID. */
+    approveTool: (streamId: string) => Promise<{ success: boolean; error?: string }>
+    /** Deny a pending tool approval request by stream ID. */
+    denyTool: (
+      streamId: string,
+      message?: string
+    ) => Promise<{ success: boolean; error?: string }>
     toolsList: () => Promise<{
       success: boolean
       tools?: Array<{ name: string; metadata: unknown }>
@@ -293,6 +301,7 @@ export type {
   StreamEvent,
   StreamEventHandler,
   StreamQueryResult,
+  StreamToolApprovalEvent,
   ListModelsResult,
   ConversationMetadata,
   ListConversationsOptions,
