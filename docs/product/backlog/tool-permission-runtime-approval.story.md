@@ -105,15 +105,15 @@ When the LLM invokes a tool that has "ask" permission in the conversation's mode
 
 ---
 
-### Task 4: Sidebar pending-approval indicator — `pending`
+### Task 4: Sidebar pending-approval indicator — `complete`
 
 **Scope:** Track which conversations have a pending approval in `ChatView` state; pass the set to `ConversationList`; show an icon or badge on conversation rows awaiting approval, matching the existing "streaming" indicator pattern (`streamingConversationId`). Clear the indicator when the stream's approval is resolved or the stream ends.
 
 **Acceptance criteria:**
-- [ ] When conversation A has a pending approval and the user switches to conversation B, conversation A's row in the sidebar shows a pending-approval indicator (icon or badge)
-- [ ] The indicator is distinct from the streaming spinner
-- [ ] The indicator is cleared when the stream completes (approve, deny, cancel, or error)
-- [ ] No indicator shown for conversations without a pending approval
-- [ ] `npm run type-check` passes; no lint errors
+- [x] When conversation A has a pending approval and the user switches to conversation B, conversation A's row in the sidebar shows a pending-approval indicator (icon or badge)
+- [x] The indicator is distinct from the streaming spinner
+- [x] The indicator is cleared when the stream completes (approve, deny, cancel, or error)
+- [x] No indicator shown for conversations without a pending approval
+- [x] `npm run type-check` passes; no lint errors
 
 **References:** `src/renderer/src/components/ConversationList.tsx`, `src/renderer/src/components/ChatView.tsx`

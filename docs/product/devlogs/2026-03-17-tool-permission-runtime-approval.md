@@ -7,7 +7,7 @@ session_id:
 tags: []
 backlog_items: ["[[tool-permission-runtime-approval]]"]
 related_issues: []
-outcome: in-progress
+outcome: complete
 ---
 
 # Context
@@ -92,3 +92,24 @@ Added the inline `ToolApprovalCard` component and wired `tool_approval_request` 
 - `ToolApprovalCard` is rendered inside `ChatTurn` after the `Message` block when `pendingApproval` is set
 
 `npm run type-check` passes; no new lint errors.
+
+## Task 4: Sidebar pending-approval indicator — complete
+
+Added the sidebar indicator so that when any conversation has a pending "ask" tool approval, its row in the conversation list shows a distinct badge — even when that conversation is not in focus.
+
+**Changes to `src/renderer/src/components/ChatView.tsx`:**
+
+- Added `pendingApprovalConversationIds: Set<string>` state alongside the existing `streamingConversationId` state
+- In `handleStreamEvent`, in the "always-run" block (before the per-conversation early return): on `complete`, `error`, or `cancelled` events, removes the conversation's ID from `pendingApprovalConversationIds` — this fires even when the user is viewing a different conversation
+- In the `tool_approval_request` switch case: adds the event's `conversationId` to `pendingApprovalConversationIds` in addition to setting `pendingApproval`
+- In `handleApproveTool` and `handleDenyTool`: clears the active `conversationId` from `pendingApprovalConversationIds` immediately on click
+- Passes `pendingApprovalConversationIds` as a new prop to `ConversationList`
+
+**Changes to `src/renderer/src/components/ConversationList.tsx`:**
+
+- Added `ShieldQuestion` to lucide-react imports
+- Added `pendingApprovalConversationIds?: Set<string>` to `ConversationListProps`
+- Derives `hasPendingApproval` per conversation row in the render loop
+- Renders a `<ShieldQuestion>` icon with `text-warning-600` color and `title="Awaiting tool approval"` when `hasPendingApproval` is true — placed after the streaming spinner so the two indicators are visually distinct
+
+`npm run type-check` passes; no lint errors.

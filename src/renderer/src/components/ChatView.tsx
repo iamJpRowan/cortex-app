@@ -141,6 +141,9 @@ export function ChatView() {
   /** Pending tool approval request (for "ask" tools). Cleared on complete/error/cancelled or button click. */
   const [pendingApproval, setPendingApproval] =
     React.useState<StreamToolApprovalEvent | null>(null)
+  /** Set of conversation IDs that have a pending tool approval (for sidebar indicator). */
+  const [pendingApprovalConversationIds, setPendingApprovalConversationIds] =
+    React.useState<Set<string>>(new Set())
   /** Chat sidebar width in px (resizable, persisted). */
   const [sidebarWidth, setSidebarWidth] = React.useState(() => {
     const stored = localStorage.getItem(CHAT_SIDEBAR_WIDTH_KEY)
@@ -476,6 +479,12 @@ export function ChatView() {
       setStreamingConversationId(prev =>
         prev === event.conversationId ? undefined : prev
       )
+      setPendingApprovalConversationIds(prev => {
+        if (!prev.has(event.conversationId)) return prev
+        const next = new Set(prev)
+        next.delete(event.conversationId)
+        return next
+      })
       setCurrentStreamId(null)
       if (streamingThrottleTimeoutRef.current) {
         clearTimeout(streamingThrottleTimeoutRef.current)
@@ -579,6 +588,11 @@ export function ChatView() {
 
       case 'tool_approval_request': {
         setPendingApproval(event)
+        setPendingApprovalConversationIds(prev => {
+          const next = new Set(prev)
+          next.add(event.conversationId)
+          return next
+        })
         break
       }
 
@@ -944,14 +958,30 @@ export function ChatView() {
   const handleApproveTool = React.useCallback(() => {
     if (!currentStreamId) return
     setPendingApproval(null)
+    if (conversationId) {
+      setPendingApprovalConversationIds(prev => {
+        if (!prev.has(conversationId)) return prev
+        const next = new Set(prev)
+        next.delete(conversationId)
+        return next
+      })
+    }
     window.api.llm.approveTool(currentStreamId).catch(err => {
       console.error('approveTool failed:', err)
     })
-  }, [currentStreamId])
+  }, [currentStreamId, conversationId])
 
   const handleDenyTool = React.useCallback(() => {
     if (!currentStreamId) return
     setPendingApproval(null)
+    if (conversationId) {
+      setPendingApprovalConversationIds(prev => {
+        if (!prev.has(conversationId)) return prev
+        const next = new Set(prev)
+        next.delete(conversationId)
+        return next
+      })
+    }
     window.api.llm.denyTool(currentStreamId).catch(err => {
       console.error('denyTool failed:', err)
     })
@@ -1013,6 +1043,7 @@ export function ChatView() {
           onTitleUpdate={() => {}}
           modelList={modelList}
           streamingConversationId={streamingConversationId}
+          pendingApprovalConversationIds={pendingApprovalConversationIds}
           generatingTitleConversationId={generatingTitleConversationId ?? undefined}
           selectedConversationHasDraft={input.trim().length > 0}
           lastMessageAt={lastMessageAt}
