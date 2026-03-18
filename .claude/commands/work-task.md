@@ -96,10 +96,11 @@ Run `/prepare-to-commit` to review all uncommitted changes and apply any fixes.
 
 Then run `/commit` to stage and commit with a Conventional Commits message.
 
-Then push:
+Then push. If running from the main worktree root (not inside the story worktree), use:
 ```bash
-git push
+git -C <worktree-path> push
 ```
+If already inside the worktree directory, plain `git push` is fine.
 
 ## Blockers
 
@@ -125,3 +126,12 @@ If during implementation you discover something that **materially changes the ov
 - Do not change the story's `status` frontmatter — only `/work-story` manages story status.
 - Do not implement anything outside the task's Scope. If you discover adjacent work that should be done, note it in the devlog as a future task.
 - One task per invocation. This command is always invoked for a single, specific task.
+
+## Shell command constraints
+
+All shell commands must use pre-approved patterns. Follow these rules to avoid permission prompts:
+
+- **Never use `cd <path> && <command>`** — use `git -C <path> <subcommand>` for git, or pass the path as an argument.
+- **Git in worktree:** `git -C <worktree-path> add .`, `git -C <worktree-path> commit -m "..."`, `git -C <worktree-path> push`, etc.
+- **npm:** `npm run <script>` only — do not invoke `tsc`, `eslint`, or `prettier` directly.
+- **File operations:** use the Read/Write/Edit/Glob/Grep tools, not shell commands like `cat`, `find`, or `grep`.
