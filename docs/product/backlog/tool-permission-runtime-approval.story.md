@@ -2,7 +2,7 @@
 type: story
 title: Tool Permission Runtime Approval
 alias: Tool Permission Runtime Approval
-status: in progress
+status: ready to review
 summary: Inline approval UI for "ask" tools — execution pauses, user approves or denies in-conversation, sidebar indicator when chat not in focus.
 themes:
   - chat-ai
